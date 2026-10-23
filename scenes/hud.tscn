@@ -1,0 +1,72 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_script"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_script")
+
+[node name="DayLabel" type="Label" parent="."]
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 70.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 8
+text = "Day 1"
+
+[node name="TimeLabel" type="Label" parent="."]
+offset_left = 130.0
+offset_top = 2.0
+offset_right = 190.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 8
+text = "09:00"
+horizontal_alignment = 1
+
+[node name="ResearchLabel" type="Label" parent="."]
+offset_left = 210.0
+offset_top = 2.0
+offset_right = 316.0
+offset_bottom = 14.0
+theme_override_font_sizes/font_size = 8
+text = "Research: 0%"
+horizontal_alignment = 2
+
+[node name="NotificationPanel" type="Control" parent="."]
+visible = false
+offset_left = 80.0
+offset_top = 105.0
+offset_right = 240.0
+offset_bottom = 155.0
+
+[node name="Background" type="ColorRect" parent="NotificationPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.08, 0.08, 0.12, 0.92)
+
+[node name="NotificationLabel" type="Label" parent="NotificationPanel"]
+offset_left = 4.0
+offset_top = 3.0
+offset_right = 156.0
+offset_bottom = 23.0
+theme_override_font_sizes/font_size = 7
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="FixButton" type="Button" parent="NotificationPanel"]
+offset_left = 8.0
+offset_top = 26.0
+offset_right = 75.0
+offset_bottom = 46.0
+theme_override_font_sizes/font_size = 7
+text = "Fix (30 min)"
+
+[node name="IgnoreButton" type="Button" parent="NotificationPanel"]
+offset_left = 85.0
+offset_top = 26.0
+offset_right = 152.0
+offset_bottom = 46.0
+theme_override_font_sizes/font_size = 7
+text = "Ignore"
+
+[connection signal="pressed" from="NotificationPanel/FixButton" to="." method="_on_fix_pressed"]
+[connection signal="pressed" from="NotificationPanel/IgnoreButton" to="." method="_on_ignore_pressed"]
