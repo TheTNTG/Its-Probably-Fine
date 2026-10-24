@@ -54,11 +54,12 @@ func _update_interaction_prompt(target: Node2D) -> void:
 	interaction_prompt.modulate = Color.WHITE
 	if target == desk:
 		var exhausted := GameState.work_sessions_remaining <= 0
-		interaction_prompt.text = "Too exhausted to work" if exhausted else "E - Work"
+		interaction_prompt.text = "Too exhausted to work" if exhausted else "E - Research"
 		interaction_prompt.modulate = Color.RED if exhausted else Color.GREEN
 		if not GameState.research_available() and not exhausted:
 			interaction_prompt.text = "E - Take a break first" if not GameState.mood_allows_research() else ("E - Research blocked (bookshelf)" if GameState.has_research_time() else "E - Not enough research time")
 			interaction_prompt.modulate = Color.RED
+		interaction_prompt.text += " · %d/%d left" % [GameState.work_sessions_remaining, GameState.DAILY_WORK_SESSIONS]
 	elif target == tiptop:
 		interaction_prompt.text = "E - Talk to TipTop" if GameState.tiptop_fixed else "E - Talk / Repair TipTop"
 	elif target == fridge:

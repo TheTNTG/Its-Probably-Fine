@@ -16,6 +16,7 @@ var difficulty_buttons: Array[Button] = []
 var difficulty_description: Label
 var selected_difficulty := 1
 var starting := false
+var tutorial_start := false
 var tiptop_sprite: Sprite2D
 var idle_time := 0.0
 
@@ -25,7 +26,7 @@ func _ready() -> void:
 	# The autoload clock stays paused; this scene contains decorative art only.
 	get_tree().paused = true
 	GameState.restart()
-	for key in ["restart_playing", "new_game_slide"]:
+	for key in ["restart_playing", "new_game_slide", "tutorial_entry"]:
 		if get_tree().has_meta(key):
 			get_tree().remove_meta(key)
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -199,9 +200,10 @@ func _close_panel(restore_focus: bool = true) -> void:
 		new_game_button.grab_focus.call_deferred()
 
 
-func _show_difficulty() -> void:
-	_open_panel("A fresh start")
-	_paragraph("Choose your pace. Medium is the default.")
+func _show_difficulty(tutorial_entry: bool = false) -> void:
+	tutorial_start = tutorial_entry
+	_open_panel("Play Tutorial" if tutorial_entry else "A fresh start")
+	_paragraph("Start a fresh guided Day 1. Skip anytime; Esc opens Pause." if tutorial_entry else "Choose your pace. Medium is the default.")
 	selected_difficulty = 1
 	difficulty_buttons.clear()
 	var row := HBoxContainer.new()
@@ -214,7 +216,7 @@ func _show_difficulty() -> void:
 	difficulty_description = _paragraph("")
 	difficulty_description.custom_minimum_size.y = 54
 	_select_difficulty(1)
-	_button(modal_body, "Begin Day 1", _begin_game)
+	_button(modal_body, "Play Tutorial" if tutorial_entry else "Begin Day 1", _begin_game)
 	_button(modal_body, "Back", _close_panel)
 	difficulty_buttons[1].grab_focus.call_deferred()
 
@@ -229,26 +231,101 @@ func _select_difficulty(index: int) -> void:
 
 func _show_help() -> void:
 	_open_panel("How to Play", 360)
-	var page := modal_body
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size.y = 170
+	scroll.custom_minimum_size.y = 168
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.focus_mode = Control.FOCUS_ALL
 	scroll.follow_focus = true
-	page.add_child(scroll)
-	modal_body = VBoxContainer.new()
-	modal_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	modal_body.add_theme_constant_override("separation", 7)
-	scroll.add_child(modal_body)
-	_paragraph("Three days until the research showcase. Aim for 75% research by Day 3. Each day runs from 11 AM to 8 PM.", 10)
-	_paragraph("MOVE  WASD / Arrow keys.  INTERACT  E near an object.\nDIALOGUE  E / Enter to continue.  PAUSE  Esc.", 9)
-	_paragraph("RESEARCH  Use the desk, up to four sessions a day. Watch, fast-forward at 6x, or Skip; all simulate the same world time. Leave enough time to finish.", 9)
-	_paragraph("TIPTOP  Repair individual routines to prevent repeat disasters. Cleaning a mess does not fix its routine. Scattered books block research; a running tap makes work slower and less productive.", 9)
-	_paragraph("TAKE A BREAK  Eat at the fridge to restore fullness. Leisure restores Mood: try the phone, games or cube. Low needs reduce efficiency; very low Mood blocks research.", 9)
-	_paragraph("REST  Interact with the bed to end the day. Time keeps moving during ordinary play, so balance work, repairs and breaks before the three-day deadline.", 9)
-	modal_body = page
-	var back := _button(modal_body, "Back", _close_panel)
-	back.grab_focus.call_deferred()
+	modal_body.add_child(scroll)
+	var cards := VBoxContainer.new()
+	cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cards.add_theme_constant_override("separation", 5)
+	scroll.add_child(cards)
+	var sections := [
+		["judy", "Judy · Move & interact", "WASD / arrows to move. E interacts; E / Enter advances dialogue."],
+		["desk", "Research", "Use the desk: four sessions a day. Work costs time and Mood."],
+		["tiptop", "TipTop", "Faulty chores make messes. Repair each routine; cleaning alone doesn't fix it."],
+		["fridge", "Fullness & Mood", "Eat at the fridge. Coffee-table leisure restores Mood. Low needs reduce research efficiency."],
+		["clock", "Time & deadline", "Reach 75% research by Day 3, 8 PM. Sleep at the bed to advance days."],
+		["activity", "Activity controls", "Watch 1x, Fast 6x or Skip to finish. Eject cancels without a completion reward."]]
+	for section in sections:
+		_help_card(cards, section[0], section[1], section[2])
+	var footer := HBoxContainer.new()
+	footer.add_theme_constant_override("separation", 6)
+	modal_body.add_child(footer)
+	var tutorial_button := _button(footer, "Play Tutorial", _show_difficulty.bind(true))
+	_button(footer, "Back", _close_panel)
+	_paragraph("Fresh guided game. Skip anytime; Esc → Main Menu exits.", 8)
+	tutorial_button.grab_focus.call_deferred()
+
+
+func _help_card(parent: Node, kind: String, title: String, text: String) -> void:
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", _style(Color("2d2b30"), Color("65574c"), 4))
+	parent.add_child(card)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	card.add_child(row)
+	var picture := Control.new()
+	picture.custom_minimum_size = Vector2(42, 36)
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(picture)
+	_help_visual(picture, kind)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_theme_constant_override("separation", 2)
+	row.add_child(copy)
+	var name_label := _label(copy, title, 10)
+	name_label.add_theme_color_override("font_color", AMBER)
+	var caption := _label(copy, text, 9)
+	caption.custom_minimum_size.x = 234
+	caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+
+func _help_visual(parent: Control, kind: String) -> void:
+	if kind in ["judy", "tiptop"]:
+		var frame := AtlasTexture.new()
+		frame.atlas = JUDY if kind == "judy" else TIPTOP
+		frame.region = Rect2(0, 0, 48, 48)
+		var image := TextureRect.new()
+		image.texture = frame
+		image.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		image.position = Vector2(5, 1)
+		image.size = Vector2(32, 34)
+		image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		parent.add_child(image)
+	elif kind in ["desk", "fridge"]:
+		var fixture := Node2D.new()
+		fixture.set_script(ART)
+		fixture.set("fixture", kind)
+		fixture.position = Vector2(21, 32)
+		fixture.scale = Vector2.ONE * 0.85
+		fixture.process_mode = Node.PROCESS_MODE_DISABLED
+		parent.add_child(fixture)
+	elif kind == "clock":
+		var rim := Line2D.new()
+		var points := PackedVector2Array()
+		for index in range(17):
+			points.append((Vector2(21, 18) + Vector2.from_angle(index * TAU / 16) * 12).round())
+		rim.points = points
+		rim.width = 1
+		rim.default_color = AMBER
+		parent.add_child(rim)
+		var hands := Line2D.new()
+		hands.points = PackedVector2Array([Vector2(21, 9), Vector2(21, 18), Vector2(28, 18)])
+		hands.width = 2
+		hands.default_color = CREAM
+		parent.add_child(hands)
+	else:
+		for x in [8, 22, 30]:
+			var arrow := Polygon2D.new()
+			arrow.polygon = PackedVector2Array([Vector2(x, 9), Vector2(x + 7, 15), Vector2(x, 21)])
+			arrow.color = AMBER
+			parent.add_child(arrow)
+		var legend := _label(parent, "1x   6x", 7)
+		legend.position = Vector2(6, 24)
 
 
 func _show_settings() -> void:
@@ -296,6 +373,8 @@ func _begin_game() -> void:
 	await fade.finished
 	GameState.restart()
 	GameState.select_difficulty(selected_difficulty)
+	if tutorial_start:
+		get_tree().set_meta("tutorial_entry", true)
 	get_tree().set_meta("restart_playing", true)
 	# The fresh HUD releases pause and starts the opening dialogue once ready.
 	get_tree().change_scene_to_file("res://scenes/room.tscn")

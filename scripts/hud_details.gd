@@ -11,15 +11,26 @@ var pinned := ""
 var dismissed := ""
 var leave_time := 0.0
 var reference_height := 288.0
+var caption: Label
+var gutter: Control
+const NAMES := {"research": "Research", "repairs": "TipTop", "time": "Time Usage", "needs": "Needs"}
 
 
-func setup(owner_hud: CanvasLayer, targets: Dictionary, pages: Dictionary, popup: PanelContainer, column: Control, height: float) -> void:
+func setup(owner_hud: CanvasLayer, targets: Dictionary, pages: Dictionary, popup: PanelContainer, column: Control, height: float, label_gutter: Control) -> void:
 	hud = owner_hud
 	buttons = targets
 	groups = pages
 	panel = popup
 	sidebar = column
 	reference_height = height
+	gutter = label_gutter
+	caption = Label.new()
+	caption.add_theme_font_size_override("font_size", 6)
+	caption.add_theme_color_override("font_color", Color("eadbc0"))
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gutter.add_child(caption)
+	caption.hide()
 	for button in buttons.values():
 		var category: String = button.get_meta("details_category")
 		button.toggle_mode = true
@@ -50,6 +61,7 @@ func _process(delta: float) -> void:
 		return
 	if not _allowed():
 		panel.hide()
+		caption.hide()
 		return
 	var hover := ""
 	var focus := ""
@@ -62,20 +74,35 @@ func _process(delta: float) -> void:
 		if focused == button:
 			focus = category
 	var inside: bool = panel.visible and panel.get_global_rect().has_point(panel.get_global_mouse_position())
+	if panel.visible and not active.is_empty():
+		var tab: Control = buttons[active]
+		var tab_rect := tab.get_global_rect()
+		var bridge := Rect2(Vector2(sidebar.get_global_rect().position.x, tab_rect.end.y), Vector2(96, maxf(0, panel.get_global_rect().position.y - tab_rect.end.y)))
+		inside = inside or bridge.has_point(panel.get_global_mouse_position())
 	var panel_focus: bool = is_instance_valid(focused) and panel.is_ancestor_of(focused)
 	if hover != dismissed and focus != dismissed:
 		dismissed = ""
 	var requested := hover if not hover.is_empty() else (active if inside or panel_focus else focus)
-	if not requested.is_empty() and requested != dismissed:
+	# A preview must never replace a deliberately pinned selection.
+	if not pinned.is_empty():
+		active = pinned
+	elif not requested.is_empty() and requested != dismissed:
 		active = requested
 		leave_time = 0.0
-	elif not pinned.is_empty():
-		active = pinned
 	elif requested.is_empty() or requested == dismissed:
 		leave_time += delta
 		# A small crossing grace period bridges the gap from icon to panel.
 		if leave_time >= 0.18:
 			active = ""
+	var label_category := hover if not hover.is_empty() else (focus if not focus.is_empty() else pinned)
+	caption.visible = not label_category.is_empty()
+	if caption.visible:
+		caption.text = NAMES[label_category]
+		var icon: Control = buttons[label_category]
+		var center: Vector2 = gutter.get_global_transform().affine_inverse() * icon.get_global_rect().get_center()
+		var label_width := caption.get_theme_font("font").get_string_size(caption.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 6).x + 4
+		caption.size = Vector2(label_width, 12)
+		caption.position = Vector2(clampf(center.x - label_width * 0.5, 0, 96 - label_width), 0).round()
 	panel.visible = not active.is_empty()
 	for category in groups:
 		groups[category].visible = category == active

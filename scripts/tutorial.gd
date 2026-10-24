@@ -11,6 +11,7 @@ var current: Dictionary = {}
 var reviewing := false
 var outline := Rect2()
 var pulse := 0.0
+var placed_step := ""
 const AMBER := Color("e6b369")
 const GUIDED_STEPS := ["guide_move", "guide_clock", "guide_desk", "guide_robot", "guide_needs", "guide_target", "guide_sleep", "guide_pause"]
 const WORLD_BOUNDS := {
@@ -61,6 +62,12 @@ func _ready() -> void:
 	skip.add_theme_font_size_override("font_size", 8)
 	skip.pressed.connect(_skip)
 	buttons.add_child(skip)
+	if hud.get("tutorial_entry"):
+		var exit := Button.new()
+		exit.text = "Exit Tutorial"
+		exit.add_theme_font_size_override("font_size", 7)
+		exit.pressed.connect(func(): hud.call("_restart_from_pause", false))
+		box.add_child(exit)
 	panel.hide()
 	GameState.action_feedback.connect(_feedback)
 
@@ -118,7 +125,7 @@ func _detect() -> void:
 	if anywhere or _near("Bed"):
 		_offer("guide_sleep", "Make the bed, then E to rest and end the day. Sleeping starts the next day; bedtime fullness affects tomorrow's Mood. Meals and breaks need planning too.", "Bed", true)
 	if anywhere or GameState.tutorial_seen.has("guide_target"):
-		_offer("guide_pause", "Esc opens Pause. Eject Current Task ends unfinished research or a personal activity: elapsed time stays spent, with no completion reward. Review Tutorial is also there.", "controls", true)
+		_offer("guide_pause", "Esc opens Pause. Watch, 6x, Skip and Eject sit beside an active task. Eject keeps spent time and gives no completion reward. Review Tutorial is in Pause.", "controls", true)
 
 
 func _feedback(message: String) -> void:
@@ -177,9 +184,12 @@ func handle_input(event: InputEvent) -> bool:
 	if not panel.visible or not _safe():
 		return false
 	if event is InputEventKey and (event.is_action("interact") or event.keycode in [KEY_ENTER, KEY_KP_ENTER]):
+		var target: String = current.get("target", "")
+		var interact_here: bool = event.is_action("interact") and target in WORLD_BOUNDS and _near(target)
 		if event.pressed and not event.echo:
 			_complete()
-		return true
+		# Let the same E press reach a nearby highlighted fixture's interaction.
+		return not interact_here
 	return false
 
 
@@ -242,15 +252,69 @@ func _process(delta: float) -> void:
 		queue_redraw()
 		return
 	outline = _bounds(str(current["target"]))
-	# Stable reserved lower area; move only if the highlighted target occupies it.
-	var lower := Vector2(72, 281 - panel.size.y)
-	panel.position = Vector2(72, 42) if Rect2(lower, panel.size).intersects(outline.grow(4)) else lower
+	_place_instruction()
 	pulse += delta
 	queue_redraw()
 
 
+func _place_instruction() -> void:
+	var judy := _bounds("Player").grow(4)
+	var robot := _bounds("TipTop").grow(4)
+	var occupied := Rect2(panel.position, panel.size).grow(4)
+	var id: String = current["id"]
+	if placed_step == id and not occupied.intersects(outline) and not occupied.intersects(judy) and not occupied.intersects(robot):
+		return
+	placed_step = id
+	var center := outline.get_center()
+	var candidates := [Vector2(center.x - panel.size.x * 0.5, outline.end.y + 12), Vector2(center.x - panel.size.x * 0.5, outline.position.y - panel.size.y - 12), Vector2(outline.end.x + 12, center.y - panel.size.y * 0.5), Vector2(outline.position.x - panel.size.x - 12, center.y - panel.size.y * 0.5), Vector2(72, 281 - panel.size.y), Vector2(8, 42), Vector2(104, 42)]
+	var best := INF
+	for candidate in candidates:
+		var point: Vector2 = candidate.clamp(Vector2(4, 42), Vector2(328, 282) - panel.size)
+		var rect := Rect2(point, panel.size).grow(4)
+		var score := rect.get_center().distance_squared_to(center)
+		if rect.intersects(outline):
+			score += 1000000
+		if rect.intersects(judy) or rect.intersects(robot):
+			score += 100000
+		if score < best:
+			best = score
+			panel.position = point.round()
+
+
 func _draw() -> void:
-	if panel.visible and outline.has_area():
-		var color := AMBER
-		color.a = 0.8 + sin(pulse * 2.0) * 0.12
-		draw_rect(outline, color, false, 1.0)
+	if not panel.visible or not outline.has_area():
+		return
+	var transform_to_ui := get_global_transform_with_canvas().affine_inverse()
+	var screen: Rect2 = transform_to_ui * get_viewport_rect()
+	var hole := outline.intersection(screen)
+	var dim := Color(0.035, 0.03, 0.045, 0.60)
+	if not hole.has_area():
+		draw_rect(screen, dim)
+		return
+	# Four disjoint regions leave a real, undimmed cutout around the target.
+	draw_rect(Rect2(screen.position, Vector2(screen.size.x, maxf(0, hole.position.y - screen.position.y))), dim)
+	draw_rect(Rect2(Vector2(screen.position.x, hole.end.y), Vector2(screen.size.x, maxf(0, screen.end.y - hole.end.y))), dim)
+	draw_rect(Rect2(Vector2(screen.position.x, hole.position.y), Vector2(maxf(0, hole.position.x - screen.position.x), hole.size.y)), dim)
+	draw_rect(Rect2(Vector2(hole.end.x, hole.position.y), Vector2(maxf(0, screen.end.x - hole.end.x), hole.size.y)), dim)
+	var width := 4.0 / maxf(0.01, get_global_transform_with_canvas().get_scale().x)
+	var color := AMBER
+	color.a = 0.92 + sin(pulse * 1.5) * 0.05
+	if str(current["target"]) in ["clock", "deadline", "research", "repairs", "needs", "controls"]:
+		var rounded := PackedVector2Array()
+		var radius := minf(4, minf(outline.size.x, outline.size.y) * 0.25)
+		var corners := [outline.position + Vector2(radius, radius), Vector2(outline.end.x - radius, outline.position.y + radius), outline.end - Vector2(radius, radius), Vector2(outline.position.x + radius, outline.end.y - radius)]
+		for corner in range(4):
+			for segment in range(6):
+				var angle := PI + corner * PI * 0.5 + segment * PI * 0.1
+				rounded.append(corners[corner] + Vector2.from_angle(angle) * radius)
+		rounded.append(rounded[0])
+		draw_polyline(rounded, color, width, true)
+	else:
+		draw_rect(outline, color, false, width)
+	var instruction := Rect2(panel.position, panel.size)
+	var start := outline.get_center().clamp(instruction.position, instruction.end)
+	var end := instruction.get_center().clamp(outline.position, outline.end)
+	if start.distance_to(end) > 5:
+		var direction := start.direction_to(end)
+		draw_line(start, end, color, width * 0.6, true)
+		draw_colored_polygon(PackedVector2Array([end, end - direction.rotated(0.5) * 5, end - direction.rotated(-0.5) * 5]), color)

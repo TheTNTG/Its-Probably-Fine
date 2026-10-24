@@ -75,9 +75,10 @@ var difficulty_controls: HBoxContainer
 var difficulty_description: Label
 var pause_panel: ColorRect
 var eject_button: Button
-var eject_hint: Label
+var eject_confirm: ColorRect
 var mood_hint: Label
 var tutorial: Control
+var tutorial_entry := false
 var showcase: Control
 var ending_kind := ""
 var deadline_label: Label
@@ -91,6 +92,11 @@ var detail_research: Label
 var detail_needs: Label
 var detail_repair_count: Label
 var compact_warning: Label
+var icon_label_gutter: Control
+var research_modifiers: Dictionary = {}
+var research_next: Label
+var needs_values: Dictionary = {}
+var needs_modifiers: Dictionary = {}
 const TIME_COLORS := [Color("72a7be"), Color("e0b065"), Color("a78abd"), Color("83b6a2"), Color("bd947a"), Color("7f8595")]
 
 
@@ -103,15 +109,15 @@ func _pause_open() -> bool:
 
 
 func _comic_safe() -> bool:
-	return not _pause_open() and not GameState.research_active and not get_node("../Player").animation_busy and not transitioning and not repair_panel.visible and not _household_open()
+	return not _pause_open() and not _eject_open() and not GameState.research_active and not get_node("../Player").animation_busy and not transitioning and not repair_panel.visible and not _household_open()
 
 
 func overhead_thoughts_allowed() -> bool:
-	return not _pause_open() and not dialogue_overlay.visible and not repair_panel.visible and not loop_panel.visible and not notification_panel.visible and not transitioning and not _household_open() and not GameState.day_ended and not GameState.game_finished
+	return not _pause_open() and not _eject_open() and not dialogue_overlay.visible and not repair_panel.visible and not loop_panel.visible and not notification_panel.visible and not transitioning and not _household_open() and not GameState.day_ended and not GameState.game_finished
 
 
 func _restore_modal_pause() -> void:
-	get_tree().paused = _pause_open() or dialogue_overlay.visible or repair_panel.visible or loop_panel.visible or _household_open() or transitioning or GameState.day_ended or GameState.game_finished
+	get_tree().paused = _pause_open() or _eject_open() or dialogue_overlay.visible or repair_panel.visible or loop_panel.visible or _household_open() or transitioning or GameState.day_ended or GameState.game_finished
 
 
 func research_choices() -> void:
@@ -173,14 +179,14 @@ func set_research_controls(active: bool) -> void:
 		pending_feedback.clear()
 
 
-func _fast_forward_research() -> void:
-	if not GameState.personal_activity.is_empty():
-		GameState.personal_playback_rate = 6.0
+func _set_activity_speed(rate: float) -> void:
+	if get_tree().paused:
 		return
-	if GameState.research_active:
-		var judy = get_node("../Player")
-		judy.research_fast_forward = not judy.research_fast_forward
-		GameState.research_playback_rate = 6.0 if judy.research_fast_forward else 1.0
+	if not GameState.personal_activity.is_empty():
+		GameState.personal_playback_rate = rate
+	elif GameState.research_active:
+		get_node("../Player").research_fast_forward = rate > 1
+		GameState.research_playback_rate = rate
 
 
 func _skip_research() -> void:
@@ -217,12 +223,16 @@ func household_choices(location: String) -> void:
 	var options: Array = []
 	var judy = get_node("../Player")
 	if location == "research":
+		_hud_text(choices, "Research", Vector2.ZERO, 10)
+		_hud_text(choices, "Sessions: %d used · %d/%d left" % [GameState.DAILY_WORK_SESSIONS - GameState.work_sessions_remaining, GameState.work_sessions_remaining, GameState.DAILY_WORK_SESSIONS], Vector2.ZERO, 8)
 		var efficiency := int(round(GameState.research_efficiency() * 100))
 		_hud_text(choices, "Efficiency: %d%% | Reward: +%.1f%% research%s" % [efficiency, GameState.preview_research_gain(), " (pushing through)" if GameState.pushing_through() else ""], Vector2.ZERO, 7)
 		var duration := GameState.research_session_minutes()
 		var watch_minutes := duration / GameState.RESEARCH_MINUTES * GameState.WATCH_REAL_SECONDS / 60.0
-		options.append(["Watch Research (%d min; ~%.1f real min)" % [duration, watch_minutes], judy._research_animation.bind(false)])
-		options.append(["Fast-forward (%d min; 6x playback)" % duration, judy._research_animation.bind(true)])
+		_hud_text(choices, "%s · %d game min · Watch ~%.1f real min" % [GameState.profile()["name"], duration, watch_minutes], Vector2.ZERO, 7)
+		_hud_text(choices, "Ready to research" if GameState.research_available() else "Research unavailable", Vector2.ZERO, 7)
+		options.append(["Watch Research", judy._research_animation.bind(false)])
+		options.append(["Fast-forward · 6x", judy._research_animation.bind(true)])
 	elif location == "break":
 		_hud_text(choices, "Take a break", Vector2.ZERO, 9)
 		options.append(["Watch reels — 15 min, +18 Mood", judy.personal_activity.bind("reels")])
@@ -271,6 +281,9 @@ func _request_swatter() -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if get_tree().has_meta("tutorial_entry"):
+		tutorial_entry = true
+		get_tree().remove_meta("tutorial_entry")
 	_build_loop_ui()
 	_build_dialogue_ui()
 	_build_transition_ui()
@@ -279,6 +292,7 @@ func _ready() -> void:
 	_build_research_controls()
 	_build_needs_ui()
 	_build_pause_menu()
+	_build_eject_confirmation()
 	_fit_screen_ui()
 	get_viewport().size_changed.connect(_fit_screen_ui)
 	_smooth_ui_text(self)
@@ -337,6 +351,9 @@ func _fit_screen_ui() -> void:
 		# against the visible screen, independently of the camera.
 		household_panel.position = -transform.origin / factor
 		household_panel.size = screen / factor
+	if is_instance_valid(eject_confirm):
+		eject_confirm.position = -transform.origin / factor
+		eject_confirm.size = screen / factor
 	if is_instance_valid(pause_panel):
 		pause_panel.position = -transform.origin / factor
 		pause_panel.size = screen / factor
@@ -496,7 +513,7 @@ func _build_needs_ui() -> void:
 		var hit := Button.new()
 		hit.position = Vector2(spec[1] - 2, 0)
 		hit.size = Vector2(69, 30)
-		hit.tooltip_text = spec[2]
+		hit.accessibility_name = spec[2]
 		hit.set_meta("details_category", "needs")
 		for state in ["normal", "hover", "pressed"]:
 			hit.add_theme_stylebox_override(state, StyleBoxEmpty.new())
@@ -508,9 +525,8 @@ func _build_needs_ui() -> void:
 		hit.add_theme_stylebox_override("focus", focus)
 		card.add_child(hit)
 		detail_buttons["top_" + str(spec[0])] = hit
-	sessions_label.reparent(detail_groups["research"], false)
-	sessions_label.add_theme_font_size_override("font_size", 6)
-	detail_controller.call("setup", self, detail_buttons, detail_groups, detail_panel, sidebar, UI_REFERENCE.y)
+	sessions_label.hide()
+	detail_controller.call("setup", self, detail_buttons, detail_groups, detail_panel, sidebar, UI_REFERENCE.y, icon_label_gutter)
 
 
 func _side_section() -> VBoxContainer:
@@ -541,6 +557,9 @@ func _hud_icon(category: String) -> Texture2D:
 		"repairs": ["..#####..", ".#.....#.", ".#.#.#.#.", ".#.....#.", "..#####..", "....#....", "..#####..", ".#..#..#.", "........."],
 		"time": ["..#####..", ".#.....#.", "#...#...#", "#...#...#", "#...###.#", "#.......#", ".#.....#.", "..#####..", "........."],
 		"needs": [".##...##.", "#..#.#..#", "#...#...#", "#.......#", ".#.....#.", "..#...#..", "...#.#...", "....#....", "........."],
+		"warning": ["....#....", "...#.#...", "..#.#.#..", "..#.#.#..", ".#..#..#.", ".#.....#.", "#...#...#", "#########", "........."],
+		"cleanup": ["......#..", ".....#...", "....#....", "...#.....", "..####...", ".######..", "#.#.#.#..", "########.", "........."],
+		"leisure": ["..#####..", ".#..#..#.", "#..#.#..#", "#..#.#..#", "#...#...#", ".#..#..#.", "..#####..", ".........", "........."],
 		"food": ["#.#.#....", "#.#.#..#.", "#####..#.", "..#....#.", "..#....#.", "..#....#.", "..#....#.", "..#....#.", "........."]}
 	var image := Image.create(9, 9, false, Image.FORMAT_RGBA8)
 	image.fill(Color.TRANSPARENT)
@@ -557,6 +576,67 @@ func _detail_text(parent: Node, text: String, font_size: int = 7) -> Label:
 	label.custom_minimum_size.x = 72
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return label
+
+
+func _detail_header(parent: Node, icon_name: String, text: String) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	parent.add_child(row)
+	_detail_icon(row, icon_name)
+	var title := _hud_text(row, text, Vector2.ZERO, 8)
+	title.add_theme_color_override("font_color", Color("e6b369"))
+	_detail_divider(parent)
+
+
+func _detail_icon(parent: Node, category: String) -> void:
+	var icon := TextureRect.new()
+	icon.texture = _hud_icon(category)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.custom_minimum_size = Vector2(9, 9)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.set_meta("pixel_icon", true)
+	parent.add_child(icon)
+
+
+func _detail_row(parent: Node, icon_name: String, caption: String, value: String) -> Label:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 3)
+	parent.add_child(row)
+	_detail_icon(row, icon_name)
+	var name_label := _hud_text(row, caption, Vector2.ZERO, 6)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var amount := _hud_text(row, value, Vector2.ZERO, 7)
+	amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	amount.add_theme_color_override("font_color", Color("e6b369"))
+	return amount
+
+
+func _detail_notice(parent: Node, icon_name: String, text: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 3)
+	parent.add_child(row)
+	_detail_icon(row, icon_name)
+	var label := _hud_text(row, text, Vector2.ZERO, 6)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_color_override("font_color", Color("d3987b"))
+	row.set_meta("notice_label", label)
+	return row
+
+
+func _set_notice(row: Control, text: String) -> void:
+	var label: Label = row.get_meta("notice_label")
+	label.text = text
+	row.visible = not text.is_empty()
+
+
+func _detail_divider(parent: Node) -> void:
+	var line := ColorRect.new()
+	line.custom_minimum_size.y = 1
+	line.color = Color("514c50")
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(line)
 
 
 func _build_right_sidebar() -> void:
@@ -606,7 +686,7 @@ func _build_right_sidebar() -> void:
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.custom_minimum_size = Vector2(24, 22)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.tooltip_text = {"research": "Research", "repairs": "TipTop repairs", "time": "Time usage", "needs": "Needs"}[category]
+		button.accessibility_name = {"research": "Research", "repairs": "TipTop", "time": "Time Usage", "needs": "Needs"}[category]
 		button.set_meta("details_category", category)
 		button.set_meta("pixel_icon", true)
 		for state in ["normal", "hover", "pressed", "focus"]:
@@ -617,6 +697,10 @@ func _build_right_sidebar() -> void:
 			button.add_theme_stylebox_override(state, style)
 		categories.add_child(button)
 		detail_buttons[category] = button
+	icon_label_gutter = Control.new()
+	icon_label_gutter.custom_minimum_size = Vector2(96, 14)
+	icon_label_gutter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sidebar.add_child(icon_label_gutter)
 	problem_count = _hud_text(sidebar, "", Vector2.ZERO, 6)
 	compact_warning = _hud_text(sidebar, "", Vector2.ZERO, 6)
 	compact_warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -640,31 +724,38 @@ func _build_right_sidebar() -> void:
 		group.add_theme_constant_override("separation", 3)
 		pages.add_child(group)
 		detail_groups[category] = group
-		_detail_text(group, {"research": "Research", "repairs": "TipTop routines", "time": "Time usage", "needs": "Fullness / Mood"}[category], 8)
+		_detail_header(group, category, {"research": "Research", "repairs": "TipTop", "time": "Time Usage", "needs": "Needs"}[category])
 	var research: VBoxContainer = detail_groups["research"]
-	detail_research = _detail_text(research, "")
-	efficiency_label = _detail_text(research, "", 6)
+	detail_research = _detail_text(research, "", 7)
+	detail_research.add_theme_color_override("font_color", Color("e6b369"))
+	efficiency_label = _detail_row(research, "research", "Efficiency", "")
+	_detail_divider(research)
+	for key in ["food", "tap", "books", "mood", "push"]:
+		research_modifiers[key] = _detail_notice(research, "warning", "")
+	research_next = _detail_text(research, "", 7)
 	var problems: VBoxContainer = detail_groups["repairs"]
-	var names := ["Sink routine", "Plant watering", "Bookshelf organizing", "Bed-making"]
+	var names := ["Sink", "Plant", "Bookshelf", "Bed"]
 	for index in range(GameState.REPAIR_ROUTINES.size()):
 		var row := RichTextLabel.new()
 		row.bbcode_enabled = true
 		row.fit_content = true
 		row.scroll_active = false
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_theme_font_size_override("normal_font_size", 6)
+		row.add_theme_font_size_override("normal_font_size", 7)
 		row.set_meta("routine_name", names[index])
 		problems.add_child(row)
 		problem_rows[GameState.REPAIR_ROUTINES[index]] = row
-	detail_repair_count = _detail_text(problems, "", 6)
-	_detail_text(problems, "Repair each routine through TipTop. Cleanup does not repair it.")
+	_detail_divider(problems)
+	detail_repair_count = _detail_text(problems, "", 7)
 	var usage: VBoxContainer = detail_groups["time"]
-	usage_title = _detail_text(usage, "", 6)
+	usage_title = _detail_text(usage, "", 7)
 	var distribution := HBoxContainer.new()
 	distribution.custom_minimum_size = Vector2(0, 4)
 	distribution.add_theme_constant_override("separation", 0)
 	usage.add_child(distribution)
+	_detail_divider(usage)
 	var captions := ["Research", "Eating", "Leisure", "Repairs", "Cleanup", "Misc"]
+	var icons := ["research", "food", "leisure", "repairs", "cleanup", "time"]
 	for index in range(GameState.TIME_CATEGORIES.size()):
 		var category: String = GameState.TIME_CATEGORIES[index]
 		var segment := ColorRect.new()
@@ -673,11 +764,16 @@ func _build_right_sidebar() -> void:
 		segment.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		distribution.add_child(segment)
 		usage_segments[category] = segment
-		var row := _detail_text(usage, "", 6)
+		var row := _detail_row(usage, icons[index], captions[index], "")
 		row.modulate = TIME_COLORS[index]
-		row.set_meta("caption", captions[index])
 		usage_rows[category] = row
-	detail_needs = _detail_text(detail_groups["needs"], "")
+	var needs: VBoxContainer = detail_groups["needs"]
+	needs_values["food"] = _detail_row(needs, "food", "Fullness", "")
+	needs_values["mood"] = _detail_row(needs, "needs", "Mood", "")
+	detail_needs = _detail_text(needs, "", 6)
+	_detail_divider(needs)
+	for key in ["food", "mood"]:
+		needs_modifiers[key] = _detail_notice(needs, "warning", "")
 	detail_controller = Node.new()
 	detail_controller.set_script(preload("res://scripts/hud_details.gd"))
 	add_child(detail_controller)
@@ -695,7 +791,28 @@ func _update_sidebar() -> void:
 		fixed_count += int(fixed)
 	problem_count.text = "TipTop: %d/4 fixed" % fixed_count
 	detail_repair_count.text = "%d / 4 repaired" % fixed_count
-	detail_research.text = "Progress: %.1f%%\nTarget: %.0f%%\n%s\nSession: %d min%s\nBase reward: +%.0f%%\nNow: +%.1f%%\nWatch / 6x / Skip simulate the same time." % [GameState.research_progress, GameState.GOOD_ENDING_RESEARCH_THRESHOLD, GameState.profile()["name"], GameState.research_session_minutes(), " (tap penalty)" if GameState.tap_running else "", GameState.profile()["research"], GameState.preview_research_gain()]
+	var blocked := not GameState.research_available() or GameState.work_sessions_remaining <= 0
+	detail_research.text = "Research underway" if GameState.research_active else ("Research blocked" if blocked else "Ready to research")
+	var food_loss := int(round((1.0 - GameState.hunger_efficiency()) * 100))
+	_set_notice(research_modifiers["food"], "Food: -%d%% yield" % food_loss if food_loss > 0 else "")
+	_set_notice(research_modifiers["tap"], "Tap: half reward" if GameState.tap_running else "")
+	_set_notice(research_modifiers["books"], "Books scattered" if int(GameState.chore_mess["bookshelf"]) >= 2 else "")
+	_set_notice(research_modifiers["mood"], "Mood below 45" if not GameState.mood_allows_research() else "")
+	_set_notice(research_modifiers["push"], "Push-through: -20%" if GameState.pushing_through() else "")
+	var recommendation := "Your desk is ready."
+	if GameState.work_sessions_remaining <= 0:
+		recommendation = "Rest for more sessions."
+	elif int(GameState.chore_mess["bookshelf"]) >= 2:
+		recommendation = "Clear the bookshelf."
+	elif not GameState.mood_allows_research():
+		recommendation = "Take a coffee-table break."
+	elif not GameState.has_research_time():
+		recommendation = "A full session won't fit today."
+	elif food_loss > 0:
+		recommendation = "Eat before your next session."
+	elif GameState.tap_running:
+		recommendation = "Turn off the tap."
+	research_next.text = recommendation
 	var warning := ""
 	if int(GameState.chore_mess["bookshelf"]) >= 2:
 		warning = "! Books block research"
@@ -713,11 +830,11 @@ func _update_sidebar() -> void:
 		var minutes: float = totals[category]
 		elapsed += minutes
 		var row: Label = usage_rows[category]
-		row.text = "%s: %s" % [row.get_meta("caption"), _minutes_text(minutes)]
+		row.text = _minutes_text(minutes)
 		var segment: ColorRect = usage_segments[category]
 		segment.visible = minutes > 0
 		segment.size_flags_stretch_ratio = maxf(0.0001, minutes)
-	usage_title.text = "Today's Time Usage\n" + _minutes_text(elapsed)
+	usage_title.text = "Total: " + _minutes_text(elapsed)
 
 
 func _minutes_text(minutes: float) -> String:
@@ -734,13 +851,18 @@ func _update_needs_ui() -> void:
 	mood_fill.bg_color = Color("c28764") if GameState.mood < 45 else Color("83aaa2")
 	mood_label.modulate = Color("dca69a") if GameState.mood < 45 else Color.WHITE
 	mood_hint.text = "Push through (-20%)" if GameState.pushing_through() else ("Rest needed (<45)" if GameState.mood < 45 else "Ready for research")
-	efficiency_label.text = "Efficiency: %d%%" % int(round(GameState.research_efficiency() * 100))
+	efficiency_label.text = "%d%%" % int(round(GameState.research_efficiency() * 100))
 	hunger_status_label.text = "! Critical fullness" if GameState.hunger < 25 else GameState.hunger_status()
 	if GameState.hunger < 60:
-		var loss := int(round((1.0 - GameState.hunger_efficiency()) * 100))
-		hunger_status_label.text = ("! Critical" if GameState.hunger < 25 else GameState.hunger_status()) + " (-%d%%)" % loss
+		var food_penalty := int(round((1.0 - GameState.hunger_efficiency()) * 100))
+		hunger_status_label.text = ("! Critical" if GameState.hunger < 25 else GameState.hunger_status()) + " (-%d%%)" % food_penalty
 	hunger_status_label.modulate = Color("92aa85") if GameState.hunger >= 75 else (Color("dca69a") if GameState.hunger <= 45 else Color.WHITE)
-	detail_needs.text = "Fullness: %d%% (%s)\nFood efficiency: %d%%\nEat: 30 min, +40.\n\nMood: %d%%\n%s\n\nLeisure: reels +18 / 15 min; games +30 / 30 min; cube +25 / 20 min.\n\nWell-fed: 75+. Hungry: 45 or less. Fullness below 60 reduces research gains. Bedtime fullness affects tomorrow's Mood." % [int(GameState.hunger), GameState.hunger_status(), int(round(GameState.hunger_efficiency() * 100)), int(GameState.mood), "Pushing through: -20% research." if GameState.pushing_through() else ("Research needs 45 Mood. Take a coffee-table break." if GameState.mood < 45 else "Ready for research (45+ Mood).")]
+	needs_values["food"].text = "%d%%" % int(GameState.hunger)
+	needs_values["mood"].text = "%d%%" % int(GameState.mood)
+	detail_needs.text = GameState.hunger_status() + (" / Low Mood" if GameState.mood < 45 else " / Mood steady")
+	var loss := int(round((1.0 - GameState.hunger_efficiency()) * 100))
+	_set_notice(needs_modifiers["food"], "Food: -%d%% yield. Eat at the fridge." % loss if loss > 0 else "")
+	_set_notice(needs_modifiers["mood"], "Push-through: -20% yield." if GameState.pushing_through() else ("Mood below 45. Take a leisure break." if GameState.mood < 45 else ""))
 
 
 func _muted_gradient(value: float, stops: Array, colors: Array) -> Color:
@@ -1075,25 +1197,8 @@ func _process(delta: float) -> void:
 	_sync_overlay_visibility()
 	if _pause_open():
 		return
-	if not GameState.personal_activity.is_empty():
-		var duration: int = GameState.PERSONAL_ACTIVITIES[GameState.personal_activity][0]
-		research_bar.max_value = duration
-		research_bar.value = duration - GameState.personal_remaining
-		research_speed_button.text = "Fast 6x"
-		activity_watch_button.show()
-		research_bar.size.x = 104
-		var title: String = {"eat": "Eating", "reels": "Reels", "games": "Phone games", "cube": "Rubik's cube"}[GameState.personal_activity]
-		research_status.text = "%s: %d / %d min%s" % [title, int(duration - GameState.personal_remaining), duration, " (6x)" if GameState.personal_playback_rate > 1 else ""]
-	elif activity_watch_button.visible:
-		activity_watch_button.hide()
-		research_bar.size.x = 138
-	if GameState.research_active:
-		var shown := minf(GameState.research_duration, GameState.research_elapsed + GameState.research_accumulator)
-		research_bar.max_value = GameState.research_duration
-		research_bar.value = shown
-		research_speed_button.text = "Watch 1x" if GameState.research_playback_rate > 1.0 else "Speed 6x"
-		research_status.text = "Research: %d / %d min%s" % [int(GameState.research_elapsed), GameState.research_duration, "  Swat!" if GameState.research_interruptions > 0 and fmod(GameState.research_elapsed, 5.0) < 0.25 else ""]
-	if transitioning or repair_panel.visible or (is_instance_valid(household_panel) and household_panel.visible):
+	_update_activity_controls()
+	if transitioning or _eject_open() or repair_panel.visible or (is_instance_valid(household_panel) and household_panel.visible):
 		return
 	if _comic_safe() and not dialogue_overlay.visible:
 		if not deferred_story_events.is_empty():
@@ -1137,45 +1242,124 @@ func _style_thin_bar(bar: ProgressBar) -> void:
 func _build_research_controls() -> void:
 	research_strip = ColorRect.new()
 	research_strip.position = Vector2(64, 242)
-	research_strip.size = Vector2(248, 26)
+	research_strip.size = Vector2(248, 40)
 	research_strip.color = Color("29272d")
 	research_strip.hide()
 	add_child(research_strip)
-	research_status = Label.new()
-	research_status.position = Vector2(6, 2)
-	research_status.add_theme_font_size_override("font_size", 7)
-	research_strip.add_child(research_status)
+	research_status = _hud_text(research_strip, "", Vector2(6, 1), 7)
 	research_bar = ProgressBar.new()
-	research_bar.position = Vector2(6, 16)
-	research_bar.size = Vector2(138, 5)
+	research_bar.position = Vector2(6, 14)
 	research_bar.show_percentage = false
 	_style_thin_bar(research_bar)
-	research_bar.size = Vector2(138, 5)
-	research_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	research_bar.size = Vector2(236, 3)
 	research_strip.add_child(research_bar)
-	var skip := Button.new()
-	research_speed_button = skip
-	skip.position = Vector2(148, 3)
-	skip.size = Vector2(54, 20)
-	skip.text = "Speed 6x"
-	skip.add_theme_font_size_override("font_size", 7)
-	skip.pressed.connect(_fast_forward_research)
-	research_strip.add_child(skip)
-	var skip_time := Button.new()
-	skip_time.position = Vector2(204, 3)
-	skip_time.size = Vector2(40, 20)
-	skip_time.text = "Skip"
-	skip_time.add_theme_font_size_override("font_size", 7)
-	skip_time.pressed.connect(_skip_research)
-	research_strip.add_child(skip_time)
-	activity_watch_button = Button.new()
-	activity_watch_button.position = Vector2(112, 3)
-	activity_watch_button.size = Vector2(34, 20)
-	activity_watch_button.text = "Watch"
-	activity_watch_button.add_theme_font_size_override("font_size", 6)
-	activity_watch_button.pressed.connect(func(): GameState.personal_playback_rate = 1.0)
-	activity_watch_button.hide()
-	research_strip.add_child(activity_watch_button)
+	var row := HBoxContainer.new()
+	row.position = Vector2(4, 20)
+	row.size = Vector2(240, 17)
+	row.add_theme_constant_override("separation", 3)
+	research_strip.add_child(row)
+	for spec in [["Watch 1x", _set_activity_speed.bind(1.0)], ["Fast 6x", _set_activity_speed.bind(6.0)], ["Skip", _skip_research], ["Eject...", _open_eject]]:
+		var button := Button.new()
+		button.text = spec[0]
+		button.custom_minimum_size = Vector2(0, 17)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.add_theme_font_size_override("font_size", 7)
+		button.pressed.connect(spec[1])
+		row.add_child(button)
+		if spec[0] == "Watch 1x":
+			activity_watch_button = button
+			button.toggle_mode = true
+		elif spec[0] == "Fast 6x":
+			research_speed_button = button
+			button.toggle_mode = true
+		elif spec[0] == "Eject...":
+			eject_button = button
+			button.add_theme_color_override("font_color", Color("dca69a"))
+			button.tooltip_text = "Cancel unfinished task. No completion reward."
+		else:
+			button.tooltip_text = "Complete all remaining time and earn the usual reward."
+
+
+func _update_activity_controls() -> void:
+	var active := GameState.research_active or not GameState.personal_activity.is_empty()
+	eject_button.disabled = not GameState.can_eject_task() or get_tree().paused
+	eject_button.tooltip_text = "Eject: elapsed time stays spent; no reward or session refund." if not eject_button.disabled else "Unavailable: no unfinished task, finishing a pose, or paused."
+	if not active:
+		return
+	var speed: float = GameState.research_playback_rate if GameState.research_active else GameState.personal_playback_rate
+	activity_watch_button.set_pressed_no_signal(speed == 1)
+	research_speed_button.set_pressed_no_signal(speed > 1)
+	if GameState.research_active:
+		research_bar.max_value = GameState.research_duration
+		research_bar.value = minf(GameState.research_duration, GameState.research_elapsed + GameState.research_accumulator)
+		research_status.text = "Research: %d / %d min · %dx" % [int(GameState.research_elapsed), GameState.research_duration, int(speed)]
+		if GameState.research_interruptions > 0 and fmod(GameState.research_elapsed, 5.0) < 0.25:
+			research_status.text += " · Swat!"
+	else:
+		var duration: int = GameState.PERSONAL_ACTIVITIES[GameState.personal_activity][0]
+		research_bar.max_value = duration
+		research_bar.value = duration - GameState.personal_remaining
+		var title: String = {"eat": "Eating", "reels": "Reels", "games": "Phone games", "cube": "Rubik's cube"}[GameState.personal_activity]
+		research_status.text = "%s: %d / %d min · %dx" % [title, int(duration - GameState.personal_remaining), duration, int(speed)]
+
+
+func _eject_open() -> bool:
+	return is_instance_valid(eject_confirm) and eject_confirm.visible
+
+
+func _build_eject_confirmation() -> void:
+	eject_confirm = ColorRect.new()
+	eject_confirm.color = Color(0.04, 0.04, 0.06, 0.85)
+	eject_confirm.size = UI_REFERENCE
+	eject_confirm.hide()
+	add_child(eject_confirm)
+	var center := CenterContainer.new()
+	eject_confirm.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size.x = 250
+	panel.add_theme_stylebox_override("panel", _detail_style())
+	center.add_child(panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 7)
+	panel.add_child(body)
+	_hud_text(body, "Eject unfinished task?", Vector2.ZERO, 11)
+	var text := _hud_text(body, "Elapsed time stays spent. No completion reward.\nA started research session stays used.", Vector2.ZERO, 8)
+	text.custom_minimum_size.x = 230
+	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	for spec in [["Keep working", _close_eject], ["Eject task", _confirm_eject_task]]:
+		var button := Button.new()
+		button.text = spec[0]
+		button.custom_minimum_size.y = 22
+		button.add_theme_font_size_override("font_size", 9)
+		button.pressed.connect(spec[1])
+		body.add_child(button)
+		if spec[0] == "Keep working":
+			eject_confirm.set_meta("safe_focus", button)
+
+
+func _open_eject() -> void:
+	if get_tree().paused or not GameState.can_eject_task():
+		return
+	eject_confirm.show()
+	get_tree().paused = true
+	var safe_button: Button = eject_confirm.get_meta("safe_focus")
+	safe_button.grab_focus.call_deferred()
+
+
+func _close_eject() -> void:
+	eject_confirm.hide()
+	_restore_modal_pause()
+	get_viewport().gui_release_focus()
+
+
+func _confirm_eject_task() -> void:
+	if not _eject_open():
+		return
+	if GameState.can_eject_task():
+		GameState.eject_current_task()
+		research_strip.hide()
+	_close_eject()
 
 
 func _build_system_notice() -> void:
@@ -1201,7 +1385,7 @@ func _sync_overlay_visibility() -> void:
 		get_node("../Player").interaction_prompt.hide()
 		get_node("../TipTop").monologue_label.hide()
 		get_node("../TipTop").action_label.hide()
-	var blocked: bool = _pause_open() or dialogue_overlay.visible or repair_panel.visible or transitioning or loop_panel.visible or GameState.research_active or get_node("../Player").animation_busy or (is_instance_valid(household_panel) and household_panel.visible)
+	var blocked: bool = _pause_open() or _eject_open() or dialogue_overlay.visible or repair_panel.visible or transitioning or loop_panel.visible or GameState.research_active or get_node("../Player").animation_busy or (is_instance_valid(household_panel) and household_panel.visible)
 	notification_panel.visible = GameState.notification_active and not blocked and not GameState.day_ended and not GameState.game_finished
 	if blocked or GameState.notification_active or get_node("../Player").animation_busy:
 		system_notice.hide()
@@ -1311,7 +1495,7 @@ func _build_pause_menu() -> void:
 	choices.add_theme_constant_override("separation", 5)
 	panel.add_child(choices)
 	_hud_text(choices, "Paused", Vector2.ZERO, 12)
-	var items := [["Resume", _resume_pause], ["Eject Current Task", _eject_from_pause], ["Review Tutorial", _review_tutorial], ["Restart Game", _restart_from_pause.bind(true)], ["Return to Main Menu", _restart_from_pause.bind(false)], ["Quit Game", func(): get_tree().quit()]]
+	var items := [["Resume", _resume_pause], ["Review Tutorial", _review_tutorial], ["Restart Game", _restart_from_pause.bind(true)], ["Exit Tutorial" if tutorial_entry else "Return to Main Menu", _restart_from_pause.bind(false)], ["Quit Game", func(): get_tree().quit()]]
 	for index in range(items.size()):
 		var button := Button.new()
 		button.text = items[index][0]
@@ -1319,24 +1503,20 @@ func _build_pause_menu() -> void:
 		button.add_theme_font_size_override("font_size", 9)
 		button.pressed.connect(items[index][1])
 		choices.add_child(button)
-		if index == 1:
-			eject_button = button
-	eject_hint = _hud_text(choices, "", Vector2.ZERO, 7)
-	eject_hint.custom_minimum_size.x = 210
-	eject_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if index == 0:
+			pause_panel.set_meta("initial_focus", button)
 
 
 func _open_pause() -> void:
 	if transitioning or loop_panel.visible:
 		return
-	eject_button.disabled = not GameState.can_eject_task()
-	eject_hint.text = "Eject keeps elapsed time and gives no completion reward." if not eject_button.disabled else "Eject unavailable: no unfinished seated task. Repairs are atomic; walking and pose animations must finish."
 	pause_panel.show()
 	get_node("../Player").interaction_prompt.hide()
 	get_node("../TipTop").clear_monologue()
 	get_node("../TipTop").action_label.hide()
 	get_tree().paused = true
-	get_viewport().gui_release_focus()
+	var resume_button: Button = pause_panel.get_meta("initial_focus")
+	resume_button.grab_focus.call_deferred()
 
 
 func _review_tutorial() -> void:
@@ -1356,20 +1536,14 @@ func _resume_pause() -> void:
 	get_viewport().gui_release_focus()
 
 
-func _eject_from_pause() -> void:
-	if not GameState.can_eject_task():
-		return
-	GameState.eject_current_task()
-	research_strip.hide()
-	_resume_pause()
-
-
 func _restart_from_pause(play_now: bool) -> void:
 	var selected := GameState.difficulty
 	GameState.restart()
 	if play_now:
 		GameState.select_difficulty(selected)
 		get_tree().set_meta("restart_playing", true)
+		if tutorial_entry:
+			get_tree().set_meta("tutorial_entry", true)
 	# Keep the autoload clock stopped until the destination is ready.
 	get_tree().paused = true
 	if play_now:
@@ -1379,6 +1553,13 @@ func _restart_from_pause(play_now: bool) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _eject_open():
+		if event.is_action_pressed("ui_cancel"):
+			_close_eject()
+			get_viewport().set_input_as_handled()
+		elif event.is_action("interact"):
+			get_viewport().set_input_as_handled()
+		return
 	if is_instance_valid(showcase) and event is InputEventKey and event.echo:
 		get_viewport().set_input_as_handled()
 		return
@@ -1404,7 +1585,7 @@ func _input(event: InputEvent) -> void:
 			_open_pause()
 		return
 	if _pause_open():
-		if event is InputEventKey:
+		if event.is_action("interact"):
 			get_viewport().set_input_as_handled()
 		return
 	if transitioning:
