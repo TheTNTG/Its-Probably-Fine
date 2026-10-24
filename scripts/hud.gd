@@ -290,8 +290,24 @@ func _fit_screen_ui() -> void:
 	transform = Transform2D(0.0, Vector2(factor, factor), 0.0, (screen - reference * factor) * 0.5)
 	# Reserve the sidebar in screen space; keep the whole apartment in the left pane.
 	var camera: Camera2D = get_node("../FramingCamera")
-	camera.zoom = Vector2(factor, factor) * 1.08
-	camera.position = Vector2(208, 110)
+	var outline: PackedVector2Array = PackedVector2Array(get_node("../Walls").ROOM_EDGE)
+	var room_bounds := Rect2(outline[0], Vector2.ZERO)
+	for point in outline:
+		room_bounds = room_bounds.expand(point)
+	# Include the five-unit wall caps, rather than fitting only the floor.
+	room_bounds = room_bounds.grow(5.0)
+	var left_wall_bottom := room_bounds.position.y
+	for point in outline:
+		if point.x <= room_bounds.position.x + 5.0:
+			left_wall_bottom = maxf(left_wall_bottom, point.y + 5.0)
+	# The recessed entrance can use the empty lower center. The left wing must
+	# stop above the unchanged controls (y=242); the right edge clears the sidebar.
+	var world_zoom := minf(1.08 * 1.20, (SIDEBAR_X - 20.0) / room_bounds.size.x)
+	world_zoom = minf(world_zoom, (238.0 - 40.0) / (left_wall_bottom - room_bounds.position.y))
+	world_zoom = minf(world_zoom, (UI_REFERENCE.y - 6.0 - 40.0) / room_bounds.size.y)
+	var framed_center := Vector2((8.0 + SIDEBAR_X - 12.0) * 0.5, 40.0 + room_bounds.size.y * world_zoom * 0.5)
+	camera.zoom = Vector2(factor, factor) * world_zoom
+	camera.position = room_bounds.get_center() + (UI_REFERENCE * 0.5 - framed_center) / world_zoom
 	(transition_cover.get_parent() as CanvasLayer).transform = transform
 	if is_instance_valid(repair_panel):
 		repair_panel.position = -transform.origin / factor
