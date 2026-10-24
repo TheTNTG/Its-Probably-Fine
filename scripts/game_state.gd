@@ -6,8 +6,9 @@ signal story_event(event: String)
 signal repair_menu_requested
 signal action_feedback(message: String)
 
-const DAY_START := 540
-const DAY_END := 1080
+const DAY_START := 660
+const DAY_END := 1200
+const DAY_LENGTH := DAY_END - DAY_START
 const LAST_DAY := 3
 const DAILY_WORK_SESSIONS := 4
 const RESEARCH_MINUTES := 120.0
@@ -55,6 +56,7 @@ var clock_fraction := 0.0
 var world_accumulator := 0.0
 var world_elapsed := 0.0
 var research_next_chore := 3.0
+var chore_cursor := 0
 
 
 func _ready() -> void:
@@ -99,19 +101,28 @@ func begin_research() -> bool:
 
 func _select_research_chore() -> void:
 	var chores := ["plant", "sink", "bookshelf", "bed"]
-	var next := (day + work_sessions_remaining + int(research_next_chore / 3.0)) % 4
-	# A repaired, already-made bed needs no repeated maintenance visit.
-	if chores[next] == "bed" and repairs["bed"] and not needs_cleanup("bed"):
-		next = (next + 1) % chores.size()
-	research_task = chores[next]
+	var selected := ""
+	# First service actual cleanup requests for repaired routines.
 	for chore in ["bookshelf", "bed", "sink", "plant"]:
 		if repairs[chore] and needs_cleanup(chore):
-			research_task = chore
+			selected = chore
 			break
+	# Faulty routines still repeat their mistakes. Clean repaired fixtures do
+	# not need another maintenance visit: all four clean means genuine idle.
+	if selected.is_empty():
+		for offset in range(chores.size()):
+			var index := (chore_cursor + offset) % chores.size()
+			var chore: String = chores[index]
+			if not repairs[chore]:
+				selected = chore
+				chore_cursor = (index + 1) % chores.size()
+				break
 	research_swat = mosquito_task and mosquito_level > 0
 	if research_swat:
-		research_task = "sink" if sink_water_elapsed >= 8.0 else "plant"
-	research_task_serial += 1
+		selected = "sink" if sink_water_elapsed >= 8.0 else "plant"
+	if selected != research_task or not selected.is_empty():
+		research_task_serial += 1
+	research_task = selected
 
 
 func advance_research(minutes: float) -> void:
@@ -154,7 +165,7 @@ func _simulate_world_step(minutes: float) -> void:
 	if world_elapsed >= research_next_chore:
 		if research_swat:
 			swat_mosquitoes(false)
-		else:
+		elif not research_task.is_empty():
 			finish_household_chore(research_task, true)
 		research_next_chore += 3.0
 		_select_research_chore()
@@ -212,7 +223,7 @@ func has_research_time() -> bool:
 
 func research_block_reason() -> String:
 	if not has_research_time():
-		return "Not enough time before 6:00 PM. A full research session needs %d minutes; no session used." % research_session_minutes()
+		return "Not enough time before 8:00 PM. A full research session needs %d minutes; no session used." % research_session_minutes()
 	return "Research materials are misplaced. Organize the bookshelf (20 min)."
 
 
@@ -222,7 +233,7 @@ func clear_mess(chore: String) -> void:
 	if chore == "sink":
 		sink_water_elapsed = 0.0
 	if chore == "bed":
-		bed_protected_until = (day - 1) * 540 + time_minutes + 90
+		bed_protected_until = (day - 1) * DAY_LENGTH + time_minutes + 90
 	state_changed.emit()
 
 
@@ -245,7 +256,7 @@ func finish_household_chore(chore: String, scheduled := false) -> void:
 		clear_mess(chore)
 	else:
 		if chore == "bed":
-			if time_minutes < DAY_END and bed_mischief_day != day and (day - 1) * 540 + time_minutes >= bed_protected_until:
+			if time_minutes < DAY_END and bed_mischief_day != day and (day - 1) * DAY_LENGTH + time_minutes >= bed_protected_until:
 				chore_mess["bed"] = 1
 				bed_mischief_day = day
 			state_changed.emit()
@@ -282,6 +293,7 @@ func continue_day() -> void:
 		world_accumulator = 0.0
 		world_elapsed = 0.0
 		research_next_chore = 3.0
+		chore_cursor = 0
 		work_sessions_remaining = DAILY_WORK_SESSIONS
 		day_ended = false
 		end_day_reminded = false
@@ -377,6 +389,7 @@ func ignore_tap() -> void:
 
 
 func restart() -> void:
+	chore_cursor = 0
 	clock_fraction = 0.0
 	world_accumulator = 0.0
 	world_elapsed = 0.0

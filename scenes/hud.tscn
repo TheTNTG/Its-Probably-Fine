@@ -19,7 +19,7 @@ offset_top = 2.0
 offset_right = 190.0
 offset_bottom = 14.0
 theme_override_font_sizes/font_size = 8
-text = "09:00"
+text = "11:00 AM"
 horizontal_alignment = 1
 
 [node name="ResearchLabel" type="Label" parent="."]

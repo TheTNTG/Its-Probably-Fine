@@ -227,7 +227,7 @@ func _update_hud() -> void:
 			else:
 				loop_message.text = "A work in progress\nResearch: %d%% — below the 80%% goal." % GameState.research_progress
 		else:
-			loop_message.text = "Day %d complete — 18:00\nResearch: %d%%\nShowcase deadline: Day 3, 18:00" % [GameState.day, GameState.research_progress]
+			loop_message.text = "Day %d complete — 8:00 PM\nResearch: %d%%\nShowcase deadline: Day 3, 8:00 PM" % [GameState.day, GameState.research_progress]
 			loop_button.text = "Showcase" if GameState.day == 3 else "Next day"
 
 
@@ -340,7 +340,7 @@ func _build_loop_ui() -> void:
 	progress_card.add_child(overview_bar)
 	var deadline_card := _hud_card(Rect2(314, 23, 65, 17))
 	_hud_text(deadline_card, "Showcase deadline", Vector2(5, 2), 5)
-	_hud_text(deadline_card, "Day 3, 6:00 PM", Vector2(5, 9), 6)
+	_hud_text(deadline_card, "Day 3, 8:00 PM", Vector2(5, 9), 6)
 	var controls := _hud_card(Rect2(5, 242, 48, 38))
 	var controls_text := _hud_text(controls, "E   Interact\nI    Inventory\nTab Menu", Vector2(4, 3), 6)
 	controls_text.add_theme_constant_override("line_spacing", 0)
@@ -357,7 +357,7 @@ func _build_loop_ui() -> void:
 	loop_message.add_theme_font_size_override("font_size", 8)
 	loop_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	loop_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	loop_message.text = "Day 3 showcase: reach 80% and repair all routines.\nE to interact. Make the bed before resting.\n4 sessions/day: +10%/120 min; tap: +5%/160 min.\nFull sessions must fit before 6:00 PM."
+	loop_message.text = "Day 3 showcase: reach 80% and repair all routines.\nE to interact. Make the bed before resting.\n4 sessions/day: +10%/120 min; tap: +5%/160 min.\nFull sessions must fit before 8:00 PM."
 	loop_panel.add_child(loop_message)
 	loop_button = Button.new()
 	loop_button.position = Vector2(100, 80)
@@ -738,7 +738,7 @@ func _build_dialogue_ui() -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_I, KEY_TAB] and not get_tree().paused and not GameState.research_active and not get_node("../Player").animation_busy:
-		loop_message.text = "Inventory\nNo carried items. Household repairs and cleanup are available at each fixture." if event.keycode == KEY_I else "Apartment menu\nE: interact near furniture or TipTop.\nFour research sessions each day. Make the bed to rest.\nShowcase: Day 3 at 18:00."
+		loop_message.text = "Inventory\nNo carried items. Household repairs and cleanup are available at each fixture." if event.keycode == KEY_I else "Apartment menu\nE: interact near furniture or TipTop.\nFour research sessions each day. Make the bed to rest.\nShowcase: Day 3 at 8:00 PM."
 		loop_button.text = "Resume"
 		loop_panel.show()
 		get_tree().paused = true

@@ -2,14 +2,15 @@ extends Node2D
 
 # Presentation only. All animation is sampled from the authoritative world clock.
 const ART = preload("res://scripts/apartment_visual.gd")
-const EVENING_START := GameState.DAY_END - 180.0
-const HOURS := [540.0, 720.0, 900.0, 1020.0, 1080.0]
+const EVENING_START := 1050.0 # 5:30 PM: lamps begin to fade in.
+const LAMPS_FULL := 1140.0 # 7:00 PM: artificial lighting dominates.
+const HOURS := [660.0, 840.0, 1020.0, 1050.0, 1110.0, 1140.0, 1200.0]
 # Broad neutral daylight gives way to a cool, readable evening baseline.
 # Warmth after dusk comes from local lights, not an orange ambient filter.
-const AMBIENT := [Color(0.93, 0.96, 1.0), Color(1.0, 1.0, 1.0), Color(0.94, 0.93, 0.88), Color(0.57, 0.63, 0.75), Color(0.38, 0.44, 0.58)]
-const SUN := [Color("ffedc4"), Color("fffdf2"), Color("ffda98"), Color("ffc17b"), Color("d1b798")]
-const LENGTH := [110.0, 62.0, 130.0, 150.0, 160.0]
-const STRENGTH := [0.28, 0.16, 0.33, 0.09, 0.012]
+const AMBIENT := [Color(0.98, 0.99, 1.0), Color(0.97, 0.96, 0.91), Color(0.86, 0.85, 0.84), Color(0.74, 0.76, 0.82), Color(0.46, 0.51, 0.65), Color(0.38, 0.44, 0.58), Color(0.34, 0.40, 0.54)]
+const SUN := [Color("fff3d9"), Color("ffe4b0"), Color("ffd294"), Color("ffc18a"), Color("cfb59c"), Color("9faec7"), Color("93a3bf")]
+const LENGTH := [72.0, 100.0, 132.0, 140.0, 150.0, 156.0, 160.0]
+const STRENGTH := [0.22, 0.26, 0.34, 0.19, 0.035, 0.01, 0.005]
 var ambient: CanvasModulate
 var lamps: Array[PointLight2D] = []
 var sampled_time := -1.0
@@ -83,8 +84,7 @@ func _update_from_clock() -> void:
 	sun_color = SUN[phase].lerp(SUN[phase + 1], blend)
 	sun_length = lerpf(LENGTH[phase], LENGTH[phase + 1], blend)
 	sun_strength = lerpf(STRENGTH[phase], STRENGTH[phase + 1], blend)
-	# Bring lamps in with the daylight fade, starting three hours before cutoff.
-	var evening := smoothstep(EVENING_START, float(GameState.DAY_END), minutes)
+	var evening := smoothstep(EVENING_START, LAMPS_FULL, minutes)
 	for lamp in lamps:
 		lamp.energy = 1.35 * evening
 	queue_redraw()

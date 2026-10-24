@@ -27,6 +27,9 @@ var cleanup_target := false
 var swatting := false
 var session_serial := -1
 var finished_chore_serial := -1
+var task_outcome := "idle"
+var navigation_attempts := 0
+var travel_elapsed := 0.0
 var was_research := false
 var previous_playback := 1.0
 @onready var judy: CharacterBody2D = get_node("../Player")
@@ -79,6 +82,8 @@ func _state_changed() -> void:
 		GameState.action_feedback.emit("TipTop: " + ["Hydration complete.", "Dish cycle successful.", "Book order optimized.", "Sheets aerated."][visit])
 		reaction_day = GameState.day
 	if GameState.repairs.values().count(true) != repair_count or GameState.day != last_day or was_research != GameState.research_active or session_serial != GameState.research_task_serial:
+		if has_destination or action_left > 0:
+			task_outcome = "cancelled"
 		wait = 0.8
 		path.clear()
 		has_destination = false
@@ -86,6 +91,9 @@ func _state_changed() -> void:
 		_chore_visual().call("set_chore_active", false)
 		action_label.hide()
 		velocity = Vector2.ZERO
+		navigation_attempts = 0
+		travel_elapsed = 0.0
+		stalled = 0.0
 	was_fixed = GameState.tiptop_fixed
 	last_day = GameState.day
 	repair_count = GameState.repairs.values().count(true)
@@ -139,6 +147,18 @@ func _clear_to(point: Vector2) -> bool:
 	return not test_move(global_transform, point - global_position)
 
 
+func _finish_presentation(outcome: String) -> void:
+	task_outcome = outcome
+	velocity = Vector2.ZERO
+	path.clear()
+	has_destination = false
+	action_left = 0.0
+	cleanup_target = false
+	_chore_visual().call("set_chore_active", false)
+	action_label.hide()
+	finished_chore_serial = GameState.research_task_serial
+
+
 func _choose_destination() -> void:
 	# The world scheduler owns task order and effects at every playback speed.
 	visit = CHORES.find(GameState.research_task)
@@ -162,6 +182,7 @@ func _choose_destination() -> void:
 	if visit == 2 or _clear_to(candidate):
 		destination = candidate
 	has_destination = true
+	task_outcome = "travelling"
 	path.clear()
 
 
@@ -181,16 +202,15 @@ func _physics_process(delta: float) -> void:
 		_chore_visual().call("set_chore_active", false)
 		action_label.hide()
 		return
+	if GameState.research_task.is_empty():
+		# No useful work remains. Keep hovering and remain repair-interactable.
+		if task_outcome != "idle" or has_destination or action_left > 0:
+			_finish_presentation("idle")
+		return
 	if not mapped:
 		_map_obstacles()
 	if cleanup_target and not GameState.needs_cleanup(CHORES[visit]):
-		_chore_visual().call("set_chore_active", false)
-		action_left = 0
-		has_destination = false
-		cleanup_target = false
-		path.clear()
-		action_label.hide()
-		finished_chore_serial = GameState.research_task_serial
+		_finish_presentation("cancelled")
 	if finished_chore_serial == GameState.research_task_serial:
 		velocity = Vector2.ZERO
 		return
@@ -211,9 +231,7 @@ func _physics_process(delta: float) -> void:
 		if action_left <= 0:
 			# End the visible action once; do not loop its pose/label while
 			# waiting for the authoritative scheduler to select the next task.
-			_chore_visual().call("set_chore_active", false)
-			action_label.hide()
-			finished_chore_serial = GameState.research_task_serial
+			_finish_presentation("completed")
 		return
 	if not has_destination:
 		action_label.hide()
@@ -221,6 +239,8 @@ func _physics_process(delta: float) -> void:
 	var distance := global_position.distance_to(destination)
 	if distance < 1.2 and velocity.length() < 2.0 * playback:
 		velocity = Vector2.ZERO
+		path.clear()
+		task_outcome = "working"
 		action_left = 2.5 if cleanup_target or GameState.research_active else randf_range(1.5, 2.5)
 		action_label.text = ["Drying...", "Mopping...", "Organizing...", "Making bed..."][visit] if cleanup_target else ["Watering...", "Washing...", "Sorting...", "Straightening..."][visit]
 		action_label.show()
@@ -228,6 +248,11 @@ func _physics_process(delta: float) -> void:
 			action_label.text = "Swatting..."
 		elif visit == 2:
 			action_label.text = "Organizing ↑"
+		return
+	travel_elapsed += delta
+	if travel_elapsed > 20.0:
+		# Bound oscillating routes even if they still make small movements.
+		_finish_presentation("failed")
 		return
 	var route_target := destination
 	if visit == 2 and not _clear_to(destination):
@@ -260,7 +285,11 @@ func _physics_process(delta: float) -> void:
 	if stalled > 0.7:
 		path.clear()
 		mapped = false
-		has_destination = false
 		stalled = 0.0
-		visit = (visit + 1) % 4
-		wait = 0.3
+		navigation_attempts += 1
+		if navigation_attempts >= 3:
+			_finish_presentation("failed")
+		else:
+			# Retry this fixed target after remapping, not a new random point.
+			wait = 0.5
+			repath_cooldown = 0.5
