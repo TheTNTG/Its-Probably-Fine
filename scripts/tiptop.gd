@@ -2,6 +2,7 @@ extends CharacterBody2D
 
 const SPEED := 28.0
 const CELL := 8.0
+const APARTMENT_ART = preload("res://scripts/apartment_visual.gd")
 var grid := AStarGrid2D.new()
 var path := PackedVector2Array()
 var visit := 0
@@ -96,7 +97,7 @@ func _cells() -> Array[Vector2i]:
 
 
 func _map_obstacles() -> void:
-	grid.region = Rect2i(7, 6, 27, 15)
+	grid.region = Rect2i(5, 3, 31, 22)
 	grid.cell_size = Vector2(CELL, CELL)
 	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	grid.update()
@@ -108,7 +109,8 @@ func _map_obstacles() -> void:
 	query.exclude = [get_rid(), judy.get_rid()]
 	for cell in _cells():
 		query.transform = Transform2D(0, Vector2(cell) * CELL + Vector2(0, -2))
-		grid.set_point_solid(cell, not get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty())
+		var inside := Geometry2D.is_point_in_polygon(Vector2(cell) * CELL, PackedVector2Array(APARTMENT_ART.ROOM_EDGE))
+		grid.set_point_solid(cell, not inside or not get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty())
 	mapped = true
 
 

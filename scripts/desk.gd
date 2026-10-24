@@ -5,6 +5,8 @@ var player_nearby := false
 
 
 func _ready() -> void:
+	# Furniture proportions change; the E interaction range remains 56 x 40.
+	$InteractionZone.scale = Vector2.ONE / scale
 	prompt_label.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	GameState.state_changed.connect(_update_prompt)
 	_update_prompt()

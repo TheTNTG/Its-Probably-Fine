@@ -45,6 +45,8 @@ var research_strip: ColorRect
 var research_status: Label
 var research_bar: ProgressBar
 var research_speed_button: Button
+var overview_bar: ProgressBar
+var weekday_label: Label
 
 
 func research_choices() -> void:
@@ -90,7 +92,7 @@ func household_choices(location: String) -> void:
 	var prior_pause := get_tree().paused
 	get_tree().paused = true
 	household_panel = ColorRect.new()
-	household_panel.size = Vector2(320, 180)
+	household_panel.size = Vector2(320, 214)
 	household_panel.color = Color(0.08, 0.08, 0.12, 0.98)
 	add_child(household_panel)
 	var options: Array = []
@@ -167,6 +169,8 @@ func _update_hud() -> void:
 	time_label.text = GameState.get_time_string()
 	research_label.text = "Research: %d%%" % GameState.research_progress
 	sessions_label.text = "Work sessions: %d / 4" % GameState.work_sessions_remaining
+	weekday_label.text = ["Monday", "Tuesday", "Wednesday"][clampi(GameState.day - 1, 0, 2)]
+	overview_bar.value = GameState.research_progress
 	if (GameState.day_ended or GameState.game_finished) and not GameState.research_active:
 		notification_panel.hide()
 		get_tree().paused = true
@@ -206,31 +210,85 @@ func _on_ignore_pressed() -> void:
 	GameState.ignore_tap()
 
 
+func _hud_card(bounds: Rect2) -> Panel:
+	var panel := Panel.new()
+	panel.position = bounds.position
+	panel.size = bounds.size
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("23242bd9")
+	style.border_color = Color("565459")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	panel.add_theme_stylebox_override("panel", style)
+	add_child(panel)
+	move_child(panel, 0)
+	return panel
+
+
+func _hud_text(parent: Node, text: String, point: Vector2, font_size: int) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.position = point
+	label.add_theme_font_size_override("font_size", font_size)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(label)
+	return label
+
+
 func _build_loop_ui() -> void:
-	for bounds in [Rect2(4, 3, 119, 28), Rect2(190, 3, 126, 28)]:
-		var background := ColorRect.new()
-		background.position = bounds.position
-		background.size = bounds.size
-		background.color = Color("29272d")
-		background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(background)
-		move_child(background, 0)
-	day_label.position = Vector2(12, 5)
-	day_label.size = Vector2(48, 12)
-	time_label.position = Vector2(75, 5)
-	time_label.size = Vector2(40, 12)
-	research_label.position = Vector2(198, 5)
-	research_label.size = Vector2(110, 12)
+	var day_card := _hud_card(Rect2(5, 4, 103, 17))
+	var sun := Polygon2D.new()
+	var points := PackedVector2Array()
+	for index in range(12):
+		points.append(Vector2(8, 8) + Vector2.from_angle(index * TAU / 12.0) * 3.0)
+	sun.polygon = points
+	sun.color = Color("f3c76c")
+	day_card.add_child(sun)
+	for index in range(8):
+		var ray := Line2D.new()
+		var direction := Vector2.from_angle(index * TAU / 8.0)
+		ray.points = PackedVector2Array([Vector2(8, 8) + direction * 4.0, Vector2(8, 8) + direction * 6.0])
+		ray.width = 1.0
+		ray.default_color = sun.color
+		day_card.add_child(ray)
+	day_label.position = Vector2(23, 5)
+	day_label.size = Vector2(32, 9)
+	day_label.add_theme_font_size_override("font_size", 7)
+	weekday_label = _hud_text(self, "Monday", Vector2(23, 13), 5)
+	var divider := ColorRect.new()
+	divider.position = Vector2(57, 7)
+	divider.size = Vector2(1, 11)
+	divider.color = Color("98949a")
+	add_child(divider)
+	time_label.position = Vector2(62, 6)
+	time_label.size = Vector2(42, 12)
+	time_label.add_theme_font_size_override("font_size", 10)
+	var progress_card := _hud_card(Rect2(250, 4, 65, 16))
+	var flask := Polygon2D.new()
+	flask.polygon = PackedVector2Array([Vector2(5, 3), Vector2(9, 3), Vector2(9, 7), Vector2(12, 12), Vector2(3, 12), Vector2(6, 7), Vector2(6, 3)])
+	flask.color = Color("80afbb")
+	progress_card.add_child(flask)
+	research_label.position = Vector2(265, 5)
+	research_label.size = Vector2(46, 7)
+	research_label.add_theme_font_size_override("font_size", 5)
 	research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	sessions_label = Label.new()
-	sessions_label.position = Vector2(12, 18)
-	sessions_label.add_theme_font_size_override("font_size", 7)
-	add_child(sessions_label)
-	var deadline := Label.new()
-	deadline.position = Vector2(198, 18)
-	deadline.add_theme_font_size_override("font_size", 7)
-	deadline.text = "Deadline: Day 3, 18:00"
-	add_child(deadline)
+	overview_bar = ProgressBar.new()
+	overview_bar.position = Vector2(15, 10)
+	overview_bar.size = Vector2(45, 3)
+	overview_bar.show_percentage = false
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color("639dad")
+	fill.set_corner_radius_all(1)
+	overview_bar.add_theme_stylebox_override("fill", fill)
+	progress_card.add_child(overview_bar)
+	var deadline_card := _hud_card(Rect2(250, 23, 65, 17))
+	_hud_text(deadline_card, "Showcase deadline", Vector2(5, 2), 5)
+	_hud_text(deadline_card, "Day 3, 18:00", Vector2(5, 9), 6)
+	var controls := _hud_card(Rect2(5, 179, 43, 30))
+	_hud_text(controls, "E   Interact\nI    Inventory\nTab Menu", Vector2(4, 3), 6)
+	_hud_card(Rect2(236, 199, 79, 11))
+	sessions_label = _hud_text(self, "", Vector2(240, 200), 6)
 	loop_panel = ColorRect.new()
 	loop_panel.position = Vector2(10, 42)
 	loop_panel.size = Vector2(300, 112)
@@ -275,11 +333,11 @@ func _build_transition_ui() -> void:
 	add_child(transition_layer)
 	transition_cover = ColorRect.new()
 	transition_cover.color = Color.BLACK
-	transition_cover.size = Vector2(320, 180)
+	transition_cover.size = Vector2(320, 214)
 	transition_cover.hide()
 	transition_layer.add_child(transition_cover)
 	transition_title = Label.new()
-	transition_title.position = Vector2(0, 78)
+	transition_title.position = Vector2(0, 95)
 	transition_title.size = Vector2(320, 24)
 	transition_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	transition_title.add_theme_font_size_override("font_size", 14)
@@ -352,7 +410,7 @@ func _reveal_new_game() -> void:
 
 func _build_repair_menu() -> void:
 	repair_panel = ColorRect.new()
-	repair_panel.size = Vector2(320, 180)
+	repair_panel.size = Vector2(320, 214)
 	repair_panel.color = Color(0.08, 0.08, 0.12, 0.98)
 	repair_panel.hide()
 	add_child(repair_panel)
@@ -462,7 +520,7 @@ func _process(delta: float) -> void:
 
 func _build_research_controls() -> void:
 	research_strip = ColorRect.new()
-	research_strip.position = Vector2(36, 34)
+	research_strip.position = Vector2(52, 181)
 	research_strip.size = Vector2(248, 26)
 	research_strip.color = Color("29272d")
 	research_strip.hide()
@@ -496,7 +554,7 @@ func _build_research_controls() -> void:
 
 func _build_system_notice() -> void:
 	system_notice = ColorRect.new()
-	system_notice.position = Vector2(64, 34)
+	system_notice.position = Vector2(64, 22)
 	system_notice.size = Vector2(192, 30)
 	system_notice.color = Color(0.08, 0.08, 0.12, 0.94)
 	system_notice.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -520,12 +578,12 @@ func _sync_overlay_visibility() -> void:
 
 func _build_dialogue_ui() -> void:
 	dialogue_overlay = ColorRect.new()
-	dialogue_overlay.size = Vector2(320, 180)
+	dialogue_overlay.size = Vector2(320, 214)
 	dialogue_overlay.color = Color(0, 0, 0, 0)
 	dialogue_overlay.hide()
 	add_child(dialogue_overlay)
 	var panel := Control.new()
-	panel.position = Vector2(36, 120)
+	panel.position = Vector2(36, 154)
 	panel.size = Vector2(248, 60)
 	dialogue_overlay.add_child(panel)
 	dialogue_plain = ColorRect.new()
@@ -597,6 +655,13 @@ func _build_dialogue_ui() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_I, KEY_TAB] and not get_tree().paused and not GameState.research_active and not get_node("../Player").animation_busy:
+		loop_message.text = "Inventory\nNo carried items. Household repairs and cleanup are available at each fixture." if event.keycode == KEY_I else "Apartment menu\nE: interact near furniture or TipTop.\nFour research sessions each day. Make the bed to rest.\nShowcase: Day 3 at 18:00."
+		loop_button.text = "Resume"
+		loop_panel.show()
+		get_tree().paused = true
+		get_viewport().set_input_as_handled()
+		return
 	if transitioning:
 		get_viewport().set_input_as_handled()
 		return
@@ -679,7 +744,7 @@ func _present_speaker(speaker: String, expression: String) -> void:
 	var known := character in ["judy", "tiptop"]
 	var robot := character == "tiptop"
 	var panel := dialogue_art.get_parent() as Control
-	panel.position = Vector2(48, 126) if robot else Vector2(36, 120)
+	panel.position = Vector2(48, 160) if robot else Vector2(36, 154)
 	dialogue_art.size = Vector2(224, 54) if robot else Vector2(248, 60)
 	dialogue_portrait_frame.scale = Vector2(0.68, 0.68) if robot else Vector2(0.76, 0.76)
 	dialogue_hint.position = Vector2(133, 47) if robot else Vector2(153, 53)

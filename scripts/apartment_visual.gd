@@ -1,6 +1,6 @@
 extends Node2D
 
-# Decorative drawing only; physics and interactions remain in the scenes.
+# Fixture drawing; the shared room outline also builds the wall boundary.
 @export_enum("floor", "walls", "desk", "sink", "plant", "bed", "bookshelf", "fridge", "chair", "coffee_table", "counter", "lamp") var fixture := "floor"
 
 const INK := Color("493b35")
@@ -13,12 +13,29 @@ const GREEN := Color("657a55")
 const LEAF := Color("8caa68")
 const BLUE := Color("70999e")
 const RUST := Color("b77354")
+# Reference coordinates divided by 4.8 (1536 x 1024 -> 320 x 214).
+# These ground-edge points drive both the stepped drawing and wall collision.
+const ROOM_EDGE := [Vector2(42, 42), Vector2(184, 42), Vector2(184, 24), Vector2(231, 24), Vector2(231, 56), Vector2(280, 56), Vector2(280, 173), Vector2(210, 173), Vector2(210, 184), Vector2(173, 184), Vector2(173, 194), Vector2(151, 194), Vector2(151, 184), Vector2(108, 184), Vector2(108, 173), Vector2(42, 173)]
+var floor_boards: Array[PackedVector2Array] = []
 var chore_active := false
 var chore_phase := 0.0
 
 
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if fixture == "walls":
+		var boundary := StaticBody2D.new()
+		var outline := CollisionPolygon2D.new()
+		outline.build_mode = CollisionPolygon2D.BUILD_SEGMENTS
+		outline.polygon = PackedVector2Array(ROOM_EDGE)
+		boundary.add_child(outline)
+		add_child(boundary)
+	elif fixture == "floor":
+		for row in range(29):
+			for col in range(-1, 7):
+				var tile := Rect2(col * 48 + (24 if row % 2 else 0), 24 + row * 6, 47, 5)
+				var corners := PackedVector2Array([tile.position, Vector2(tile.end.x, tile.position.y), tile.end, Vector2(tile.position.x, tile.end.y)])
+				floor_boards.append_array(Geometry2D.intersect_polygons(corners, PackedVector2Array(ROOM_EDGE)))
 	if fixture in ["plant", "sink", "bookshelf", "bed", "floor"]:
 		GameState.state_changed.connect(queue_redraw)
 
@@ -42,6 +59,13 @@ func _process(delta: float) -> void:
 
 func _box(x: int, y: int, w: int, h: int, color: Color) -> void:
 	draw_rect(Rect2(x, y, w, h), color)
+
+
+func _oval(center: Vector2, radius: Vector2, color: Color) -> void:
+	var points := PackedVector2Array()
+	for index in range(24):
+		points.append((center + Vector2.from_angle(index * TAU / 24.0) * radius).round())
+	draw_colored_polygon(points, color)
 
 
 func _draw() -> void:
@@ -69,81 +93,64 @@ func _draw() -> void:
 			_box(-6, -3, 12, 4, INK)
 			_box(-5, -2, 10, 2, GREEN)
 		"floor":
-			_box(0, 0, 320, 180, Color("1d1c23"))
-			_box(52, 40, 216, 132, WOOD)
-			var boards := [Color("795236"), Color("80583b"), Color("875e40")]
-			for row in range(11):
-				for col in range(-1, 7):
-					var x := col * 56 + (28 if row % 2 else 0)
-					var left := maxi(52, x)
-					var right := mini(268, x + 55)
-					if right > left:
-						_box(left, 40 + row * 12, right - left, 11, boards[posmod(row + col, 3)])
-						if right - left > 20:
-							_box(left + 4, 43 + row * 12, 12, 1, WOOD)
-						# Sparse, deterministic grain stays still during chore redraws.
-						if right - left > 30:
-							_box(right - 18, 47 + row * 12, 9, 1, Color("735037"))
-							_box(right - 15, 48 + row * 12, 3, 1, Color("916745"))
-			# Woven rug: low contrast, safely underneath all sortable objects.
-			_box(118, 101, 88, 49, Color("60442f"))
-			_box(119, 100, 86, 48, Color("40563f"))
-			_box(121, 102, 82, 44, GREEN)
-			_box(125, 106, 74, 36, Color("788363"))
-			for x in range(123, 201, 6):
-				_box(x, 103, 2, 2, Color("b3af7e"))
-				_box(x, 143, 2, 2, Color("b3af7e"))
-			for y in range(109, 141, 6):
-				_box(122, y, 2, 2, Color("b3af7e"))
-				_box(200, y, 2, 2, Color("b3af7e"))
-			for y in range(109, 140, 4):
-				for x in range(128, 198, 9):
-					_box(x + (y % 3), y, 3, 1, Color("72805d"))
-			# Small kitchen mat and a clear entrance runner.
-			_box(206, 88, 23, 7, Color("526348"))
-			for x in range(208, 228, 3):
-				_box(x, 89, 1, 4, GREEN)
-			_box(149, 160, 22, 10, SHADE)
-			_box(151, 161, 18, 8, Color("a77b4d"))
-			_box(153, 163, 14, 4, Color("b58c59"))
+			_box(0, 0, 320, 214, Color("17191f"))
+			draw_colored_polygon(PackedVector2Array(ROOM_EDGE), SHADE)
+			var boards := [Color("805537"), Color("8d603d"), Color("956743"), Color("855b3a")]
+			for index in range(floor_boards.size()):
+				var plank := floor_boards[index]
+				draw_colored_polygon(plank, boards[index % boards.size()])
+				var bounds := Rect2(plank[0], Vector2.ZERO)
+				for corner in plank:
+					bounds = bounds.expand(corner)
+				if bounds.size.x > 22 and bounds.size.y >= 4:
+					_box(int(bounds.position.x) + 5, int(bounds.position.y) + 2, 12, 1, Color("785137"))
+			# Main rug proportions and round-table placement follow the blueprint.
+			_box(118, 106, 78, 56, SHADE)
+			_box(119, 105, 75, 55, Color("40563f"))
+			_box(121, 107, 71, 51, GREEN)
+			_box(125, 111, 63, 43, Color("77825d"))
+			for x in range(123, 190, 5):
+				_box(x, 108, 2, 2, Color("b6b180"))
+				_box(x, 155, 2, 2, Color("b6b180"))
+			for y in range(113, 154, 5):
+				_box(122, y, 2, 2, Color("b6b180"))
+				_box(189, y, 2, 2, Color("b6b180"))
+			for y in range(114, 152, 4):
+				for x in range(127, 185, 9):
+					_box(x + y % 3, y, 3, 1, Color("71805a"))
+			_box(201, 96, 25, 7, Color("536144"))
+			_box(155, 183, 15, 9, SHADE)
+			_box(156, 184, 13, 7, EDGE)
+			_box(158, 186, 9, 3, Color("bd9561"))
 		"walls":
-			_box(44, 32, 232, 8, INK)
-			_box(46, 33, 228, 4, CREAM)
-			_box(48, 37, 224, 2, EDGE)
-			_box(52, 39, 216, 2, SHADE)
-			_box(44, 40, 8, 140, SHADE)
-			_box(46, 40, 4, 132, CREAM)
-			_box(268, 40, 8, 140, SHADE)
-			_box(270, 40, 4, 132, CREAM)
-			# Recessed entrance; the existing boundary still closes the room.
-			_box(44, 172, 100, 8, SHADE)
-			_box(176, 172, 100, 8, SHADE)
-			_box(48, 172, 96, 2, EDGE)
-			_box(176, 172, 96, 2, EDGE)
-			_box(144, 173, 32, 7, Color("6a4d36"))
-			_box(146, 174, 28, 2, EDGE)
-			_box(143, 171, 2, 9, INK)
-			_box(175, 171, 2, 9, INK)
-			# Contact shade along the inside corners and rear skirting.
-			_box(52, 41, 216, 2, Color("46372d"))
-			_box(52, 43, 2, 129, Color("60422f"))
-			_box(54, 41, 212, 8, Color("d7c4a3"))
-			_box(54, 48, 212, 2, Color("9d7752"))
-			_box(54, 50, 212, 2, SHADE)
-			_box(54, 52, 212, 2, Color("694a33"))
-			for x in [94, 128, 188, 234]:
-				_box(x, 41, 1, 7, Color("c6b392"))
-			# Pinboard, landscape print, and notes over the sleeping/work area.
-			_box(65, 42, 22, 9, INK)
-			_box(66, 43, 20, 7, BLUE)
-			_box(67, 47, 18, 3, GREEN)
-			_box(80, 44, 3, 2, PAPER)
-			_box(100, 41, 24, 11, SHADE)
-			_box(101, 42, 22, 9, Color("a7794d"))
-			_box(103, 43, 6, 6, PAPER)
-			_box(112, 44, 8, 5, CREAM)
-			_box(104, 45, 3, 1, RUST)
-			_box(114, 46, 4, 1, BLUE)
+			var edge := PackedVector2Array(ROOM_EDGE)
+			edge.append(edge[0])
+			# Thick dark caps, cream faces and a low wood skirting.
+			draw_polyline(edge, Color("29282c"), 10.0)
+			draw_polyline(edge, Color("6d5542"), 7.0)
+			draw_polyline(edge, Color("d3c2a1"), 3.0)
+			for index in range(ROOM_EDGE.size()):
+				var start: Vector2 = ROOM_EDGE[index]
+				var end: Vector2 = ROOM_EDGE[(index + 1) % ROOM_EDGE.size()]
+				if start.y == end.y and end.x > start.x:
+					draw_line(start + Vector2(0, 4), end + Vector2(0, 4), SHADE, 3.0)
+					draw_line(start + Vector2(0, 2), end + Vector2(0, 2), EDGE, 1.0)
+			# Structural pillars at the stepped corners, not an enclosing rectangle.
+			for corner in [Vector2(42, 42), Vector2(184, 24), Vector2(231, 56), Vector2(280, 56), Vector2(42, 173), Vector2(108, 173), Vector2(210, 173)]:
+				_box(int(corner.x) - 4, int(corner.y) - 4, 8, 8, INK)
+				_box(int(corner.x) - 2, int(corner.y) - 3, 4, 6, Color("bea88a"))
+			# Posters, corkboard and hanging foliage behind the bed and desk.
+			_box(65, 37, 22, 14, INK)
+			_box(66, 38, 20, 12, BLUE)
+			_box(67, 45, 18, 5, GREEN)
+			_box(80, 39, 3, 2, PAPER)
+			_box(96, 38, 21, 14, SHADE)
+			_box(97, 39, 19, 12, EDGE)
+			for note in range(4):
+				_box(99 + note % 2 * 8, 40 + note / 2 * 5, 6, 4, PAPER)
+			_box(46, 48, 6, 4, WOOD)
+			for leaf in range(8):
+				_box(45 + leaf % 3 * 2, 45 + leaf * 2, 4, 5, GREEN if leaf % 2 else LEAF)
 		"desk":
 			_box(-17, 0, 34, 2, SHADE)
 			_box(-16, -16, 32, 16, INK)
@@ -251,12 +258,13 @@ func _draw() -> void:
 			_box(4, -38, 4, 2, LEAF)
 			_box(8, -40, 3, 3, GREEN)
 		"coffee_table":
-			# Chamfered tabletop and short legs, sorted at their ground contact.
-			_box(-12, 0, 26, 3, Color("55432e"))
+			# Pixel-stepped round top, thick front lip, and short grounded legs.
+			_oval(Vector2(1, 1), Vector2(15, 4), Color("473c3266"))
 			_box(-10, -4, 3, 6, INK)
 			_box(8, -4, 3, 6, INK)
-			draw_colored_polygon(PackedVector2Array([Vector2(-14, -9), Vector2(-9, -15), Vector2(8, -15), Vector2(14, -9), Vector2(14, -4), Vector2(8, 0), Vector2(-9, 0), Vector2(-14, -4)]), INK)
-			draw_colored_polygon(PackedVector2Array([Vector2(-13, -10), Vector2(-8, -15), Vector2(7, -15), Vector2(13, -10), Vector2(13, -6), Vector2(7, -2), Vector2(-8, -2), Vector2(-13, -6)]), WOOD)
+			_oval(Vector2(0, -6), Vector2(14, 8), INK)
+			_oval(Vector2(0, -9), Vector2(14, 8), EDGE)
+			_oval(Vector2(0, -9), Vector2(13, 7), WOOD)
 			_box(-8, -14, 15, 1, EDGE)
 			_box(-7, -6, 6, 3, RUST)
 			_box(-6, -6, 4, 1, PAPER)

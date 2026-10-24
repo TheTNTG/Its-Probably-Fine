@@ -26,6 +26,9 @@ func _ready() -> void:
 	interaction_prompt.add_theme_font_size_override("font_size", 6)
 	interaction_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var background := StyleBoxFlat.new()
+	background.set_corner_radius_all(3)
+	background.border_color = Color("b68b4c")
+	background.set_border_width_all(1)
 	background.bg_color = Color(0.12, 0.11, 0.14, 0.94)
 	background.content_margin_left = 3
 	background.content_margin_right = 3
@@ -72,7 +75,7 @@ func _update_interaction_prompt(target: Node2D) -> void:
 	var offsets := [Vector2(-interaction_prompt.size.x / 2, -39), Vector2(-interaction_prompt.size.x / 2, 8), Vector2(12, -20), Vector2(-interaction_prompt.size.x - 12, -20)]
 	for offset in offsets:
 		var pos: Vector2 = point + offset
-		pos = pos.clamp(Vector2(4, 33), Vector2(316, 174) - interaction_prompt.size)
+		pos = pos.clamp(Vector2(4, 33), Vector2(316, 208) - interaction_prompt.size)
 		interaction_prompt.position = pos.round()
 		if not Rect2(pos, interaction_prompt.size).intersects(judy_rect):
 			break
@@ -81,9 +84,9 @@ func _update_interaction_prompt(target: Node2D) -> void:
 
 func _interaction_position(target: Node2D) -> Vector2:
 	if target in [bed, plant, bookshelf]:
-		return bed.global_position
+		return target.global_position
 	# Keep interaction centers unchanged when scene origins move to the floor.
-	var height := 8.0 if target == desk else (7.0 if target == tiptop else 6.0)
+	var height := (8.0 if target == desk else (7.0 if target == tiptop else 6.0)) * target.scale.y
 	return target.global_position - Vector2(0, height)
 
 
@@ -208,7 +211,7 @@ func _research_animation(fast_forward := false) -> void:
 	interaction_prompt.hide()
 	var chair: Node2D = get_node("../Chair")
 	# Enter from the side of the seat, never through its rear upright.
-	var seat_side := 16 if global_position.x >= chair.global_position.x else -16
+	var seat_side := 20 if global_position.x >= chair.global_position.x else -20
 	var standing := chair.global_position + Vector2(seat_side, 6)
 	if test_move(global_transform, standing - global_position):
 		var side := chair.global_position.x + (24 if global_position.x >= chair.global_position.x else -24)
@@ -221,7 +224,7 @@ func _research_animation(fast_forward := false) -> void:
 		return
 	visual.animation = "walk_up"
 	visual.frame = 0
-	var seat := chair.global_position + Vector2(0, -6) - global_position
+	var seat := chair.global_position + Vector2(0, -6) * chair.scale - global_position
 	var sit := _pose_tween().set_parallel()
 	sit.tween_property(visual, "scale", Vector2(0.5, 0.36), 0.18)
 	sit.tween_property(visual, "position", seat + Vector2(0, -8), 0.18)
@@ -341,7 +344,7 @@ func play_sleep_animation() -> void:
 		return
 	animation_busy = true
 	interaction_prompt.hide()
-	var side := 20 if global_position.x >= bed.global_position.x else -20
+	var side := 25 if global_position.x >= bed.global_position.x else -25
 	var standing := bed.global_position + Vector2(side, 6)
 	await _walk_for_animation(Vector2(standing.x, global_position.y))
 	await _walk_for_animation(standing)
@@ -351,12 +354,12 @@ func play_sleep_animation() -> void:
 	visual.animation = "walk_down"
 	visual.frame = 0
 	var tuck_in := _pose_tween().set_parallel()
-	tuck_in.tween_property(visual, "position", bed.global_position + Vector2(0, -22) - global_position, 0.3)
+	tuck_in.tween_property(visual, "position", bed.global_position + Vector2(0, -22) * bed.scale - global_position, 0.3)
 	tuck_in.tween_property(visual, "scale", Vector2(0.5, 0.4), 0.3)
 	await tuck_in.finished
 	sleep_blanket = ColorRect.new()
-	sleep_blanket.position = bed.global_position + Vector2(-13, -24) - global_position
-	sleep_blanket.size = Vector2(26, 20)
+	sleep_blanket.position = bed.global_position + Vector2(-13, -24) * bed.scale - global_position
+	sleep_blanket.size = Vector2(26, 20) * bed.scale
 	sleep_blanket.color = Color("657a55")
 	sleep_blanket.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(sleep_blanket)
