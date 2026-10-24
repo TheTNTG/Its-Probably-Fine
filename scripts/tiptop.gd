@@ -410,7 +410,7 @@ func _physics_process(delta: float) -> void:
 		if brain_state != BrainState.IDLE:
 			prepare_for_sleep()
 		return
-	if GameState.ending_day_pending or GameState.household_busy or (GameState.notification_active and not GameState.research_active):
+	if GameState.ending_day_pending or GameState.household_busy or (GameState.notification_active and not GameState.research_active and GameState.personal_activity.is_empty()):
 		velocity = Vector2.ZERO
 		_chore_visual().call("set_chore_active", false)
 		action_label.hide()

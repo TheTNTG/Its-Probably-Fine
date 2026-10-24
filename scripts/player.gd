@@ -11,6 +11,7 @@ const INTERACTION_DISTANCE := 32.0
 @onready var bed: Node2D = get_node("../Bed")
 @onready var plant: Node2D = get_node("../PlantPot")
 @onready var bookshelf: Node2D = get_node("../Bookshelf")
+@onready var fridge: Node2D = get_node("../Fridge")
 var interaction_prompt: Label
 var prompt_target: Node2D
 var animation_busy := false
@@ -54,10 +55,12 @@ func _update_interaction_prompt(target: Node2D) -> void:
 		interaction_prompt.text = "Too exhausted to work" if exhausted else "E - Work"
 		interaction_prompt.modulate = Color.RED if exhausted else Color.GREEN
 		if not GameState.research_available() and not exhausted:
-			interaction_prompt.text = "E - Research blocked (bookshelf)" if GameState.has_research_time() else "E - Not enough research time"
+			interaction_prompt.text = "E - Take a break first" if not GameState.mood_allows_research() else ("E - Research blocked (bookshelf)" if GameState.has_research_time() else "E - Not enough research time")
 			interaction_prompt.modulate = Color.RED
 	elif target == tiptop:
 		interaction_prompt.text = "E - Talk to TipTop" if GameState.tiptop_fixed else "E - Talk / Repair TipTop"
+	elif target == fridge:
+		interaction_prompt.text = "E - Eat (20 min)"
 	elif target == sink:
 		interaction_prompt.text = "E - Tap off" if GameState.tap_running else "E - Mop / clean (15 min)"
 		if not GameState.tap_running and GameState.mosquito_level > 0:
@@ -94,6 +97,8 @@ func _update_interaction_prompt(target: Node2D) -> void:
 
 
 func _interaction_position(target: Node2D) -> Vector2:
+	if target == fridge:
+		return fridge.to_global(Vector2(0, 7))
 	if target == bookshelf:
 		# Include the scattered books on the floor, not just the shelf origin.
 		var local := bookshelf.to_local(global_position)
@@ -112,7 +117,7 @@ func _nearest_interaction() -> Node2D:
 		return bookshelf
 	var nearest: Node2D = null
 	var nearest_distance := INF
-	for target in [desk, tiptop, sink, bed, plant, bookshelf]:
+	for target in [desk, tiptop, sink, bed, plant, bookshelf, fridge]:
 		if target == desk:
 			if not desk.get("player_nearby"):
 				continue
@@ -121,6 +126,9 @@ func _nearest_interaction() -> Node2D:
 				continue
 		elif target == bed:
 			if global_position.distance_to(bed.global_position) > INTERACTION_DISTANCE:
+				continue
+		elif target == fridge:
+			if global_position.y < fridge.global_position.y or global_position.distance_to(_interaction_position(fridge)) > 20:
 				continue
 		else:
 			var chore := "sink" if target == sink else ("plant" if target == plant else "bookshelf")
@@ -146,6 +154,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_node("../HUD").research_choices()
 	elif target == tiptop:
 		get_node("../HUD").tiptop_interaction()
+	elif target == fridge:
+		personal_activity("eat")
 	elif target == bed:
 		if GameState.needs_cleanup("bed"):
 			_clean_animation("bed")
@@ -193,6 +203,18 @@ func _process(_delta: float) -> void:
 		interaction_prompt.hide()
 		return
 	_update_interaction_prompt(_nearest_interaction())
+
+
+func personal_activity(activity: String) -> void:
+	if animation_busy or get_tree().paused or not GameState.start_personal_activity(activity):
+		return
+	animation_busy = true
+	velocity = Vector2.ZERO
+	visual.pause()
+	interaction_prompt.hide()
+	while not GameState.personal_activity.is_empty():
+		await get_tree().process_frame
+	animation_busy = false
 
 
 func _walk_for_animation(point: Vector2) -> void:

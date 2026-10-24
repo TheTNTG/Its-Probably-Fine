@@ -54,6 +54,14 @@ var dialogue_resume_loop := false
 var morning_pending_day := 0
 var sleep_dialogue_pending := false
 var tiptop_talk_count := 0
+var hunger_label: Label
+var mood_label: Label
+var hunger_bar: ProgressBar
+var mood_bar: ProgressBar
+var hunger_fill: StyleBoxFlat
+var mood_fill: StyleBoxFlat
+var efficiency_label: Label
+var break_button: Button
 
 
 func _household_open() -> bool:
@@ -79,7 +87,7 @@ func research_choices() -> void:
 		_show_feedback("Too exhausted to work. Rest until tomorrow.")
 		return
 	if not GameState.research_available():
-		if GameState.has_research_time():
+		if GameState.has_research_time() and GameState.mood_allows_research() and int(GameState.chore_mess["bookshelf"]) >= 2:
 			household_choices("bookshelf")
 		else:
 			_show_feedback(GameState.research_block_reason())
@@ -116,7 +124,10 @@ func talk_to_tiptop() -> void:
 		[["TipTop", "Are we ready for the showcase?", "worried"], ["Judy", "We've got results. Now I just have to explain them." if GameState.research_progress >= 80 else "Getting there. My notes are starting to look suspiciously useful.", "happy"], ["TipTop", "I shall provide supportive hovering.", "proud"]]
 	]
 	# A direct conversation takes priority without dropping queued story lines.
-	dialogue_lines = pools[tiptop_talk_count % pools.size()].duplicate(true) + dialogue_lines
+	var selected_talk: Array = pools[tiptop_talk_count % pools.size()].duplicate(true)
+	if tiptop_talk_count % pools.size() in [0, 2]:
+		selected_talk[0].append("talk")
+	dialogue_lines = selected_talk + dialogue_lines
 	tiptop_talk_count += 1
 	_advance_dialogue()
 
@@ -146,7 +157,7 @@ func _skip_research() -> void:
 
 
 func household_choices(location: String) -> void:
-	if is_instance_valid(household_panel) or transitioning or dialogue_overlay.visible or repair_panel.visible or loop_panel.visible or GameState.research_active:
+	if is_instance_valid(household_panel) or transitioning or dialogue_overlay.visible or repair_panel.visible or loop_panel.visible or GameState.research_active or get_node("../Player").animation_busy or GameState.day_ended or GameState.game_finished:
 		return
 	get_node("../TipTop").clear_monologue()
 	get_node("../TipTop").action_label.hide()
@@ -166,10 +177,17 @@ func household_choices(location: String) -> void:
 	var options: Array = []
 	var judy = get_node("../Player")
 	if location == "research":
+		var efficiency := int(round(GameState.research_efficiency() * 100))
+		_hud_text(choices, "Efficiency: %d%% | Reward: +%d%% research%s" % [efficiency, int(round((5 if GameState.tap_running else 10) * GameState.research_efficiency())), " (pushing through)" if GameState.pushing_through() else ""], Vector2.ZERO, 7)
 		var duration := GameState.research_session_minutes()
 		var watch_minutes := duration / GameState.RESEARCH_MINUTES * GameState.WATCH_REAL_SECONDS / 60.0
 		options.append(["Watch Research (%d min; ~%.1f real min)" % [duration, watch_minutes], judy._research_animation.bind(false)])
 		options.append(["Fast-forward (%d min; 6x playback)" % duration, judy._research_animation.bind(true)])
+	elif location == "break":
+		_hud_text(choices, "Take a break", Vector2.ZERO, 9)
+		options.append(["Watch reels — 15 min, +18 Mood", judy.personal_activity.bind("reels")])
+		options.append(["Play phone games — 30 min, +30 Mood", judy.personal_activity.bind("games")])
+		options.append(["Solve Rubik's cube — 20 min, +25 Mood", judy.personal_activity.bind("cube")])
 	elif location == "bookshelf":
 		options.append(["Organize books myself — 20 min", judy.organize_for_research])
 	elif location == "tiptop":
@@ -215,6 +233,7 @@ func _ready() -> void:
 	_build_repair_menu()
 	_build_system_notice()
 	_build_research_controls()
+	_build_needs_ui()
 	_fit_screen_ui()
 	get_viewport().size_changed.connect(_fit_screen_ui)
 	_smooth_ui_text(self)
@@ -328,6 +347,47 @@ func _hud_card(bounds: Rect2) -> Panel:
 	add_child(panel)
 	move_child(panel, 0)
 	return panel
+
+
+func _build_needs_ui() -> void:
+	var card := _hud_card(Rect2(162, 4, 146, 35))
+	hunger_label = _hud_text(card, "", Vector2(5, 2), 6)
+	mood_label = _hud_text(card, "", Vector2(77, 2), 6)
+	hunger_bar = ProgressBar.new()
+	mood_bar = ProgressBar.new()
+	hunger_fill = StyleBoxFlat.new()
+	mood_fill = StyleBoxFlat.new()
+	for bar in [hunger_bar, mood_bar]:
+		bar.show_percentage = false
+		_style_thin_bar(bar)
+		bar.size = Vector2(62, 3)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(bar)
+	hunger_bar.position = Vector2(5, 12)
+	mood_bar.position = Vector2(77, 12)
+	hunger_bar.add_theme_stylebox_override("fill", hunger_fill)
+	mood_bar.add_theme_stylebox_override("fill", mood_fill)
+	efficiency_label = _hud_text(card, "", Vector2(5, 23), 5)
+	break_button = Button.new()
+	break_button.position = Vector2(75, 20)
+	break_button.size = Vector2(66, 12)
+	break_button.add_theme_font_size_override("font_size", 5)
+	break_button.text = "Take a break"
+	break_button.pressed.connect(func(): household_choices("break"))
+	card.add_child(break_button)
+
+
+func _update_needs_ui() -> void:
+	hunger_label.text = "Hunger: %d%%" % int(GameState.hunger)
+	mood_label.text = "Mood: %d%%" % int(GameState.mood)
+	hunger_bar.value = GameState.hunger
+	mood_bar.value = GameState.mood
+	hunger_fill.bg_color = Color("dc795d") if GameState.hunger < 30 else Color("e0b065")
+	mood_fill.bg_color = Color("df806a") if GameState.mood < 45 else Color("8fbb91")
+	mood_label.modulate = Color("ffad8e") if GameState.mood < 45 else Color.WHITE
+	efficiency_label.text = "Efficiency: %d%%" % int(round(GameState.research_efficiency() * 100))
+	break_button.disabled = not _comic_safe() or dialogue_overlay.visible or loop_panel.visible or GameState.notification_active or GameState.day_ended or GameState.game_finished
+	break_button.text = "%s: %d min" % ["Eating" if GameState.personal_activity == "eat" else "Break", int(ceil(GameState.personal_remaining))] if not GameState.personal_activity.is_empty() else "Take a break"
 
 
 func _hud_text(parent: Node, text: String, point: Vector2, font_size: int) -> Label:
@@ -631,6 +691,7 @@ func _show_feedback(message: String) -> void:
 
 func _process(delta: float) -> void:
 	_update_clock_hud()
+	_update_needs_ui()
 	_sync_overlay_visibility()
 	if GameState.research_active:
 		var shown := minf(GameState.research_duration, GameState.research_elapsed + GameState.research_accumulator)
@@ -738,7 +799,7 @@ func _sync_overlay_visibility() -> void:
 		get_node("../Player").interaction_prompt.hide()
 		get_node("../TipTop").monologue_label.hide()
 		get_node("../TipTop").action_label.hide()
-	var blocked := dialogue_overlay.visible or repair_panel.visible or transitioning or loop_panel.visible or GameState.research_active or (is_instance_valid(household_panel) and household_panel.visible)
+	var blocked: bool = dialogue_overlay.visible or repair_panel.visible or transitioning or loop_panel.visible or GameState.research_active or get_node("../Player").animation_busy or (is_instance_valid(household_panel) and household_panel.visible)
 	notification_panel.visible = GameState.notification_active and not blocked and not GameState.day_ended and not GameState.game_finished
 	if blocked or GameState.notification_active or get_node("../Player").animation_busy:
 		system_notice.hide()
@@ -875,6 +936,9 @@ func _advance_dialogue() -> void:
 		dialogue_resume_loop = loop_panel.visible
 		loop_panel.hide()
 	var line: Array = dialogue_lines.pop_front()
+	if line[0] == "Judy" and line.size() > 3:
+		line[1] = GameState.judy_response(line[3])
+		line[2] = "happy" if GameState.mood >= 70 else ("neutral" if GameState.mood >= 45 else "annoyed")
 	dialogue_speaker.text = line[0]
 	_present_speaker(line[0], line[2] if line.size() > 2 else "neutral")
 	var pages := _dialogue_pages(line[1])
@@ -1042,7 +1106,7 @@ func _on_story_event(event: String) -> void:
 		"opening":
 			lines = [["Judy", "Okay, Judy. Three days. Let's make this look like science."], ["TipTop", "I'm TipTop! I handle routines. Usually the right ones."], ["Judy", "Showcase on day three, TipTop. Try to look busy."]]
 		"first_tap":
-			lines = [["TipTop", "Ideas Flowing Protocol, step 4: Leave tap open. Complete. Proceeding to next objective."], ["Judy", "Oh, you meant actual water. That explains a few things."]]
+			lines = [["TipTop", "Ideas Flowing Protocol, step 4: Leave tap open. Complete. Proceeding to next objective."], ["Judy", "", "neutral", "chore"]]
 		"fixed":
 			lines = [["TipTop", "Routine updated: ideas may flow without water. Thank you for teaching me, Judy."], ["Judy", "There we go. Knew you had it in you."]]
 		"ambient_1":
@@ -1063,7 +1127,9 @@ func _on_story_event(event: String) -> void:
 			else:
 				lines = [["Judy", "They liked it! Though half the questions were about the tap."], ["TipTop", "So the water feature was a success?"], ["Judy", "Okay, your routine goes first tomorrow. Hold me to that."]]
 		_:
-			if event.begins_with("ignored_"):
+			if event.begins_with("break_reminder_"):
+				lines = [["TipTop", "Judy, you've completed two long research sessions. My wellness protocol recommends a break.", "worried"], ["Judy", "", "neutral", "break"], ["TipTop", "I shall supervise the apartment while you rest.", "proud"]]
+			elif event.begins_with("ignored_"):
 				lines = [["Judy", "One more bit of research, then I'll fix it. That's the plan, anyway."], ["TipTop", "No correction received. Current routine must be acceptable!"]]
 	# Optional third field: expressions never change the spoken text or outcomes.
 	var expression_sets := {

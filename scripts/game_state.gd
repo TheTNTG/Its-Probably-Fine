@@ -61,6 +61,66 @@ var robot_chore_resolved := false
 const CHORE_COOLDOWNS := {"sink": 6.0, "plant": 12.0, "bookshelf": 9.0, "bed": 18.0}
 var chore_ready_at: Dictionary = {}
 var last_robot_chore := ""
+var hunger := 85.0 # Fullness: higher means better fed.
+var mood := 90.0
+var work_streak := 0
+var break_reminded := false
+var break_reminder_count := 0
+var response_counts: Dictionary = {}
+const PERSONAL_ACTIVITIES := {"eat": [20, 40], "reels": [15, 18], "games": [30, 30], "cube": [20, 25]}
+var personal_activity := ""
+var personal_remaining := 0.0
+
+
+func reset_needs() -> void:
+	hunger = 85.0
+	mood = 90.0
+	work_streak = 0
+	break_reminded = false
+	personal_activity = ""
+	personal_remaining = 0.0
+
+
+func hunger_efficiency() -> float:
+	return 1.0 if hunger >= 60 else (0.9 if hunger >= 30 else (0.75 if hunger > 0 else 0.6))
+
+
+func pushing_through() -> bool:
+	return mood < 45 and day == 3 and time_minutes >= 840
+
+
+func mood_allows_research() -> bool:
+	return mood >= 45 or pushing_through()
+
+
+func research_efficiency() -> float:
+	return hunger_efficiency() * (0.8 if pushing_through() else 1.0)
+
+
+func start_personal_activity(activity: String) -> bool:
+	if not PERSONAL_ACTIVITIES.has(activity) or not personal_activity.is_empty() or research_active or household_busy or notification_active or day_ended or game_finished:
+		return false
+	var minutes: int = PERSONAL_ACTIVITIES[activity][0]
+	if DAY_END - time_minutes - clock_fraction - world_accumulator < minutes:
+		action_feedback.emit("Not enough time before 8:00 PM for that activity.")
+		return false
+	personal_activity = activity
+	personal_remaining = minutes
+	return true
+
+
+func judy_response(context: String) -> String:
+	var tier := 0 if mood >= 70 else (1 if mood >= 45 else 2)
+	var pools := {
+		"talk": [["How's my favorite household genius?", "How's the extremely important robot business?"], ["How are the chores going, TipTop?", "Give me the short version, buddy."], ["TipTop, please. I need a quiet minute.", "I'm listening. Just a little slowly today."]],
+		"chore": [["Actual water. Bold interpretation, buddy.", "Well, the floor certainly looks hydrated."], ["That's actual water, TipTop. I'll handle it.", "The routine needs a correction. I'll sort it."], ["That's water, TipTop. Please stop the tap.", "Right. The tap again. Give me a minute."]],
+		"break": [["Four hours? Science really needs a snooze button.", "Okay, you've caught me. I'll take a breather."], ["You're right. I should take a break.", "Let me step away from the notes for a bit."], ["Yeah. I'm running on fumes here.", "I know, buddy. I really need a minute."]]
+	}
+	var key := "%s:%d" % [context, tier]
+	var index := int(response_counts.get(key, 0))
+	response_counts[key] = index + 1
+	var pool: Array = pools[context][tier]
+	return pool[index % pool.size()]
 
 
 func _ready() -> void:
@@ -68,9 +128,28 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if get_tree().paused or household_busy or ending_day_pending or (notification_active and not research_active) or day_ended or game_finished:
+	if get_tree().paused or household_busy or ending_day_pending or (notification_active and not research_active and personal_activity.is_empty()) or day_ended or game_finished:
 		return
-	if research_active:
+	if not personal_activity.is_empty():
+		var step := minf(personal_remaining, delta * RESEARCH_MINUTES / WATCH_REAL_SECONDS)
+		_advance_world(step)
+		personal_remaining = maxf(0.0, personal_remaining - step)
+		if personal_remaining <= 0.000001:
+			if world_accumulator > 0:
+				var pending := world_accumulator
+				world_accumulator = 0.0
+				_simulate_world_step(pending)
+			var activity := personal_activity
+			personal_activity = ""
+			if activity == "eat":
+				hunger = clampf(hunger + 40, 0, 100)
+			else:
+				mood = clampf(mood + float(PERSONAL_ACTIVITIES[activity][1]), 0, 100)
+				work_streak = 0
+				break_reminded = false
+			action_feedback.emit("Meal finished: +40 Hunger." if activity == "eat" else "Break finished. Feeling more like myself.")
+			state_changed.emit()
+	elif research_active:
 		# Research compresses 120 game minutes into three real minutes. The
 		# same authoritative world stepper owns time and every consequence.
 		advance_research(delta * RESEARCH_MINUTES * research_playback_rate / WATCH_REAL_SECONDS)
@@ -79,6 +158,8 @@ func _process(delta: float) -> void:
 
 
 func begin_research() -> bool:
+	if not personal_activity.is_empty():
+		return false
 	if research_active or notification_active or ending_day_pending or day_ended or game_finished or work_sessions_remaining <= 0 or not research_available():
 		if not research_active and not day_ended and not game_finished and not research_available():
 			action_feedback.emit(research_block_reason())
@@ -93,7 +174,10 @@ func begin_research() -> bool:
 		return false
 	research_active = true
 	research_duration = research_session_minutes()
-	research_gain = 5 if tap_running else 10
+	# Snapshot needs at the start for identical playback rewards; round only once.
+	research_gain = int(round((5 if tap_running else 10) * research_efficiency()))
+	if pushing_through():
+		action_feedback.emit("Judy is pushing through exhaustion: an extra 20% research penalty.")
 	research_elapsed = 0.0
 	research_accumulator = world_accumulator
 	research_interruptions = 0
@@ -172,6 +256,8 @@ func _advance_world(minutes: float) -> void:
 
 
 func _simulate_world_step(minutes: float) -> void:
+	hunger = clampf(hunger - minutes * 7.0 / 60.0, 0, 100)
+	mood = clampf(mood - minutes * 2.0 / 60.0, 0, 100)
 	# Clock-driven water/exposure share chronological steps at every speed.
 	# Robot chore outcomes additionally require physical action completion.
 	world_elapsed += minutes
@@ -207,6 +293,12 @@ func complete_research() -> void:
 	research_active = false
 	research_playback_rate = 1.0
 	research_progress = mini(100, research_progress + research_gain)
+	mood = clampf(mood - 20, 0, 100)
+	work_streak += 1
+	if work_streak >= 2 and not break_reminded:
+		break_reminded = true
+		break_reminder_count += 1
+		story_event.emit("break_reminder_%d_%d" % [day, break_reminder_count])
 	state_changed.emit()
 	action_feedback.emit("Research complete: +%d%%, %d min, %d session(s) left." % [research_gain, research_duration, work_sessions_remaining])
 	if not day_ended:
@@ -231,7 +323,7 @@ func needs_cleanup(chore: String) -> bool:
 
 
 func research_available() -> bool:
-	return int(chore_mess["bookshelf"]) < 2 and has_research_time()
+	return int(chore_mess["bookshelf"]) < 2 and has_research_time() and mood_allows_research()
 
 
 func research_session_minutes() -> float:
@@ -243,6 +335,8 @@ func has_research_time() -> bool:
 
 
 func research_block_reason() -> String:
+	if not mood_allows_research():
+		return "Judy needs a break. Restore Mood to at least 45% before researching."
 	if not has_research_time():
 		return "Not enough time before 8:00 PM. A full research session needs %d minutes; no session used." % research_session_minutes()
 	return "Research materials are misplaced. Organize the bookshelf (20 min)."
@@ -313,6 +407,7 @@ func continue_day() -> void:
 		game_finished = true
 	else:
 		day += 1
+		reset_needs()
 		time_minutes = DAY_START
 		clock_fraction = 0.0
 		world_accumulator = 0.0
@@ -415,6 +510,9 @@ func ignore_tap() -> void:
 
 
 func restart() -> void:
+	reset_needs()
+	break_reminder_count = 0
+	response_counts.clear()
 	chore_cursor = 0
 	chore_ready_at.clear()
 	last_robot_chore = ""
