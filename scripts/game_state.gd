@@ -10,8 +10,8 @@ const DAY_START := 540
 const DAY_END := 1080
 const LAST_DAY := 3
 const DAILY_WORK_SESSIONS := 4
-const RESEARCH_MINUTES := 75.0
-const PENALIZED_RESEARCH_MINUTES := 100.0
+const RESEARCH_MINUTES := 120.0
+const PENALIZED_RESEARCH_MINUTES := 160.0
 const WATCH_REAL_SECONDS := 180.0
 
 var day := 1
@@ -65,7 +65,7 @@ func _process(delta: float) -> void:
 	if get_tree().paused or household_busy or ending_day_pending or notification_active or day_ended or game_finished:
 		return
 	if research_active:
-		# Research compresses 75 game minutes into three real minutes. The
+		# Research compresses 120 game minutes into three real minutes. The
 		# same authoritative world stepper owns time and every consequence.
 		advance_research(delta * RESEARCH_MINUTES * research_playback_rate / WATCH_REAL_SECONDS)
 	elif time_minutes < DAY_END:
@@ -74,9 +74,19 @@ func _process(delta: float) -> void:
 
 func begin_research() -> bool:
 	if research_active or notification_active or ending_day_pending or day_ended or game_finished or work_sessions_remaining <= 0 or not research_available():
+		if not research_active and not day_ended and not game_finished and not research_available():
+			action_feedback.emit(research_block_reason())
+		return false
+	# Commit pre-session idle time separately; it must not count as research.
+	var pending_idle := world_accumulator
+	world_accumulator = 0.0
+	if pending_idle > 0.0:
+		_simulate_world_step(pending_idle)
+	if not research_available():
+		action_feedback.emit(research_block_reason())
 		return false
 	research_active = true
-	research_duration = minf(PENALIZED_RESEARCH_MINUTES if tap_running else RESEARCH_MINUTES, DAY_END - time_minutes - clock_fraction)
+	research_duration = research_session_minutes()
 	research_gain = 5 if tap_running else 10
 	research_elapsed = 0.0
 	research_accumulator = world_accumulator
@@ -89,7 +99,11 @@ func begin_research() -> bool:
 
 func _select_research_chore() -> void:
 	var chores := ["plant", "sink", "bookshelf", "bed"]
-	research_task = chores[(day + work_sessions_remaining + int(research_next_chore / 3.0)) % 4]
+	var next := (day + work_sessions_remaining + int(research_next_chore / 3.0)) % 4
+	# A repaired, already-made bed needs no repeated maintenance visit.
+	if chores[next] == "bed" and repairs["bed"] and not needs_cleanup("bed"):
+		next = (next + 1) % chores.size()
+	research_task = chores[next]
 	for chore in ["bookshelf", "bed", "sink", "plant"]:
 		if repairs[chore] and needs_cleanup(chore):
 			research_task = chore
@@ -110,9 +124,12 @@ func advance_research(minutes: float) -> void:
 
 func _advance_world(minutes: float) -> void:
 	world_accumulator += maxf(0.0, minutes)
-	while world_accumulator + 0.000001 >= WORLD_STEP and time_minutes < DAY_END:
-		world_accumulator = maxf(0.0, world_accumulator - WORLD_STEP)
-		_simulate_world_step(WORLD_STEP)
+	while time_minutes < DAY_END:
+		var step := minf(WORLD_STEP, DAY_END - time_minutes - clock_fraction)
+		if world_accumulator + 0.000001 < step:
+			break
+		world_accumulator = maxf(0.0, world_accumulator - step)
+		_simulate_world_step(step)
 	if time_minutes >= DAY_END:
 		world_accumulator = 0.0
 
@@ -121,9 +138,10 @@ func _simulate_world_step(minutes: float) -> void:
 	# Fixed chronological steps keep Watch and Skip consequences identical.
 	world_elapsed += minutes
 	clock_fraction += minutes
-	if clock_fraction >= 1.0:
-		time_minutes = mini(DAY_END, time_minutes + int(clock_fraction))
-		clock_fraction = fmod(clock_fraction, 1.0)
+	var whole_minutes := int(floor(clock_fraction + 0.0000001))
+	if whole_minutes > 0:
+		time_minutes = mini(DAY_END, time_minutes + whole_minutes)
+		clock_fraction = maxf(0.0, clock_fraction - whole_minutes)
 	if tap_running:
 		sink_water_elapsed = minf(31.0, sink_water_elapsed + minutes * 6.0)
 	if sink_water_elapsed >= 8.0 or int(chore_mess["plant"]) > 0:
@@ -181,7 +199,21 @@ func needs_cleanup(chore: String) -> bool:
 
 
 func research_available() -> bool:
-	return int(chore_mess["bookshelf"]) < 2 and time_minutes < DAY_END
+	return int(chore_mess["bookshelf"]) < 2 and has_research_time()
+
+
+func research_session_minutes() -> float:
+	return PENALIZED_RESEARCH_MINUTES if tap_running else RESEARCH_MINUTES
+
+
+func has_research_time() -> bool:
+	return DAY_END - time_minutes - clock_fraction - world_accumulator >= research_session_minutes()
+
+
+func research_block_reason() -> String:
+	if not has_research_time():
+		return "Not enough time before 6:00 PM. A full research session needs %d minutes; no session used." % research_session_minutes()
+	return "Research materials are misplaced. Organize the bookshelf (20 min)."
 
 
 func clear_mess(chore: String) -> void:

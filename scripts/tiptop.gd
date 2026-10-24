@@ -26,6 +26,7 @@ var repair_count := 0
 var cleanup_target := false
 var swatting := false
 var session_serial := -1
+var finished_chore_serial := -1
 var was_research := false
 var previous_playback := 1.0
 @onready var judy: CharacterBody2D = get_node("../Player")
@@ -178,6 +179,7 @@ func _physics_process(delta: float) -> void:
 	if GameState.day_ended or GameState.game_finished or GameState.ending_day_pending or GameState.household_busy or GameState.notification_active:
 		velocity = Vector2.ZERO
 		_chore_visual().call("set_chore_active", false)
+		action_label.hide()
 		return
 	if not mapped:
 		_map_obstacles()
@@ -188,7 +190,10 @@ func _physics_process(delta: float) -> void:
 		cleanup_target = false
 		path.clear()
 		action_label.hide()
-		visit = (visit + 1) % 4
+		finished_chore_serial = GameState.research_task_serial
+	if finished_chore_serial == GameState.research_task_serial:
+		velocity = Vector2.ZERO
+		return
 	var distance_to_judy := global_position.distance_to(judy.global_position)
 	if distance_to_judy < 32.0 and not near_judy:
 		wait = maxf(wait, 0.8)
@@ -204,9 +209,11 @@ func _physics_process(delta: float) -> void:
 		_chore_visual().call("set_chore_active", not swatting)
 		action_left -= delta
 		if action_left <= 0:
-			# Remain in the chore pose until the scheduler completes this task.
-			# Movement and arrival never apply a second copy of its consequences.
-			action_left = 0.2
+			# End the visible action once; do not loop its pose/label while
+			# waiting for the authoritative scheduler to select the next task.
+			_chore_visual().call("set_chore_active", false)
+			action_label.hide()
+			finished_chore_serial = GameState.research_task_serial
 		return
 	if not has_destination:
 		action_label.hide()

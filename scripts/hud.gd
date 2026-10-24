@@ -59,10 +59,10 @@ func research_choices() -> void:
 		_show_feedback("Too exhausted to work. Rest until tomorrow.")
 		return
 	if not GameState.research_available():
-		if GameState.time_minutes < GameState.DAY_END:
+		if GameState.has_research_time():
 			household_choices("bookshelf")
 		else:
-			_show_feedback("It's 18:00. Make the bed and rest.")
+			_show_feedback(GameState.research_block_reason())
 		return
 	household_choices("research")
 
@@ -108,7 +108,7 @@ func household_choices(location: String) -> void:
 	var options: Array = []
 	var judy = get_node("../Player")
 	if location == "research":
-		var duration := minf(GameState.PENALIZED_RESEARCH_MINUTES if GameState.tap_running else GameState.RESEARCH_MINUTES, GameState.DAY_END - GameState.time_minutes - GameState.clock_fraction)
+		var duration := GameState.research_session_minutes()
 		var watch_minutes := duration / GameState.RESEARCH_MINUTES * GameState.WATCH_REAL_SECONDS / 60.0
 		options.append(["Watch Research (%d min; ~%.1f real min)" % [duration, watch_minutes], judy._research_animation.bind(false)])
 		options.append(["Fast-forward (%d min; 6x playback)" % duration, judy._research_animation.bind(true)])
@@ -357,7 +357,7 @@ func _build_loop_ui() -> void:
 	loop_message.add_theme_font_size_override("font_size", 8)
 	loop_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	loop_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	loop_message.text = "Day 3 showcase: reach 80% and repair all routines.\nE to interact. Make the bed before resting.\n4 sessions/day: +10%/75 min; tap: +5%/100 min.\nRepair or clean household routines separately."
+	loop_message.text = "Day 3 showcase: reach 80% and repair all routines.\nE to interact. Make the bed before resting.\n4 sessions/day: +10%/120 min; tap: +5%/160 min.\nFull sessions must fit before 6:00 PM."
 	loop_panel.add_child(loop_message)
 	loop_button = Button.new()
 	loop_button.position = Vector2(100, 80)

@@ -2,11 +2,14 @@ extends Node2D
 
 # Presentation only. All animation is sampled from the authoritative world clock.
 const ART = preload("res://scripts/apartment_visual.gd")
-const HOURS := [540.0, 720.0, 900.0, 1080.0]
-const AMBIENT := [Color(0.94, 0.95, 1.0), Color(1.0, 1.0, 0.99), Color(1.0, 0.93, 0.84), Color(0.93, 0.84, 0.80)]
-const SUN := [Color("ffe3ab"), Color("fff6e0"), Color("ffd398"), Color("ffc27b")]
-const LENGTH := [106.0, 62.0, 116.0, 142.0]
-const STRENGTH := [0.22, 0.15, 0.28, 0.34]
+const EVENING_START := GameState.DAY_END - 180.0
+const HOURS := [540.0, 720.0, 900.0, 1020.0, 1080.0]
+# Broad neutral daylight gives way to a cool, readable evening baseline.
+# Warmth after dusk comes from local lights, not an orange ambient filter.
+const AMBIENT := [Color(0.93, 0.96, 1.0), Color(1.0, 1.0, 1.0), Color(0.94, 0.93, 0.88), Color(0.57, 0.63, 0.75), Color(0.38, 0.44, 0.58)]
+const SUN := [Color("ffedc4"), Color("fffdf2"), Color("ffda98"), Color("ffc17b"), Color("d1b798")]
+const LENGTH := [110.0, 62.0, 130.0, 150.0, 160.0]
+const STRENGTH := [0.28, 0.16, 0.33, 0.09, 0.012]
 var ambient: CanvasModulate
 var lamps: Array[PointLight2D] = []
 var sampled_time := -1.0
@@ -30,24 +33,36 @@ func _ready() -> void:
 func _add_lamp(point: Vector2) -> void:
 	# A small radial mask, generated once, clipped to the actual room silhouette.
 	# The clipped texture prevents glow spilling into the black exterior.
-	var mask := Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	var mask := Image.create(128, 128, false, Image.FORMAT_RGBA8)
 	var room_polygon := PackedVector2Array(ART.ROOM_EDGE)
-	for y in range(64):
-		for x in range(64):
-			var offset := Vector2(x + 0.5, y + 0.5) - Vector2(32, 32)
-			var falloff := pow(maxf(0.0, 1.0 - offset.length() / 31.0), 2.5)
-			if not Geometry2D.is_point_in_polygon(point + offset, room_polygon):
+	for y in range(128):
+		for x in range(128):
+			var offset := Vector2(x + 0.5, y + 0.5) - Vector2(64, 64)
+			var falloff := pow(maxf(0.0, 1.0 - offset.length() / 62.0), 1.8)
+			if falloff > 0.0 and not _visible_from_lamp(point, point + offset, room_polygon):
 				falloff = 0.0
-			mask.set_pixel(x, y, Color(1, 1, 1, falloff))
+			# Encode falloff in RGB: the light shader receives zero energy at
+			# the edge/exterior regardless of how it handles texture alpha.
+			mask.set_pixel(x, y, Color(falloff, falloff, falloff, 1))
 	var lamp := PointLight2D.new()
 	lamp.position = point
 	lamp.texture = ImageTexture.create_from_image(mask)
 	lamp.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	lamp.color = Color("ffda9e")
+	lamp.color = Color("ffd49a")
+	lamp.blend_mode = Light2D.BLEND_MODE_ADD
 	lamp.shadow_enabled = false
-	lamp.energy = 0.1
+	lamp.energy = 0.0
 	add_child(lamp)
 	lamps.append(lamp)
+
+
+func _visible_from_lamp(origin: Vector2, point: Vector2, polygon: PackedVector2Array) -> bool:
+	if not Geometry2D.is_point_in_polygon(point, polygon):
+		return false
+	for edge in range(polygon.size()):
+		if Geometry2D.segment_intersects_segment(origin, point, polygon[edge], polygon[(edge + 1) % polygon.size()]) != null:
+			return false
+	return true
 
 
 func _process(_delta: float) -> void:
@@ -56,19 +71,22 @@ func _process(_delta: float) -> void:
 
 
 func _update_from_clock() -> void:
-	var minutes := clampf(GameState.time_minutes + GameState.clock_fraction + GameState.world_accumulator, HOURS[0], HOURS[3])
+	var minutes := clampf(GameState.time_minutes + GameState.clock_fraction + GameState.world_accumulator, HOURS[0], HOURS[-1])
 	if is_equal_approx(minutes, sampled_time):
 		return
 	sampled_time = minutes
-	var phase := mini(2, int((minutes - HOURS[0]) / 180.0))
+	var phase := 0
+	while phase < HOURS.size() - 2 and minutes >= HOURS[phase + 1]:
+		phase += 1
 	var blend := smoothstep(HOURS[phase], HOURS[phase + 1], minutes)
 	ambient.color = AMBIENT[phase].lerp(AMBIENT[phase + 1], blend)
 	sun_color = SUN[phase].lerp(SUN[phase + 1], blend)
 	sun_length = lerpf(LENGTH[phase], LENGTH[phase + 1], blend)
 	sun_strength = lerpf(STRENGTH[phase], STRENGTH[phase + 1], blend)
-	var evening := smoothstep(720.0, 1080.0, minutes)
+	# Bring lamps in with the daylight fade, starting three hours before cutoff.
+	var evening := smoothstep(EVENING_START, float(GameState.DAY_END), minutes)
 	for lamp in lamps:
-		lamp.energy = lerpf(0.16, 0.62, evening)
+		lamp.energy = 1.35 * evening
 	queue_redraw()
 
 
@@ -76,7 +94,7 @@ func _draw() -> void:
 	if sampled_time < 0:
 		return
 	var room_polygon := PackedVector2Array(ART.ROOM_EDGE)
-	var day_fraction := (sampled_time - HOURS[0]) / (HOURS[3] - HOURS[0])
+	var day_fraction := (sampled_time - HOURS[0]) / (HOURS[-1] - HOURS[0])
 	var direction := Vector2(0.88 - day_fraction * 0.13, 0.53 + day_fraction * 0.17).normalized()
 	var across := Vector2(-direction.y, direction.x)
 	for beam in range(3):
@@ -107,5 +125,5 @@ func _draw() -> void:
 			point += across * sin(drift * TAU + mote * 2.0) * 4.0
 			if Geometry2D.is_point_in_polygon(point, room_polygon):
 				var tint := sun_color
-				tint.a = sin(drift * PI) * 0.20
+				tint.a = sin(drift * PI) * 0.20 * minf(1.0, sun_strength / 0.20)
 				draw_rect(Rect2(point.floor(), Vector2.ONE), tint)

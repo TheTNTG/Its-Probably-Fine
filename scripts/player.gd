@@ -52,7 +52,7 @@ func _update_interaction_prompt(target: Node2D) -> void:
 		interaction_prompt.text = "Too exhausted to work" if exhausted else "E - Work"
 		interaction_prompt.modulate = Color.RED if exhausted else Color.GREEN
 		if not GameState.research_available() and not exhausted:
-			interaction_prompt.text = "E - Research blocked (bookshelf)"
+			interaction_prompt.text = "E - Research blocked (bookshelf)" if GameState.has_research_time() else "E - Not enough research time"
 			interaction_prompt.modulate = Color.RED
 	elif target == tiptop:
 		interaction_prompt.text = "E - Repair routines"
@@ -207,10 +207,10 @@ func _research_animation(fast_forward := false) -> void:
 	if animation_busy or GameState.work_sessions_remaining <= 0 or GameState.day_ended or GameState.game_finished:
 		return
 	if not GameState.research_available():
-		if GameState.time_minutes < GameState.DAY_END:
+		if GameState.has_research_time():
 			get_node("../HUD").household_choices("bookshelf")
 			return
-		GameState.action_feedback.emit("Research materials are misplaced. Organize the bookshelf." if GameState.time_minutes < GameState.DAY_END else "It's 18:00. Make the bed and rest.")
+		GameState.action_feedback.emit(GameState.research_block_reason())
 		return
 	animation_busy = true
 	GameState.household_busy = true
