@@ -64,6 +64,7 @@ func _build_results() -> void:
 	results.add_child(box)
 	var title := Label.new()
 	title.text = TITLES[ending]
+	preload("res://scripts/typography.gd").accent(title)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 13)
 	title.add_theme_color_override("font_color", AMBER)

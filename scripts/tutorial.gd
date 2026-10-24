@@ -40,6 +40,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 3)
 	panel.add_child(box)
 	heading = Label.new()
+	preload("res://scripts/typography.gd").accent(heading)
 	heading.add_theme_font_size_override("font_size", 9)
 	heading.add_theme_color_override("font_color", AMBER)
 	box.add_child(heading)
@@ -125,7 +126,7 @@ func _detect() -> void:
 	if anywhere or _near("Bed"):
 		_offer("guide_sleep", "Make the bed, then E to rest and end the day. Sleeping starts the next day; bedtime fullness affects tomorrow's Mood. Meals and breaks need planning too.", "Bed", true)
 	if anywhere or GameState.tutorial_seen.has("guide_target"):
-		_offer("guide_pause", "Esc opens Pause. Watch, 6x, Skip and Eject sit beside an active task. Eject keeps spent time and gives no completion reward. Review Tutorial is in Pause.", "controls", true)
+		_offer("guide_pause", "Esc opens Pause: save when free, or review the guide. Active tasks have Watch, 6x, Skip and Eject. Eject keeps spent time and gives no reward.", "controls", true)
 
 
 func _feedback(message: String) -> void:
@@ -162,6 +163,9 @@ func _complete() -> void:
 			if not GameState.tutorial_seen.has(id):
 				finished = false
 		GameState.tutorial_finished = finished
+		if finished:
+			SaveStore.remember_tutorial(true)
+			SaveStore.request_autosave("tutorial_completed")
 	current.clear()
 	panel.hide()
 	get_viewport().gui_release_focus()
@@ -169,8 +173,10 @@ func _complete() -> void:
 
 
 func _skip() -> void:
+	SaveStore.remember_tutorial(false)
 	GameState.tutorial_skipped = true
 	GameState.tutorial_finished = true
+	SaveStore.request_autosave("tutorial_skipped")
 	reviewing = false
 	for index in range(pending.size() - 1, -1, -1):
 		if pending[index]["guided"]:

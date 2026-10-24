@@ -3,6 +3,7 @@ extends Node
 # Presentation only. Audio has its own RNG and real-time cadence, never the
 # simulation's random sequence, clock, task selection or completion logic.
 const LAYER = preload("res://scripts/audio_layer.gd")
+const APARTMENT_THEME_PATH := "res://assets/audio/music/chilllofir-loop.ogg"
 const ROOT := "res://assets/audio/"
 const FILES := {
 	"room": "ambience/room_tone.mp3", "fridge": "ambience/fridge_hum.wav",
@@ -52,6 +53,7 @@ var fridge_close_after := 0.0
 var mess_snapshot: Dictionary = {}
 var water_stage := 0
 var music: AudioStreamPlayer
+var music_gain := 0.0
 
 
 func _ready() -> void:
@@ -66,7 +68,21 @@ func _ready() -> void:
 		ui_voices.append(voice)
 	music = AudioStreamPlayer.new()
 	music.bus = "Music"
-	add_child(music) # Step 42D can supply a licensed stream; no music starts here.
+	music.volume_db = -80.0
+	add_child(music)
+	# Read the source directly when available, even before editor import finishes.
+	# Exported builds can instead use the imported/remapped resource.
+	var theme_stream: AudioStreamOggVorbis
+	if FileAccess.file_exists(APARTMENT_THEME_PATH):
+		theme_stream = AudioStreamOggVorbis.load_from_file(APARTMENT_THEME_PATH)
+	elif ResourceLoader.exists(APARTMENT_THEME_PATH):
+		theme_stream = load(APARTMENT_THEME_PATH) as AudioStreamOggVorbis
+	if theme_stream != null:
+		theme_stream.loop = true
+		theme_stream.loop_offset = 0.0
+		play_music(theme_stream)
+	else:
+		push_warning("Apartment music could not be loaded; other audio remains available.")
 	get_tree().node_added.connect(_watch_control)
 	for node in get_tree().root.find_children("*", "BaseButton", true, false):
 		_watch_control(node)
@@ -119,6 +135,7 @@ func _world_allowed() -> bool:
 
 
 func _process(delta: float) -> void:
+	_update_music(delta)
 	ui_wait = maxf(0.0, ui_wait - delta)
 	for key in cooldowns:
 		cooldowns[key] = maxf(0.0, float(cooldowns[key]) - delta)
@@ -352,9 +369,32 @@ func _tick_voices(voices: Array, delta: float) -> void:
 
 
 func play_music(stream: AudioStream) -> void:
-	# Reserved playback entry for Step 42D; callers supply the actual music.
+	if music.stream == stream:
+		return
+	music.stop()
 	music.stream = stream
 	if stream == null:
 		music.stop()
 	else:
 		music.play()
+
+
+func _update_music(delta: float) -> void:
+	# One persistent player: menus, Watch/6x/Skip and day changes never seek it.
+	var target_db := -27.0
+	var silent: bool = SaveStore.loading
+	var scene: Node = get_tree().current_scene
+	if is_instance_valid(scene) and scene.has_node("HUD"):
+		var current_hud: Node = scene.get_node("HUD")
+		silent = silent or bool(current_hud.get("transitioning"))
+		var evening := clampf((GameState.time_minutes + GameState.clock_fraction + GameState.world_accumulator - 1020.0) / 180.0, 0, 1)
+		target_db = -23.0 - evening * 2.0
+		if GameState.game_finished:
+			target_db = -25.0 if current_hud.get("ending_kind") == "good" else (-28.0 if current_hud.get("ending_kind") == "bittersweet" else -30.0)
+		elif get_tree().paused:
+			target_db = -32.0 if current_hud.call("_pause_open") else -29.0
+		if current_hud.get("dialogue_overlay") != null and current_hud.get("dialogue_overlay").visible:
+			target_db = minf(target_db, -31.0)
+	var target := 0.0 if silent else db_to_linear(target_db)
+	music_gain = lerpf(music_gain, target, 1.0 - exp(-delta * (5.0 if silent else 1.8)))
+	music.volume_db = linear_to_db(maxf(0.0001, music_gain))

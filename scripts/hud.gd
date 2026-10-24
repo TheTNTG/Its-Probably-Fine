@@ -76,6 +76,8 @@ var usage_rows: Dictionary = {}
 var usage_segments: Dictionary = {}
 var difficulty_controls: HBoxContainer
 var difficulty_description: Label
+var save_button: Button
+var save_status: Label
 var pause_panel: ColorRect
 var eject_button: Button
 var eject_confirm: ColorRect
@@ -301,6 +303,8 @@ func _ready() -> void:
 	_fit_screen_ui()
 	get_viewport().size_changed.connect(_fit_screen_ui)
 	_smooth_ui_text(self)
+	preload("res://scripts/typography.gd").accent(day_label)
+	preload("res://scripts/typography.gd").accent(transition_title)
 	GameState.state_changed.connect(_update_hud)
 	GameState.malfunction_triggered.connect(_show_malfunction)
 	GameState.story_event.connect(_on_story_event)
@@ -311,6 +315,14 @@ func _ready() -> void:
 	tutorial = Control.new()
 	tutorial.set_script(preload("res://scripts/tutorial.gd"))
 	add_child(tutorial)
+	if SaveStore.loading:
+		loop_panel.hide()
+		transition_cover.position = Vector2.ZERO
+		transition_cover.show()
+		transition_title.text = "Continuing..."
+		transition_title.show()
+		SaveStore.restore_room.call_deferred()
+		return
 	if get_tree().has_meta("restart_playing"):
 		get_tree().remove_meta("restart_playing")
 		loop_panel.hide()
@@ -425,6 +437,7 @@ func _prepare_showcase() -> void:
 		ending_kind = "bittersweet"
 	else:
 		ending_kind = "bad"
+	SaveStore.record_ending(ending_kind)
 	var scene: PackedScene = load("res://scenes/showcase_%s.tscn" % ending_kind)
 	showcase = scene.instantiate() as Control
 	showcase.set("research", GameState.research_progress)
@@ -999,6 +1012,8 @@ func _on_loop_pressed() -> void:
 		_play_day_transition()
 		return
 	loop_panel.hide()
+	if SaveStore.campaign_id.is_empty():
+		SaveStore.new_campaign(tutorial_entry)
 	GameState.difficulty_locked = true
 	difficulty_controls.hide()
 	difficulty_description.hide()
@@ -1083,6 +1098,7 @@ func _play_day_transition(restarting := false) -> void:
 	for event in events:
 		_on_story_event(event)
 	get_tree().paused = dialogue_overlay.visible or loop_panel.visible or GameState.day_ended or GameState.game_finished
+	SaveStore.request_autosave("new_day")
 
 
 func _reveal_new_game() -> void:
@@ -1522,16 +1538,21 @@ func _build_pause_menu() -> void:
 	choices.add_theme_constant_override("separation", 5)
 	panel.add_child(choices)
 	_hud_text(choices, "Paused", Vector2.ZERO, 12)
-	var items := [["Resume", _resume_pause], ["Review Tutorial", _review_tutorial], ["Restart Game", _restart_from_pause.bind(true)], ["Exit Tutorial" if tutorial_entry else "Return to Main Menu", _restart_from_pause.bind(false)], ["Quit Game", func(): get_tree().quit()]]
+	var items := [["Resume", _resume_pause], ["Save Game", _manual_save], ["Review Tutorial", _review_tutorial], ["Restart (replaces save)", _restart_from_pause.bind(true)], ["Exit Tutorial" if tutorial_entry else "Return to Main Menu", _restart_from_pause.bind(false)], ["Quit Game", func(): get_tree().quit()]]
 	for index in range(items.size()):
 		var button := Button.new()
 		button.text = items[index][0]
-		button.custom_minimum_size = Vector2(210, 22)
+		button.custom_minimum_size = Vector2(210, 20)
 		button.add_theme_font_size_override("font_size", 9)
 		button.pressed.connect(items[index][1])
 		choices.add_child(button)
 		if index == 0:
 			pause_panel.set_meta("initial_focus", button)
+		if index == 1:
+			save_button = button
+	save_status = _hud_text(choices, "", Vector2.ZERO, 7)
+	save_status.custom_minimum_size.x = 210
+	save_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 
 func _open_pause() -> void:
@@ -1540,6 +1561,9 @@ func _open_pause() -> void:
 		return
 	ApartmentAudio.play_ui("menu")
 	pause_panel.show()
+	var reason := SaveStore.safe_reason(true)
+	save_button.disabled = not reason.is_empty()
+	save_status.text = reason
 	get_node("../Player").interaction_prompt.hide()
 	get_node("../TipTop").clear_monologue()
 	get_node("../TipTop").action_label.hide()
@@ -1568,8 +1592,11 @@ func _resume_pause() -> void:
 
 func _restart_from_pause(play_now: bool) -> void:
 	var selected := GameState.difficulty
+	if not play_now and SaveStore.safe_reason(true).is_empty():
+		SaveStore.save_campaign(true)
 	GameState.restart()
 	if play_now:
+		SaveStore.new_campaign(tutorial_entry)
 		GameState.select_difficulty(selected)
 		get_tree().set_meta("restart_playing", true)
 		if tutorial_entry:
@@ -1587,6 +1614,9 @@ func hud_navigation_active() -> bool:
 
 
 func _input(event: InputEvent) -> void:
+	if SaveStore.loading:
+		get_viewport().set_input_as_handled()
+		return
 	if _eject_open():
 		if event.is_action_pressed("ui_cancel"):
 			_close_eject()
@@ -1921,3 +1951,10 @@ func _on_story_event(event: String) -> void:
 	dialogue_lines.append_array(lines)
 	if not already_open and not dialogue_lines.is_empty():
 		_advance_dialogue()
+
+
+func _manual_save() -> void:
+	if SaveStore.save_campaign(true):
+		save_status.text = "Game saved."
+	else:
+		save_status.text = SaveStore.last_error

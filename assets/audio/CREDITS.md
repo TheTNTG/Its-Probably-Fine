@@ -1,5 +1,7 @@
 # Audio sources and licenses
 
+Signature apartment music has its own [credits and source/license details](music/CREDITS.md). The 24 recordings below are the SFX/ambience library from Step 42A.
+
 Verified from publisher/source pages on 2026-10-25. All 24 integrated recordings are CC0 1.0. No mandatory attribution or share-alike requirement; credits below are retained voluntarily. No noncommercial-only sounds were included.
 
 License: https://creativecommons.org/publicdomain/zero/1.0/ — legal code: https://creativecommons.org/publicdomain/zero/1.0/legalcode

@@ -154,6 +154,7 @@ func eject_current_task() -> void:
 	# A started research session remains charged; completion effects are not run.
 	action_feedback.emit("Task ejected. Elapsed time kept; no completion reward.")
 	state_changed.emit()
+	SaveStore.request_autosave("activity_ejected")
 
 
 func request_mosquito_batch() -> void:
@@ -340,6 +341,7 @@ func advance_personal_activity(minutes: float) -> void:
 	work_streak = 0
 	break_reminded = false
 	meaningful_break_taken.emit()
+	SaveStore.request_autosave("personal_activity_completed")
 	action_feedback.emit("Meal finished: +40 Fullness, +10 Mood. Work streak reset." if activity == "eat" else "Break finished. Feeling more like myself.")
 	state_changed.emit()
 
@@ -519,6 +521,9 @@ func complete_research() -> void:
 		break_reminder_count += 1
 		story_event.emit("break_reminder_%d_%d" % [day, break_reminder_count])
 	state_changed.emit()
+	SaveStore.request_autosave("research_completed")
+	if research_progress >= GOOD_ENDING_RESEARCH_THRESHOLD:
+		SaveStore.milestone("research_target")
 	action_feedback.emit("Research complete: +%.1f%%, %d min, %d session(s) left." % [research_gain, research_duration, work_sessions_remaining])
 	if not day_ended:
 		if work_sessions_remaining <= 2:
@@ -595,6 +600,7 @@ func manual_clean(chore: String) -> bool:
 	clear_mess(chore)
 	var fixture: String = {"sink": "Sink", "plant": "PlantPot", "bookshelf": "Bookshelf", "bed": "Bed"}[chore]
 	ApartmentAudio.play_world("books" if chore == "bookshelf" else ("bedding" if chore == "bed" else "clean"), get_tree().current_scene.get_node(fixture).global_position)
+	SaveStore.request_autosave("cleanup_completed")
 	action_feedback.emit("%s tidied. Routine unchanged. (-%d min)" % [chore.capitalize(), CLEAN_COSTS[chore]])
 	return true
 
@@ -757,6 +763,11 @@ func repair_routine(chore: String) -> void:
 		action_feedback.emit("TipTop: %s routine updated. Thank you, Judy!" % chore.capitalize())
 	if earned_bonus:
 		story_event.emit("proactive_fix")
+	SaveStore.request_autosave("routine_repaired")
+	if tiptop_fixed:
+		SaveStore.milestone("all_routines_repaired")
+	if research_progress >= GOOD_ENDING_RESEARCH_THRESHOLD:
+		SaveStore.milestone("research_target")
 
 
 func turn_off_tap() -> void:

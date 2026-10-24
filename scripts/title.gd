@@ -19,6 +19,7 @@ var starting := false
 var tutorial_start := false
 var tiptop_sprite: Sprite2D
 var idle_time := 0.0
+var persistence_notice: Label
 
 
 func _ready() -> void:
@@ -36,7 +37,7 @@ func _ready() -> void:
 	var screen_layer := CanvasLayer.new()
 	add_child(screen_layer)
 	screen_layer.add_child(canvas)
-	var menu_theme := Theme.new()
+	var menu_theme := preload("res://themes/cozy.tres").duplicate() as Theme
 	menu_theme.default_font_size = 10
 	menu_theme.set_color("font_color", "Label", CREAM)
 	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
@@ -52,6 +53,7 @@ func _ready() -> void:
 	canvas.add_child(backdrop)
 	_build_apartment()
 	var title := _label(canvas, "IT'S PROBABLY FINE", 23)
+	preload("res://scripts/typography.gd").accent(title)
 	title.position = Vector2(18, 13)
 	title.add_theme_color_override("font_color", AMBER)
 	var subtitle := _label(canvas, "Three days. One robot. What could go wrong?", 10)
@@ -64,10 +66,16 @@ func _ready() -> void:
 	var choices := VBoxContainer.new()
 	choices.add_theme_constant_override("separation", 6)
 	main_menu.add_child(choices)
+	if SaveStore.can_continue():
+		_button(choices, "Continue", _continue_game)
 	new_game_button = _button(choices, "New Game", _show_difficulty)
 	_button(choices, "How to Play", _show_help)
 	_button(choices, "Settings", _show_settings)
 	_button(choices, "Quit Game", func(): get_tree().quit())
+	persistence_notice = _label(canvas, "", 7)
+	persistence_notice.position = Vector2(18, 257)
+	persistence_notice.size = Vector2(235, 26)
+	persistence_notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_fit_viewport()
 	get_viewport().size_changed.connect(_fit_viewport)
 	new_game_button.grab_focus.call_deferred()
@@ -158,6 +166,7 @@ func _fit_viewport() -> void:
 
 func _process(delta: float) -> void:
 	idle_time += delta
+	persistence_notice.text = "Profile unreadable: history/settings cannot be saved. Original files preserved." if SaveStore.profile_read_only else SaveStore.last_error
 	tiptop_sprite.frame = int(idle_time * 5.0) % 4
 	tiptop_sprite.position.y = 119.0 + sin(idle_time * 2.0) * 0.6
 
@@ -182,6 +191,7 @@ func _open_panel(heading: String, width: float = 310) -> void:
 	modal_panel.add_child(modal_body)
 	var title := _label(modal_body, heading, 15)
 	title.add_theme_color_override("font_color", AMBER)
+	preload("res://scripts/typography.gd").accent(title)
 
 
 func _paragraph(text: String, font_size: int = 10) -> Label:
@@ -207,6 +217,8 @@ func _show_difficulty(tutorial_entry: bool = false) -> void:
 	tutorial_start = tutorial_entry
 	_open_panel("Play Tutorial" if tutorial_entry else "A fresh start")
 	_paragraph("Start a fresh guided Day 1. Skip anytime; Esc opens Pause." if tutorial_entry else "Choose your pace. Medium is the default.")
+	if SaveStore.can_continue():
+		_paragraph("Beginning replaces the active slot. Previous checkpoints remain recoverable; your profile stays.", 8)
 	selected_difficulty = 1
 	difficulty_buttons.clear()
 	var row := HBoxContainer.new()
@@ -219,7 +231,7 @@ func _show_difficulty(tutorial_entry: bool = false) -> void:
 	difficulty_description = _paragraph("")
 	difficulty_description.custom_minimum_size.y = 54
 	_select_difficulty(1)
-	_button(modal_body, "Play Tutorial" if tutorial_entry else "Begin Day 1", _begin_game)
+	_button(modal_body, "Replace Save & Begin" if SaveStore.can_continue() else ("Play Tutorial" if tutorial_entry else "Begin Day 1"), _begin_game)
 	_button(modal_body, "Back", _close_panel)
 	difficulty_buttons[1].grab_focus.call_deferred()
 
@@ -355,7 +367,8 @@ func _show_settings() -> void:
 		slider.value_changed.connect(func(value: float):
 			AudioServer.set_bus_mute(bus, value <= 0)
 			AudioServer.set_bus_volume_db(bus, linear_to_db(maxf(value / 100.0, 0.0001)))
-			volume_label.text = "%s: %d%%" % [bus_name, value])
+			volume_label.text = "%s: %d%%" % [bus_name, value]
+			SaveStore.audio_preference(bus_name, value))
 	var fullscreen := CheckButton.new()
 	fullscreen.text = "Fullscreen"
 	fullscreen.button_pressed = DisplayServer.window_get_mode() in [DisplayServer.WINDOW_MODE_FULLSCREEN, DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
@@ -363,7 +376,8 @@ func _show_settings() -> void:
 	fullscreen.toggled.connect(func(enabled: bool):
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if enabled else DisplayServer.WINDOW_MODE_WINDOWED))
 	modal_body.add_child(fullscreen)
-	_paragraph("Settings apply immediately for this app session. Display scaling stays unchanged.", 9)
+	_paragraph("Audio preferences are saved automatically. Music has its own volume; display scaling stays unchanged.", 9)
+	_paragraph("Apartment theme: Chill lofi inspired — omfgdude; loop edit by qubodup (CC0).", 7)
 	var back := _button(modal_body, "Back", _close_panel)
 	back.grab_focus.call_deferred()
 
@@ -383,6 +397,7 @@ func _begin_game() -> void:
 	fade.tween_property(cover, "color:a", 1.0, 0.25)
 	await fade.finished
 	GameState.restart()
+	SaveStore.new_campaign(tutorial_start)
 	GameState.select_difficulty(selected_difficulty)
 	if tutorial_start:
 		get_tree().set_meta("tutorial_entry", true)
@@ -396,3 +411,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		if is_instance_valid(modal):
 			_close_panel()
 		get_viewport().set_input_as_handled()
+
+
+func _continue_game() -> void:
+	if starting:
+		return
+	if not SaveStore.prepare_continue():
+		_open_panel("Cannot Continue")
+		_paragraph(SaveStore.last_error)
+		_button(modal_body, "Back", _close_panel)
+		return
+	starting = true
+	if get_tree().change_scene_to_file("res://scenes/room.tscn") != OK:
+		starting = false
+		SaveStore.loading = false
+		_open_panel("Cannot Continue")
+		_paragraph("The apartment scene could not be opened. Your save is intact.")
+		_button(modal_body, "Back", _close_panel)
