@@ -58,6 +58,9 @@ var world_elapsed := 0.0
 var research_next_chore := 3.0
 var chore_cursor := 0
 var robot_chore_resolved := false
+const CHORE_COOLDOWNS := {"sink": 6.0, "plant": 12.0, "bookshelf": 9.0, "bed": 18.0}
+var chore_ready_at: Dictionary = {}
+var last_robot_chore := ""
 
 
 func _ready() -> void:
@@ -103,22 +106,26 @@ func begin_research() -> bool:
 func _select_research_chore() -> void:
 	var chores := ["plant", "sink", "bookshelf", "bed"]
 	var selected := ""
-	# First service actual cleanup requests for repaired routines.
+	# Cleanup takes priority, but a failed route keeps its retry cooldown.
 	for chore in ["bookshelf", "bed", "sink", "plant"]:
-		if repairs[chore] and needs_cleanup(chore):
+		if repairs[chore] and needs_cleanup(chore) and world_elapsed >= float(chore_ready_at.get(chore, 0.0)):
 			selected = chore
 			break
-	# Faulty routines still repeat their mistakes. Clean repaired fixtures do
-	# not need another maintenance visit: all four clean means genuine idle.
+	# Repair changes the outcome, never eligibility. Rotate all four routines
+	# and avoid immediate repeats while another fixture is ready.
 	if selected.is_empty():
-		for offset in range(chores.size()):
-			var index := (chore_cursor + offset) % chores.size()
-			var chore: String = chores[index]
-			if not repairs[chore]:
+		for pass_index in range(2):
+			for offset in range(chores.size()):
+				var index := (chore_cursor + offset) % chores.size()
+				var chore: String = chores[index]
+				if world_elapsed < float(chore_ready_at.get(chore, 0.0)) or (pass_index == 0 and chore == last_robot_chore):
+					continue
 				selected = chore
 				chore_cursor = (index + 1) % chores.size()
 				break
-	research_swat = mosquito_task and mosquito_level > 0
+			if not selected.is_empty():
+				break
+	research_swat = mosquito_task and mosquito_level > 0 and world_elapsed >= float(chore_ready_at.get("swat", 0.0))
 	if research_swat:
 		selected = "sink" if sink_water_elapsed >= 8.0 else "plant"
 	if selected != research_task or not selected.is_empty():
@@ -132,6 +139,10 @@ func resolve_robot_chore(serial: int, succeeded: bool) -> void:
 	if serial != research_task_serial or robot_chore_resolved or research_task.is_empty():
 		return
 	robot_chore_resolved = true
+	last_robot_chore = research_task
+	var cooldown_key := "swat" if research_swat else research_task
+	chore_ready_at[cooldown_key] = world_elapsed + (float(CHORE_COOLDOWNS[research_task]) if succeeded else 15.0)
+	research_next_chore = world_elapsed + 0.5
 	if succeeded and not day_ended and not game_finished:
 		if research_swat:
 			swat_mosquitoes(false)
@@ -161,7 +172,8 @@ func _advance_world(minutes: float) -> void:
 
 
 func _simulate_world_step(minutes: float) -> void:
-	# Fixed chronological steps keep Watch and Skip consequences identical.
+	# Clock-driven water/exposure share chronological steps at every speed.
+	# Robot chore outcomes additionally require physical action completion.
 	world_elapsed += minutes
 	clock_fraction += minutes
 	var whole_minutes := int(floor(clock_fraction + 0.0000001))
@@ -176,8 +188,8 @@ func _simulate_world_step(minutes: float) -> void:
 		water_exposure = maxf(0.0, water_exposure - minutes * 2.0)
 	mosquito_level = mini(3, int(water_exposure / 60.0))
 	if world_elapsed >= research_next_chore and (robot_chore_resolved or research_task.is_empty()):
-		# Cooldown starts now, never catch up by firing remote chores in a loop.
-		research_next_chore = world_elapsed + 3.0
+		# Poll briefly during rest; cooldowns use the same authoritative clock.
+		research_next_chore = world_elapsed + 0.5
 		_select_research_chore()
 	if research_active:
 		research_elapsed = minf(research_duration, research_elapsed + minutes)
@@ -262,7 +274,8 @@ func finish_household_chore(chore: String, scheduled := false) -> void:
 	if day_ended or game_finished or (household_busy and not scheduled) or not chore_mess.has(chore):
 		return
 	if repairs[chore]:
-		clear_mess(chore)
+		if needs_cleanup(chore):
+			clear_mess(chore)
 	else:
 		if chore == "bed":
 			if time_minutes < DAY_END and bed_mischief_day != day and (day - 1) * DAY_LENGTH + time_minutes >= bed_protected_until:
@@ -271,8 +284,10 @@ func finish_household_chore(chore: String, scheduled := false) -> void:
 			state_changed.emit()
 			return
 		chore_repetitions[chore] += 1
-		if chore_repetitions[chore] >= 2:
-			chore_mess[chore] = mini(3, int(chore_mess[chore]) + 1)
+		if chore_repetitions[chore] >= 2 and int(chore_mess[chore]) == 0:
+			# One active mess per fixture until cleanup. Books still reach the
+			# existing blocking threshold; plant mess retains drooping foliage.
+			chore_mess[chore] = 2 if chore in ["bookshelf", "plant"] else 1
 		# Use the same tap state as desk work and manual shutoff.
 		if chore == "sink":
 			tap_running = true
@@ -304,6 +319,8 @@ func continue_day() -> void:
 		world_elapsed = 0.0
 		research_next_chore = 3.0
 		chore_cursor = 0
+		chore_ready_at.clear()
+		last_robot_chore = ""
 		work_sessions_remaining = DAILY_WORK_SESSIONS
 		day_ended = false
 		end_day_reminded = false
@@ -399,6 +416,8 @@ func ignore_tap() -> void:
 
 func restart() -> void:
 	chore_cursor = 0
+	chore_ready_at.clear()
+	last_robot_chore = ""
 	clock_fraction = 0.0
 	world_accumulator = 0.0
 	world_elapsed = 0.0

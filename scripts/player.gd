@@ -55,7 +55,7 @@ func _update_interaction_prompt(target: Node2D) -> void:
 			interaction_prompt.text = "E - Research blocked (bookshelf)" if GameState.has_research_time() else "E - Not enough research time"
 			interaction_prompt.modulate = Color.RED
 	elif target == tiptop:
-		interaction_prompt.text = "E - Repair routines"
+		interaction_prompt.text = "E - Talk to TipTop" if GameState.tiptop_fixed else "E - Talk / Repair TipTop"
 	elif target == sink:
 		interaction_prompt.text = "E - Tap off" if GameState.tap_running else "E - Mop / clean (15 min)"
 		if not GameState.tap_running and GameState.mosquito_level > 0:
@@ -134,10 +134,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if target == desk:
 		get_node("../HUD").research_choices()
 	elif target == tiptop:
-		if GameState.mosquito_level > 0:
-			get_node("../HUD").household_choices("tiptop")
-		else:
-			GameState.fix_tap()
+		get_node("../HUD").tiptop_interaction()
 	elif target == bed:
 		if GameState.needs_cleanup("bed"):
 			_clean_animation("bed")

@@ -10,28 +10,60 @@ var wait := 0.0
 var stalled := 0.0
 var mapped := false
 var last_day := 1
-var was_fixed := false
 var destination := Vector2.ZERO
 var bookshelf_approach := Vector2.ZERO
 var has_destination := false
 var action_left := 0.0
 var near_judy := false
-var reaction_day := 0
 var repath_cooldown := 0.0
 var action_label: Label
 var monologue_label: Label
 var monologue_left := 0.0
 const CHORES := ["plant", "sink", "bookshelf", "bed"]
-var repair_count := 0
+enum BrainState { IDLE, SELECT_TASK, MOVING_TO_TASK, PERFORMING_TASK, REACTING, COOLDOWN, RECOVERING }
+var brain_state := BrainState.IDLE
+var reaction_left := 0.0
+var blocked_elapsed := 0.0
+var morning_day := 0
+var goodnight_day := 0
+var thought_counts: Dictionary = {}
+const APPROACH_THOUGHTS := {
+	"sink": ["Time to give those dishes a fresh start.", "Dish duty. My specialty. One of four."],
+	"plant": ["Checking on our leafy colleague.", "The plant has requested my attention. Silently."],
+	"bookshelf": ["The bookshelf requires my expertise.", "Books. Such rectangular possibilities."],
+	"bed": ["A tidy bed supports untidy scientific ideas.", "Checking the sheet situation."]
+}
+const FAULTY_WORK_THOUGHTS := {
+	"sink": ["Maximum cleanliness requires maximum water!", "A continuous rinse. Very thorough."],
+	"plant": ["Plants love water. More must be better!", "A generous drink for a generous plant."],
+	"bookshelf": ["Largest books on top. A superior system.", "Testing a more aerodynamic arrangement."],
+	"bed": ["Extra ventilation for every sheet!", "A little creative folding should help."]
+}
+const REPAIRED_WORK_THOUGHTS := {
+	"sink": ["Tap off. Dishes clean. Floor stays dry.", "A controlled rinse. I have revised my methods."],
+	"plant": ["Just enough water. Excellent restraint.", "Checking the soil before I pour."],
+	"bookshelf": ["Titles in order. Spines facing out.", "Upright books. A surprisingly elegant solution."],
+	"bed": ["Corners tucked. Pillow restored.", "Smoothing, not aerating. I remember."]
+}
+const FAULTY_REACTIONS := {
+	"sink": ["Dish cycle successful.", "The water is certainly flowing efficiently."],
+	"plant": ["Hydration complete.", "Our colleague will be delighted."],
+	"bookshelf": ["A bold new arrangement. Excellent.", "Book order optimized."],
+	"bed": ["Sheets aerated.", "A refreshingly unconventional bed."]
+}
+const REPAIRED_REACTIONS := {
+	"sink": ["Clean dishes. No bonus indoor pond.", "Another successful chore!"],
+	"plant": ["Water delivered. Correct amount this time.", "A healthy plant and a dry floor. Remarkable."],
+	"bookshelf": ["Alphabetical. And upright. All done.", "Everything in its place. Even the books."],
+	"bed": ["Bed made. I shall leave it made.", "Ready for sleeping. Or admiring briefly."]
+}
 var cleanup_target := false
 var swatting := false
 var session_serial := -1
 var finished_chore_serial := -1
-var thought_serial := -1
 var task_outcome := "idle"
 var navigation_attempts := 0
 var travel_elapsed := 0.0
-var was_research := false
 var previous_playback := 1.0
 @onready var judy: CharacterBody2D = get_node("../Player")
 
@@ -61,10 +93,12 @@ func _ready() -> void:
 	monologue_label.hide()
 	add_child(monologue_label)
 	reset_physics_interpolation()
+	_state_changed()
 
 
-func show_monologue(message: String) -> void:
-	if not get_node("../HUD").overhead_thoughts_allowed():
+func show_monologue(message: String, during_sleep: bool = false) -> void:
+	var farewell: bool = during_sleep and get_node("../HUD").transitioning and GameState.day_ended
+	if not farewell and not get_node("../HUD").overhead_thoughts_allowed():
 		clear_monologue()
 		return
 	monologue_label.text = message
@@ -94,30 +128,84 @@ func _process(delta: float) -> void:
 	action_label.visible = action_left > 0 and task_outcome == "working" and monologue_left <= 0
 
 
+func greet_morning() -> bool:
+	if morning_day == GameState.day:
+		return true
+	if GameState.research_active or not get_node("../HUD").overhead_thoughts_allowed():
+		return false
+	morning_day = GameState.day
+	var lines := ["Good morning, Judy! Ready for an extremely productive day?", "Good morning! I have prepared several helpful intentions.", "Morning, Judy! Showcase day. I believe in our combined competence."]
+	show_monologue(lines[(GameState.day - 1) % lines.size()])
+	return true
+
+
+func say_goodnight() -> void:
+	prepare_for_sleep()
+	if goodnight_day == GameState.day:
+		return
+	goodnight_day = GameState.day
+	show_monologue("Good night, Judy. Everything is under control. Probably.", true)
+
+
+func prepare_for_sleep() -> void:
+	_clear_task_motion()
+	clear_monologue()
+	brain_state = BrainState.IDLE
+	task_outcome = "cancelled"
+
+
+func _say_chore(phase: String) -> void:
+	if swatting:
+		if phase == "working":
+			show_monologue("Mosquito interception in progress.")
+		return
+	var chore: String = CHORES[visit]
+	var pool: Array = APPROACH_THOUGHTS[chore]
+	if phase == "working":
+		pool = REPAIRED_WORK_THOUGHTS[chore] if GameState.repairs[chore] else FAULTY_WORK_THOUGHTS[chore]
+	elif phase == "reaction":
+		pool = REPAIRED_REACTIONS[chore] if GameState.repairs[chore] else FAULTY_REACTIONS[chore]
+	var key := "%s:%s:%s" % [chore, phase, GameState.repairs[chore]]
+	var index := int(thought_counts.get(key, 0))
+	thought_counts[key] = index + 1
+	# Keep the previous reaction visible during a very short approach.
+	if phase != "approach" or monologue_left <= 0:
+		show_monologue(pool[index % pool.size()])
+
+
+func _clear_task_motion() -> void:
+	velocity = Vector2.ZERO
+	path.clear()
+	has_destination = false
+	action_left = 0.0
+	cleanup_target = false
+	_chore_visual().call("set_chore_active", false)
+	action_label.hide()
+	action_label.text = ""
+
+
 func _state_changed() -> void:
-	if session_serial >= 0 and session_serial != GameState.research_task_serial and action_left > 0 and not GameState.repairs[CHORES[visit]] and reaction_day != GameState.day:
-		GameState.action_feedback.emit("TipTop: " + ["Hydration complete.", "Dish cycle successful.", "Book order optimized.", "Sheets aerated."][visit])
-		reaction_day = GameState.day
-	if GameState.repairs.values().count(true) != repair_count or GameState.day != last_day or was_research != GameState.research_active or session_serial != GameState.research_task_serial:
-		clear_monologue()
-		if has_destination or action_left > 0:
-			task_outcome = "cancelled"
-		wait = 0.8
-		path.clear()
-		has_destination = false
-		action_left = 0.0
-		_chore_visual().call("set_chore_active", false)
-		action_label.hide()
-		action_label.text = ""
-		velocity = Vector2.ZERO
+	var new_day := GameState.day != last_day
+	if new_day or session_serial != GameState.research_task_serial:
+		var reacting := not new_day and brain_state == BrainState.REACTING and reaction_left > 0
+		if not reacting:
+			clear_monologue()
+		_clear_task_motion()
 		navigation_attempts = 0
 		travel_elapsed = 0.0
+		blocked_elapsed = 0.0
 		stalled = 0.0
-	was_fixed = GameState.tiptop_fixed
+		wait = 0.0
+		brain_state = BrainState.REACTING if reacting else BrainState.SELECT_TASK
+		if new_day:
+			mapped = false
+			reaction_left = 0.0
+			near_judy = false
+	# Research speed changes and individual repairs do not cancel a valid trip.
+	if has_destination or brain_state == BrainState.PERFORMING_TASK:
+		cleanup_target = GameState.repairs[CHORES[visit]] and GameState.needs_cleanup(CHORES[visit])
 	last_day = GameState.day
-	repair_count = GameState.repairs.values().count(true)
 	session_serial = GameState.research_task_serial
-	was_research = GameState.research_active
 
 
 func _cells() -> Array[Vector2i]:
@@ -167,18 +255,15 @@ func _clear_to(point: Vector2) -> bool:
 
 
 func _finish_presentation(outcome: String) -> void:
-	if outcome != "completed":
+	if outcome == "completed":
+		_say_chore("reaction")
+	else:
 		clear_monologue()
+	_clear_task_motion()
 	task_outcome = outcome
-	velocity = Vector2.ZERO
-	path.clear()
-	has_destination = false
-	action_left = 0.0
-	cleanup_target = false
-	_chore_visual().call("set_chore_active", false)
-	action_label.hide()
-	action_label.text = ""
-	finished_chore_serial = GameState.research_task_serial
+	finished_chore_serial = session_serial
+	brain_state = BrainState.REACTING if outcome == "completed" else BrainState.COOLDOWN
+	reaction_left = 1.3 if outcome == "completed" else 0.0
 	if outcome in ["completed", "failed", "cancelled"]:
 		GameState.resolve_robot_chore(finished_chore_serial, outcome == "completed")
 
@@ -204,29 +289,28 @@ func _choose_destination() -> void:
 	visit = CHORES.find(GameState.research_task)
 	swatting = GameState.research_swat
 	cleanup_target = GameState.repairs[CHORES[visit]] and GameState.needs_cleanup(CHORES[visit])
-	var stops: Array[Vector2] = [get_node("../PlantPot").global_position + Vector2(-16, 0), get_node("../Sink").global_position + Vector2(0, 14), get_node("../Bookshelf").global_position + Vector2(22, 0), get_node("../Bed").global_position + Vector2(22, 7)]
+	var sink: Node2D = get_node("../Sink")
+	var sink_collision: CollisionShape2D = sink.get_node("CollisionShape2D")
+	var sink_shape := sink_collision.shape as RectangleShape2D
+	var sink_front := sink.to_global(Vector2(0, sink_collision.position.y + sink_shape.size.y * 0.5))
+	var bed: Node2D = get_node("../Bed")
+	var bed_collision: CollisionShape2D = bed.get_node("CollisionShape2D")
+	var bed_shape := bed_collision.shape as RectangleShape2D
+	var bed_corner := bed.to_global(bed_collision.position + bed_shape.size * 0.5)
+	var stops: Array[Vector2] = [get_node("../PlantPot").to_global(Vector2(-16, 0)), sink_front + Vector2(0, 14), _bookshelf_front(), bed_corner + Vector2(7, 7)]
 	var shelf: Node2D = get_node("../Bookshelf")
 	var shelf_collision: CollisionShape2D = shelf.get_node("CollisionShape2D")
 	var shelf_shape := shelf_collision.shape as RectangleShape2D
 	var front := shelf_collision.position.y + shelf_shape.size.y * 0.5
-	stops[2] = _bookshelf_front()
 	var right_edge := shelf_collision.position.x + shelf_shape.size.x * 0.5
 	bookshelf_approach = shelf.to_global(Vector2(right_edge, front)) + Vector2(8, 5)
-	# Small variations keep repeated visits from looking like a fixed rail.
-	var candidate := stops[visit]
-	if not GameState.research_active and visit != 2:
-		candidate += Vector2(randf_range(-3, 3), randf_range(-2, 2))
-	destination = Vector2(_open_cell(candidate)) * CELL
-	# The narrow floor strip in front of the shelf has no grid-cell center.
-	# Keep its exact destination; pathfinding still guides the approach around it.
-	if visit == 2 or _clear_to(candidate):
-		destination = candidate
+	# Grid cells guide travel, never replace the actual fixture approach point.
+	destination = stops[visit]
 	has_destination = true
 	task_outcome = "travelling"
 	path.clear()
-	if visit == 2 and thought_serial != GameState.research_task_serial:
-		thought_serial = GameState.research_task_serial
-		show_monologue("The bookshelf requires my expertise.")
+	brain_state = BrainState.MOVING_TO_TASK
+	_say_chore("approach")
 
 
 func _physics_process(delta: float) -> void:
@@ -236,73 +320,107 @@ func _physics_process(delta: float) -> void:
 		previous_playback = playback
 	delta *= playback
 	$Visual.speed_scale = playback
-	# The available hover sheet has one facing; a small forward lean and
-	# upward task cue show attention toward the shelf without rotating the body.
-	$Visual.skew = lerpf($Visual.skew, -0.08 if visit == 2 and action_left > 0 else 0.0, 1.0 - exp(-8.0 * delta))
+	var face := Vector2.ZERO
+	if brain_state == BrainState.PERFORMING_TASK:
+		face = global_position.direction_to(_chore_visual().get_parent().global_position)
+	$Visual.skew = lerpf($Visual.skew, -0.08 if face.y < 0 else 0.0, 1.0 - exp(-8.0 * delta))
 	repath_cooldown = maxf(0.0, repath_cooldown - delta)
-	if GameState.day_ended or GameState.game_finished or GameState.ending_day_pending or GameState.household_busy or (GameState.notification_active and not GameState.research_active):
+	if GameState.day_ended or GameState.game_finished:
+		if brain_state != BrainState.IDLE:
+			prepare_for_sleep()
+		return
+	if GameState.ending_day_pending or GameState.household_busy or (GameState.notification_active and not GameState.research_active):
 		velocity = Vector2.ZERO
 		_chore_visual().call("set_chore_active", false)
 		action_label.hide()
+		return
+	if brain_state == BrainState.REACTING:
+		reaction_left = maxf(0.0, reaction_left - delta)
+		if reaction_left <= 0:
+			brain_state = BrainState.COOLDOWN
 		return
 	if GameState.research_task.is_empty():
-		# No useful work remains. Keep hovering and remain repair-interactable.
-		if task_outcome != "idle" or has_destination or action_left > 0:
-			_finish_presentation("idle")
+		brain_state = BrainState.IDLE
+		velocity = Vector2.ZERO
 		return
+	if finished_chore_serial == GameState.research_task_serial:
+		brain_state = BrainState.COOLDOWN
+		return
+	if brain_state in [BrainState.IDLE, BrainState.COOLDOWN]:
+		brain_state = BrainState.SELECT_TASK
 	if not mapped:
 		_map_obstacles()
-	if cleanup_target and not GameState.needs_cleanup(CHORES[visit]):
-		_finish_presentation("cancelled")
-	if finished_chore_serial == GameState.research_task_serial:
-		velocity = Vector2.ZERO
-		return
-	var distance_to_judy := global_position.distance_to(judy.global_position)
-	if distance_to_judy < 32.0 and not near_judy:
-		wait = maxf(wait, 0.8)
-	near_judy = distance_to_judy < 36.0
-	if wait > 0 or distance_to_judy < 14.0:
-		wait = maxf(0, wait - delta)
-		velocity = velocity.move_toward(Vector2.ZERO, 75.0 * delta * playback)
-		move_and_slide()
-		_chore_visual().call("set_chore_active", false)
-		return
-	if action_left > 0:
-		velocity = Vector2.ZERO
-		if not _at_chore():
-			_finish_presentation("failed")
-			return
-		_chore_visual().call("set_chore_active", not swatting)
-		action_left -= delta
-		if action_left <= 0:
-			# End the visible action once; do not loop its pose/label while
-			# waiting for the authoritative scheduler to select the next task.
-			if visit == 2:
-				show_monologue("Alphabetical. And upright. All done." if GameState.repairs["bookshelf"] else "A bold new arrangement. Excellent.")
-			_finish_presentation("completed")
-		return
-	if not has_destination:
-		action_label.hide()
+	if brain_state == BrainState.SELECT_TASK:
 		_choose_destination()
+		return
+	if brain_state in [BrainState.MOVING_TO_TASK, BrainState.RECOVERING]:
+		var distance_to_judy := global_position.distance_to(judy.global_position)
+		if distance_to_judy < 32.0 and not near_judy:
+			wait = maxf(wait, 0.8)
+		near_judy = distance_to_judy < 36.0
+		if distance_to_judy < 14.0:
+			blocked_elapsed += delta
+			if blocked_elapsed > 10.0:
+				_finish_presentation("failed")
+				return
+		else:
+			blocked_elapsed = 0.0
+		if wait > 0 or distance_to_judy < 14.0:
+			wait = maxf(0.0, wait - delta)
+			velocity = velocity.move_toward(Vector2.ZERO, 75.0 * delta * playback)
+			move_and_slide()
+			return
+	match brain_state:
+		BrainState.RECOVERING:
+			brain_state = BrainState.MOVING_TO_TASK
+		BrainState.MOVING_TO_TASK:
+			_move_to_task(delta, playback)
+		BrainState.PERFORMING_TASK:
+			velocity = Vector2.ZERO
+			if not _at_chore():
+				_finish_presentation("failed")
+				return
+			_chore_visual().call("set_chore_active", not swatting)
+			action_left = maxf(0.0, action_left - delta)
+			if action_left <= 0:
+				_finish_presentation("completed")
+
+
+func _begin_action() -> void:
+	velocity = Vector2.ZERO
+	path.clear()
+	brain_state = BrainState.PERFORMING_TASK
+	task_outcome = "working"
+	action_left = 3.0 if visit in [2, 3] or cleanup_target else 2.4
+	action_label.text = ["Drying...", "Mopping...", "Organizing...", "Making bed..."][visit] if cleanup_target else ["Watering...", "Washing...", "Organizing...", "Straightening..."][visit]
+	if swatting:
+		action_label.text = "Swatting..."
+	_say_chore("working")
+	if visit == 1 and GameState.repairs["sink"] and GameState.tap_running:
+		GameState.turn_off_tap()
+
+
+func _recover_route() -> void:
+	navigation_attempts += 1
+	velocity = Vector2.ZERO
+	path.clear()
+	mapped = false
+	stalled = 0.0
+	if navigation_attempts >= 3:
+		_finish_presentation("failed")
+	else:
+		brain_state = BrainState.RECOVERING
+		wait = 0.5
+		repath_cooldown = 0.5
+
+
+func _move_to_task(delta: float, playback: float) -> void:
 	var distance := global_position.distance_to(destination)
 	if distance < 1.2 and _at_chore() and velocity.length() < 2.0 * playback:
-		velocity = Vector2.ZERO
-		path.clear()
-		task_outcome = "working"
-		action_left = 2.5 if cleanup_target or GameState.research_active else randf_range(1.5, 2.5)
-		action_label.text = ["Drying...", "Mopping...", "Organizing...", "Making bed..."][visit] if cleanup_target else ["Watering...", "Washing...", "Sorting...", "Straightening..."][visit]
-		action_label.show()
-		if swatting:
-			action_label.text = "Swatting..."
-		elif visit == 2:
-			action_label.text = "Organizing ↑"
-			show_monologue("Titles in order. Spines facing out." if GameState.repairs["bookshelf"] else "Largest books on top. A superior system.")
-		if visit == 1 and GameState.repairs["sink"] and GameState.tap_running:
-			GameState.turn_off_tap()
+		_begin_action()
 		return
 	travel_elapsed += delta
 	if travel_elapsed > 20.0:
-		# Bound oscillating routes even if they still make small movements.
 		_finish_presentation("failed")
 		return
 	var route_target := destination
@@ -314,6 +432,9 @@ func _physics_process(delta: float) -> void:
 		if path.is_empty() and repath_cooldown <= 0:
 			path = grid.get_point_path(_open_cell(global_position), _open_cell(route_target))
 			repath_cooldown = 0.35
+			if path.is_empty():
+				_recover_route()
+				return
 		# Steer to the furthest visible waypoint, skipping grid corners.
 		var visible_index := -1
 		for index in range(path.size() - 1, -1, -1):
@@ -337,10 +458,4 @@ func _physics_process(delta: float) -> void:
 		path.clear()
 		mapped = false
 		stalled = 0.0
-		navigation_attempts += 1
-		if navigation_attempts >= 3:
-			_finish_presentation("failed")
-		else:
-			# Retry this fixed target after remapping, not a new random point.
-			wait = 0.5
-			repath_cooldown = 0.5
+		_recover_route()

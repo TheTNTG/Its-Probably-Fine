@@ -51,6 +51,8 @@ var time_bar: ProgressBar
 var time_bar_fill: StyleBoxFlat
 var deferred_story_events: Array[String] = []
 var dialogue_resume_loop := false
+var morning_pending_day := 0
+var tiptop_talk_count := 0
 
 
 func _household_open() -> bool:
@@ -84,6 +86,40 @@ func research_choices() -> void:
 	household_choices("research")
 
 
+func _tiptop_nearby() -> bool:
+	var judy = get_node("../Player")
+	var robot: Node2D = get_node("../TipTop")
+	return judy.global_position.distance_to(robot.global_position - Vector2(0, 7)) <= judy.INTERACTION_DISTANCE
+
+
+func tiptop_interaction() -> void:
+	if not _comic_safe() or dialogue_overlay.visible or loop_panel.visible or GameState.notification_active or not _tiptop_nearby():
+		return
+	if GameState.tiptop_fixed:
+		talk_to_tiptop()
+	else:
+		household_choices("tiptop")
+
+
+func talk_to_tiptop() -> void:
+	if not _comic_safe() or dialogue_overlay.visible or loop_panel.visible or GameState.notification_active or not _tiptop_nearby():
+		return
+	var chore: String = GameState.research_task
+	var work_comment := "I was checking the %s. It appreciates the attention." % ("bookshelf" if chore == "bookshelf" else chore)
+	if chore.is_empty() or GameState.robot_chore_resolved:
+		work_comment = "A brief pause between helpful activities. Very strategic."
+	var pools := [
+		[["Judy", "How's the extremely important robot business?", "happy"], ["TipTop", work_comment, "proud"], ["Judy", "Carry on, chief.", "happy"]],
+		[["TipTop", "Research update requested!", "neutral"], ["Judy", "Mostly notes. Some of them even agree with each other.", "neutral"], ["TipTop", "An encouraging level of cooperation.", "proud"]],
+		[["Judy", "You doing okay, buddy?", "neutral"], ["TipTop", "Yes! I am practically unstoppable. Except by furniture.", "proud"], ["Judy", "Yeah, furniture gets everyone eventually.", "happy"]],
+		[["TipTop", "Are we ready for the showcase?", "worried"], ["Judy", "We've got results. Now I just have to explain them." if GameState.research_progress >= 80 else "Getting there. My notes are starting to look suspiciously useful.", "happy"], ["TipTop", "I shall provide supportive hovering.", "proud"]]
+	]
+	# A direct conversation takes priority without dropping queued story lines.
+	dialogue_lines = pools[tiptop_talk_count % pools.size()].duplicate(true) + dialogue_lines
+	tiptop_talk_count += 1
+	_advance_dialogue()
+
+
 func set_research_controls(active: bool) -> void:
 	research_strip.visible = active
 	notification_panel.hide()
@@ -111,6 +147,8 @@ func _skip_research() -> void:
 func household_choices(location: String) -> void:
 	if is_instance_valid(household_panel) or transitioning or dialogue_overlay.visible or repair_panel.visible or loop_panel.visible or GameState.research_active:
 		return
+	get_node("../TipTop").clear_monologue()
+	get_node("../TipTop").action_label.hide()
 	var prior_pause := get_tree().paused
 	get_tree().paused = true
 	household_panel = ColorRect.new()
@@ -134,7 +172,9 @@ func household_choices(location: String) -> void:
 	elif location == "bookshelf":
 		options.append(["Organize books myself — 20 min", judy.organize_for_research])
 	elif location == "tiptop":
-		options.append(["Repair routines...", GameState.fix_tap])
+		options.append(["Talk to TipTop", talk_to_tiptop])
+		if not GameState.tiptop_fixed:
+			options.append(["Repair TipTop...", GameState.fix_tap])
 	elif GameState.needs_cleanup(location):
 		options.append(["Clean %s myself — %d min" % [location, GameState.CLEAN_COSTS[location]], judy._clean_animation.bind(location)])
 	if GameState.mosquito_level > 0 and location != "research":
@@ -235,6 +275,7 @@ func _update_hud() -> void:
 	overview_bar.value = GameState.research_progress
 	if (GameState.day_ended or GameState.game_finished) and not GameState.research_active:
 		notification_panel.hide()
+		get_node("../TipTop").prepare_for_sleep()
 		get_tree().paused = true
 		loop_panel.show()
 		if GameState.game_finished:
@@ -400,6 +441,7 @@ func _on_loop_pressed() -> void:
 	loop_panel.hide()
 	get_tree().paused = false
 	if not story_seen.has("opening"):
+		morning_pending_day = GameState.day
 		_on_story_event("opening")
 
 
@@ -430,6 +472,7 @@ func _play_day_transition(restarting := false) -> void:
 	transition_title.hide()
 	if not restarting:
 		loop_panel.hide()
+		get_node("../TipTop").say_goodnight()
 		await get_node("../Player").play_sleep_animation()
 	transition_cover.position = Vector2(-384, 0)
 	transition_cover.show()
@@ -437,6 +480,7 @@ func _play_day_transition(restarting := false) -> void:
 	wipe.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	wipe.tween_property(transition_cover, "position:x", 0.0, 0.65)
 	await wipe.finished
+	get_node("../TipTop").clear_monologue()
 	if restarting:
 		get_tree().set_meta("new_game_slide", true)
 		GameState.restart()
@@ -522,6 +566,8 @@ func _build_repair_menu() -> void:
 func _open_repair_menu() -> void:
 	if transitioning or repair_panel.visible or dialogue_overlay.visible or loop_panel.visible or _household_open() or GameState.research_active or get_node("../Player").animation_busy:
 		return
+	get_node("../TipTop").clear_monologue()
+	get_node("../TipTop").action_label.hide()
 	for chore in repair_buttons:
 		var button: Button = repair_buttons[chore]
 		var fixed: bool = GameState.repairs[chore]
@@ -587,6 +633,9 @@ func _process(delta: float) -> void:
 			_on_story_event(deferred_story_events.pop_front())
 		elif not dialogue_lines.is_empty():
 			_advance_dialogue()
+	if morning_pending_day == GameState.day and _comic_safe() and overhead_thoughts_allowed() and not GameState.notification_active:
+		if get_node("../TipTop").greet_morning():
+			morning_pending_day = 0
 	if not dialogue_overlay.visible and not loop_panel.visible and not GameState.notification_active and not get_node("../Player").animation_busy:
 		if system_left <= 0 and not system_messages.is_empty():
 			system_text.text = system_messages.pop_front()
@@ -899,6 +948,8 @@ func _present_speaker(speaker: String, expression: String) -> void:
 
 
 func _on_story_event(event: String) -> void:
+	if event in ["day_2", "day_3"]:
+		morning_pending_day = GameState.day
 	var optional := event.begins_with("ambient_") or event == "desk_approach"
 	if optional and not deferred_story_events.is_empty():
 		return
