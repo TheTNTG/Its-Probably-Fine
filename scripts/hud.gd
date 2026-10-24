@@ -78,6 +78,8 @@ var eject_button: Button
 var eject_hint: Label
 var mood_hint: Label
 var tutorial: Control
+var showcase: Control
+var ending_kind := ""
 const TIME_COLORS := [Color("72a7be"), Color("e0b065"), Color("a78abd"), Color("83b6a2"), Color("bd947a"), Color("7f8595")]
 
 
@@ -364,16 +366,45 @@ func _update_hud() -> void:
 		get_tree().paused = true
 		loop_panel.show()
 		if GameState.game_finished:
-			loop_button.text = "Main Menu"
-			if GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD and GameState.tiptop_fixed:
-				loop_message.text = "Good ending — It's probably fine!\nResearch: %.1f%%\nAll routines repaired." % GameState.research_progress
-			elif GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD:
-				loop_message.text = "Bittersweet ending\nResearch: %.1f%%\nSome routines remain faulty." % GameState.research_progress
-			else:
-				loop_message.text = "A work in progress\nResearch: %.1f%% — below the %.0f%% goal." % [GameState.research_progress, GameState.GOOD_ENDING_RESEARCH_THRESHOLD]
+			loop_panel.hide()
 		else:
 			loop_message.text = "Day %d complete — 8:00 PM\nResearch: %.1f%%\nShowcase deadline: Day 3, 8:00 PM" % [GameState.day, GameState.research_progress]
 			loop_button.text = "Showcase" if GameState.day == 3 else "Next day"
+
+
+func _prepare_showcase() -> void:
+	if is_instance_valid(showcase):
+		return
+	# Preserve the original outcome predicates and snapshot before any restart.
+	if GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD and GameState.tiptop_fixed:
+		ending_kind = "good"
+	elif GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD:
+		ending_kind = "bittersweet"
+	else:
+		ending_kind = "bad"
+	var scene: PackedScene = load("res://scenes/showcase_%s.tscn" % ending_kind)
+	showcase = scene.instantiate() as Control
+	showcase.set("research", GameState.research_progress)
+	showcase.set("repaired_count", GameState.repairs.values().count(true))
+	showcase.connect("restart_requested", _restart_from_pause.bind(true))
+	showcase.connect("main_menu_requested", _restart_from_pause.bind(false))
+	add_child(showcase)
+	# Existing comic UI renders above the stage; the wipe stays on layer 128.
+	move_child(dialogue_overlay, get_child_count() - 1)
+	dialogue_lines.clear()
+	pending_feedback.clear()
+	deferred_story_events.clear()
+	transition_events.clear()
+	system_messages.clear()
+	system_left = 0
+	morning_pending_day = 0
+	dialogue_resume_loop = false
+	dialogue_overlay.hide()
+	system_notice.hide()
+	loop_panel.hide()
+	get_node("../Player").interaction_prompt.hide()
+	get_node("../TipTop").clear_monologue()
+	get_node("../TipTop").action_label.hide()
 
 
 func _show_malfunction(message: String) -> void:
@@ -742,7 +773,10 @@ func _play_day_transition(restarting := false) -> void:
 	loop_panel.hide()
 	# Advance once, under full black; story dialogue is deferred until reveal.
 	GameState.continue_day()
+	# Release the sleep-pose lock before the shared comic dialogue can start.
 	get_node("../Player").wake_from_bed()
+	if GameState.game_finished:
+		_prepare_showcase()
 	transition_title.text = "Showcase" if GameState.game_finished else "Day %d" % GameState.day
 	transition_title.show()
 	await get_tree().create_timer(0.45).timeout
@@ -754,6 +788,10 @@ func _play_day_transition(restarting := false) -> void:
 	transition_cover.hide()
 	loop_button.disabled = false
 	transitioning = false
+	if GameState.game_finished:
+		_on_story_event("ending")
+		get_tree().paused = true
+		return
 	var events := transition_events.duplicate()
 	transition_events.clear()
 	for event in events:
@@ -1188,6 +1226,12 @@ func _restart_from_pause(play_now: bool) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if is_instance_valid(showcase) and event is InputEventKey and event.echo:
+		get_viewport().set_input_as_handled()
+		return
+	if is_instance_valid(showcase) and event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		return
 	if is_instance_valid(tutorial) and tutorial.call("handle_input", event):
 		get_viewport().set_input_as_handled()
 		return
@@ -1240,6 +1284,8 @@ func _advance_dialogue() -> void:
 		return
 	if dialogue_lines.is_empty():
 		dialogue_overlay.hide()
+		if is_instance_valid(showcase):
+			showcase.call("finish_dialogue")
 		if dialogue_resume_loop:
 			loop_panel.show()
 			dialogue_resume_loop = false
@@ -1438,12 +1484,13 @@ func _on_story_event(event: String) -> void:
 		"day_3":
 			lines = [["TipTop", "Showcase day! My tap routine is ready to do nothing."], ["Judy", "Nice. Now where'd I put my notes?"]] if GameState.repairs["sink"] else [["TipTop", "Showcase day! Shall I demonstrate the water feature?"], ["Judy", "Let's skip that bit, yeah?"]]
 		"ending":
-			if GameState.research_progress < GameState.GOOD_ENDING_RESEARCH_THRESHOLD:
-				lines = [["Judy", "Yeah, I needed another day with this. Maybe two."], ["TipTop", "I can help with the next draft."], ["Judy", "Thanks, buddy. Let's start with the title."]]
-			elif GameState.tiptop_fixed:
-				lines = [["TipTop", "They're applauding! Celebration routine ready."], ["Judy", "Just bow, buddy. We've earned a dry floor."], ["TipTop", "Bow routine confirmed. No water required."]]
+			_prepare_showcase()
+			if ending_kind == "bad":
+				lines = [["Judy", "TipTop. Please tell me that's supposed to happen.", "surprised"], ["TipTop", "According to my latest calculations... no.", "error"], ["Judy", "Great. We'll need another draft.", "annoyed"], ["TipTop", "I can help with the next draft.", "proud"], ["Judy", "I'll take any good news you've got.", "neutral"], ["TipTop", "We are no longer behind schedule.", "proud"]]
+			elif ending_kind == "good":
+				lines = [["Judy", "Thought we'd run out of time. Couldn't have done this without you, buddy.", "happy"], ["TipTop", "My calculations were only occasionally incorrect.", "proud"], ["Judy", "Occasionally?", "annoyed"], ["TipTop", "They're applauding! Celebration routine ready.", "proud"], ["Judy", "Just bow, buddy. We've earned a dry floor.", "happy"], ["TipTop", "Bow routine confirmed. No water required.", "proud"]]
 			else:
-				lines = [["Judy", "They liked it! Though half the questions were about the tap."], ["TipTop", "So the water feature was a success?"], ["Judy", "Okay, your routine goes first tomorrow. Hold me to that."]]
+				lines = [["Judy", "It wasn't exactly what I planned. Still, we got up here.", "neutral"], ["TipTop", "So the water feature was a success?", "confused"], ["Judy", "That bit wasn't in the demo. Glad you came, though.", "happy"], ["TipTop", "Would you like to schedule a second attempt?", "neutral"], ["Judy", "After a very long nap.", "happy"]]
 		_:
 			if event.begins_with("break_reminder_"):
 				lines = [["TipTop", "Judy, you've completed two long research sessions. My wellness protocol recommends a break.", "worried"], ["Judy", "", "neutral", "break"], ["TipTop", "I shall supervise the apartment while you rest.", "proud"]]
@@ -1463,8 +1510,6 @@ func _on_story_event(event: String) -> void:
 	var selected: Array = expression_sets.get(event, [])
 	if event.begins_with("ignored_"):
 		selected = ["neutral", "proud"]
-	elif event == "ending":
-		selected = ["neutral", "worried", "happy"] if GameState.research_progress < GameState.GOOD_ENDING_RESEARCH_THRESHOLD else (["proud", "happy", "proud"] if GameState.tiptop_fixed else ["happy", "confused", "annoyed"])
 	for index in range(mini(lines.size(), selected.size())):
 		if lines[index].size() == 2:
 			lines[index].append(selected[index])
