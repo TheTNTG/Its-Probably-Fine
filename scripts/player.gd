@@ -14,6 +14,7 @@ const INTERACTION_DISTANCE := 32.0
 @onready var fridge: Node2D = get_node("../Fridge")
 @onready var coffee_table: Node2D = get_node("../CoffeeTable")
 var interaction_prompt: Label
+var prompt_layer: CanvasLayer
 var prompt_target: Node2D
 var animation_busy := false
 var sleep_blanket: ColorRect
@@ -21,7 +22,7 @@ var research_fast_forward := false
 
 
 func _ready() -> void:
-	var prompt_layer := CanvasLayer.new()
+	prompt_layer = CanvasLayer.new()
 	prompt_layer.layer = 0
 	add_child(prompt_layer)
 	interaction_prompt = Label.new()
@@ -77,7 +78,7 @@ func _update_interaction_prompt(target: Node2D) -> void:
 	else:
 		interaction_prompt.text = "E - Make bed (5 min)" if GameState.needs_cleanup("bed") else "E - Rest"
 	interaction_prompt.size = interaction_prompt.get_combined_minimum_size()
-	var point: Vector2 = target.get_global_transform_with_canvas().origin
+	var point: Vector2 = interaction_prompt.get_canvas_transform().affine_inverse() * target.get_global_transform_with_canvas().origin
 	# Stay above the fixture instead of jumping to a distant side to avoid Judy.
 	var pos: Vector2 = point + Vector2(-interaction_prompt.size.x * 0.5, -28 - interaction_prompt.size.y)
 	var top_margin := 42.0
@@ -90,7 +91,7 @@ func _update_interaction_prompt(target: Node2D) -> void:
 			var bubble_rect: Rect2 = to_prompt * Rect2(Vector2.ZERO, thought.size)
 			pos = Vector2(bubble_rect.get_center().x - interaction_prompt.size.x * 0.5, bubble_rect.position.y - interaction_prompt.size.y - 3)
 			top_margin = 4.0
-	pos = pos.clamp(Vector2(4, top_margin), Vector2(380, 232) - interaction_prompt.size)
+	pos = pos.clamp(Vector2(4, top_margin), Vector2(326, 232) - interaction_prompt.size)
 	if interaction_prompt.visible and prompt_target == target:
 		interaction_prompt.position = interaction_prompt.position.lerp(pos, 1.0 - exp(-20.0 * get_process_delta_time()))
 	else:
@@ -209,6 +210,8 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process(_delta: float) -> void:
+	var hud: CanvasLayer = get_node("../HUD")
+	prompt_layer.transform = hud.transform
 	if animation_busy or get_tree().paused:
 		interaction_prompt.hide()
 		return

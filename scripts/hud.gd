@@ -63,6 +63,17 @@ var mood_fill: StyleBoxFlat
 var efficiency_label: Label
 var hunger_status_label: Label
 var activity_watch_button: Button
+const UI_REFERENCE := Vector2(432, 288)
+const SIDEBAR_X := 332.0
+var sidebar: VBoxContainer
+var problem_rows: Dictionary = {}
+var problem_count: Label
+var usage_title: Label
+var usage_rows: Dictionary = {}
+var usage_segments: Dictionary = {}
+var difficulty_controls: HBoxContainer
+var difficulty_description: Label
+const TIME_COLORS := [Color("72a7be"), Color("e0b065"), Color("a78abd"), Color("83b6a2"), Color("bd947a"), Color("7f8595")]
 
 
 func _household_open() -> bool:
@@ -122,7 +133,7 @@ func talk_to_tiptop() -> void:
 		[["Judy", "How's the extremely important robot business?", "happy"], ["TipTop", work_comment, "proud"], ["Judy", "Carry on, chief.", "happy"]],
 		[["TipTop", "Research update requested!", "neutral"], ["Judy", "Mostly notes. Some of them even agree with each other.", "neutral"], ["TipTop", "An encouraging level of cooperation.", "proud"]],
 		[["Judy", "You doing okay, buddy?", "neutral"], ["TipTop", "Yes! I am practically unstoppable. Except by furniture.", "proud"], ["Judy", "Yeah, furniture gets everyone eventually.", "happy"]],
-		[["TipTop", "Are we ready for the showcase?", "worried"], ["Judy", "We've got results. Now I just have to explain them." if GameState.research_progress >= 80 else "Getting there. My notes are starting to look suspiciously useful.", "happy"], ["TipTop", "I shall provide supportive hovering.", "proud"]]
+		[["TipTop", "Are we ready for the showcase?", "worried"], ["Judy", "We've got results. Now I just have to explain them." if GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD else "Getting there. My notes are starting to look suspiciously useful.", "happy"], ["TipTop", "I shall provide supportive hovering.", "proud"]]
 	]
 	# A direct conversation takes priority without dropping queued story lines.
 	var selected_talk: Array = pools[tiptop_talk_count % pools.size()].duplicate(true)
@@ -185,7 +196,7 @@ func household_choices(location: String) -> void:
 	var judy = get_node("../Player")
 	if location == "research":
 		var efficiency := int(round(GameState.research_efficiency() * 100))
-		_hud_text(choices, "Efficiency: %d%% | Reward: +%d%% research%s" % [efficiency, int(round((5 if GameState.tap_running else 10) * GameState.research_efficiency())), " (pushing through)" if GameState.pushing_through() else ""], Vector2.ZERO, 7)
+		_hud_text(choices, "Efficiency: %d%% | Reward: +%.1f%% research%s" % [efficiency, GameState.preview_research_gain(), " (pushing through)" if GameState.pushing_through() else ""], Vector2.ZERO, 7)
 		var duration := GameState.research_session_minutes()
 		var watch_minutes := duration / GameState.RESEARCH_MINUTES * GameState.WATCH_REAL_SECONDS / 60.0
 		options.append(["Watch Research (%d min; ~%.1f real min)" % [duration, watch_minutes], judy._research_animation.bind(false)])
@@ -260,9 +271,13 @@ func _ready() -> void:
 func _fit_screen_ui() -> void:
 	# Fit a reference canvas uniformly, retaining safe margins at any aspect ratio.
 	var screen := get_viewport().get_visible_rect().size
-	var reference := Vector2(384, 288)
+	var reference := UI_REFERENCE
 	var factor := minf(screen.x / reference.x, screen.y / reference.y)
 	transform = Transform2D(0.0, Vector2(factor, factor), 0.0, (screen - reference * factor) * 0.5)
+	# Reserve the sidebar in screen space; keep the whole apartment in the left pane.
+	var camera: Camera2D = get_node("../FramingCamera")
+	camera.zoom = Vector2(factor, factor)
+	camera.position = Vector2(208, 110)
 	(transition_cover.get_parent() as CanvasLayer).transform = transform
 	if is_instance_valid(repair_panel):
 		repair_panel.position = -transform.origin / factor
@@ -298,10 +313,11 @@ func _update_hud() -> void:
 		notification_panel.hide()
 	day_label.text = "Day %d" % GameState.day
 	_update_clock_hud()
-	research_label.text = "Research: %d%%" % GameState.research_progress
+	research_label.text = "Research: %.1f%%" % GameState.research_progress
 	sessions_label.text = "Work sessions: %d / 4" % GameState.work_sessions_remaining
 	weekday_label.text = ["Monday", "Tuesday", "Wednesday"][clampi(GameState.day - 1, 0, 2)]
 	overview_bar.value = GameState.research_progress
+	_update_sidebar()
 	if (GameState.day_ended or GameState.game_finished) and not GameState.research_active:
 		notification_panel.hide()
 		get_node("../TipTop").prepare_for_sleep()
@@ -309,14 +325,14 @@ func _update_hud() -> void:
 		loop_panel.show()
 		if GameState.game_finished:
 			loop_button.text = "Restart"
-			if GameState.research_progress >= 80 and GameState.tiptop_fixed:
-				loop_message.text = "Good ending — It's probably fine!\nResearch: %d%%\nAll routines repaired." % GameState.research_progress
-			elif GameState.research_progress >= 80:
-				loop_message.text = "Bittersweet ending\nResearch: %d%%\nSome routines remain faulty." % GameState.research_progress
+			if GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD and GameState.tiptop_fixed:
+				loop_message.text = "Good ending — It's probably fine!\nResearch: %.1f%%\nAll routines repaired." % GameState.research_progress
+			elif GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD:
+				loop_message.text = "Bittersweet ending\nResearch: %.1f%%\nSome routines remain faulty." % GameState.research_progress
 			else:
-				loop_message.text = "A work in progress\nResearch: %d%% — below the 80%% goal." % GameState.research_progress
+				loop_message.text = "A work in progress\nResearch: %.1f%% — below the %.0f%% goal." % [GameState.research_progress, GameState.GOOD_ENDING_RESEARCH_THRESHOLD]
 		else:
-			loop_message.text = "Day %d complete — 8:00 PM\nResearch: %d%%\nShowcase deadline: Day 3, 8:00 PM" % [GameState.day, GameState.research_progress]
+			loop_message.text = "Day %d complete — 8:00 PM\nResearch: %.1f%%\nShowcase deadline: Day 3, 8:00 PM" % [GameState.day, GameState.research_progress]
 			loop_button.text = "Showcase" if GameState.day == 3 else "Next day"
 
 
@@ -359,9 +375,8 @@ func _hud_card(bounds: Rect2) -> Panel:
 
 
 func _build_needs_ui() -> void:
-	var card := _hud_card(Rect2(162, 4, 146, 35))
-	hunger_label = _hud_text(card, "", Vector2(5, 2), 6)
-	mood_label = _hud_text(card, "", Vector2(77, 2), 6)
+	var card := _side_section()
+	hunger_label = _hud_text(card, "", Vector2.ZERO, 6)
 	hunger_bar = ProgressBar.new()
 	mood_bar = ProgressBar.new()
 	hunger_fill = StyleBoxFlat.new()
@@ -369,15 +384,132 @@ func _build_needs_ui() -> void:
 	for bar in [hunger_bar, mood_bar]:
 		bar.show_percentage = false
 		_style_thin_bar(bar)
-		bar.size = Vector2(62, 3)
+		bar.custom_minimum_size = Vector2(0, 3)
 		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(bar)
-	hunger_bar.position = Vector2(5, 12)
-	mood_bar.position = Vector2(77, 12)
+	card.add_child(hunger_bar)
+	hunger_status_label = _hud_text(card, "", Vector2.ZERO, 5)
+	mood_label = _hud_text(card, "", Vector2.ZERO, 6)
+	card.add_child(mood_bar)
 	hunger_bar.add_theme_stylebox_override("fill", hunger_fill)
 	mood_bar.add_theme_stylebox_override("fill", mood_fill)
-	efficiency_label = _hud_text(card, "", Vector2(77, 23), 5)
-	hunger_status_label = _hud_text(card, "", Vector2(5, 23), 5)
+	efficiency_label = _hud_text(card, "", Vector2.ZERO, 5)
+	sessions_label.reparent(card, false)
+	sessions_label.add_theme_font_size_override("font_size", 5)
+
+
+func _side_section() -> VBoxContainer:
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("23242bed")
+	style.border_color = Color("565459")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	style.content_margin_top = 4
+	style.content_margin_bottom = 4
+	panel.add_theme_stylebox_override("panel", style)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sidebar.add_child(panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 1)
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(body)
+	return body
+
+
+func _build_right_sidebar() -> void:
+	sidebar = VBoxContainer.new()
+	sidebar.position = Vector2(SIDEBAR_X, 4)
+	sidebar.size = Vector2(96, 280)
+	sidebar.add_theme_constant_override("separation", 3)
+	sidebar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(sidebar)
+	var progress := _side_section()
+	research_label.reparent(progress, false)
+	research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	research_label.add_theme_font_size_override("font_size", 8)
+	overview_bar = ProgressBar.new()
+	overview_bar.show_percentage = false
+	_style_thin_bar(overview_bar)
+	overview_bar.custom_minimum_size = Vector2(0, 7)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color("639dad")
+	overview_bar.add_theme_stylebox_override("fill", fill)
+	progress.add_child(overview_bar)
+	# A marker at the true target, while the bar still ranges to 100%.
+	var marker := ColorRect.new()
+	marker.color = Color("f3d087")
+	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overview_bar.add_child(marker)
+	marker.anchor_left = GameState.GOOD_ENDING_RESEARCH_THRESHOLD / 100.0
+	marker.anchor_right = marker.anchor_left
+	marker.anchor_bottom = 1.0
+	marker.offset_right = 1
+	_hud_text(progress, "Target: %.0f%% | Max: 100%%" % GameState.GOOD_ENDING_RESEARCH_THRESHOLD, Vector2.ZERO, 5)
+	_hud_text(progress, "Deadline: Day 3, 8:00 PM", Vector2.ZERO, 5)
+	var problems := _side_section()
+	_hud_text(problems, "TipTop's Problems", Vector2.ZERO, 6)
+	var names := ["Sink routine", "Plant watering", "Bookshelf organizing", "Bed-making"]
+	for index in range(GameState.REPAIR_ROUTINES.size()):
+		var row := RichTextLabel.new()
+		row.bbcode_enabled = true
+		row.fit_content = true
+		row.scroll_active = false
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_theme_font_size_override("normal_font_size", 5)
+		row.set_meta("routine_name", names[index])
+		problems.add_child(row)
+		problem_rows[GameState.REPAIR_ROUTINES[index]] = row
+	problem_count = _hud_text(problems, "", Vector2.ZERO, 5)
+	var usage := _side_section()
+	usage_title = _hud_text(usage, "Today's Time Usage", Vector2.ZERO, 6)
+	var distribution := HBoxContainer.new()
+	distribution.custom_minimum_size = Vector2(0, 4)
+	distribution.add_theme_constant_override("separation", 0)
+	usage.add_child(distribution)
+	var captions := ["Research", "Eating", "Leisure", "Repairs", "Cleanup", "Misc"]
+	for index in range(GameState.TIME_CATEGORIES.size()):
+		var category: String = GameState.TIME_CATEGORIES[index]
+		var segment := ColorRect.new()
+		segment.color = TIME_COLORS[index]
+		segment.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		segment.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		distribution.add_child(segment)
+		usage_segments[category] = segment
+		var row := _hud_text(usage, "", Vector2.ZERO, 5)
+		row.modulate = TIME_COLORS[index]
+		row.set_meta("caption", captions[index])
+		usage_rows[category] = row
+
+
+func _update_sidebar() -> void:
+	var fixed_count := 0
+	for chore in problem_rows:
+		var row: RichTextLabel = problem_rows[chore]
+		var fixed: bool = GameState.repairs[chore]
+		var text: String = row.get_meta("routine_name")
+		var content := "[color=#9dceac]✓ [s]%s[/s][/color]" % text if fixed else "□ " + text
+		if row.text != content:
+			row.text = content
+		fixed_count += int(fixed)
+	problem_count.text = "%d / 4 fixed" % fixed_count
+	var totals := GameState.displayed_daily_time()
+	var elapsed := 0.0
+	for category in GameState.TIME_CATEGORIES:
+		var minutes: float = totals[category]
+		elapsed += minutes
+		var row: Label = usage_rows[category]
+		row.text = "%s: %s" % [row.get_meta("caption"), _minutes_text(minutes)]
+		var segment: ColorRect = usage_segments[category]
+		segment.visible = minutes > 0
+		segment.size_flags_stretch_ratio = maxf(0.0001, minutes)
+	usage_title.text = "Today's Time Usage\n" + _minutes_text(elapsed)
+
+
+func _minutes_text(minutes: float) -> String:
+	var whole := int(floor(minutes + 0.000001))
+	return "%dh %02dm" % [whole / 60, whole % 60]
 
 
 func _update_needs_ui() -> void:
@@ -441,56 +573,60 @@ func _build_loop_ui() -> void:
 	time_bar_fill.bg_color = Color("e1bd70")
 	time_bar.add_theme_stylebox_override("fill", time_bar_fill)
 	day_card.add_child(time_bar)
-	var progress_card := _hud_card(Rect2(314, 4, 65, 16))
-	progress_card.clip_contents = true
-	var flask := Polygon2D.new()
-	flask.polygon = PackedVector2Array([Vector2(5, 3), Vector2(9, 3), Vector2(9, 7), Vector2(12, 12), Vector2(3, 12), Vector2(6, 7), Vector2(6, 3)])
-	flask.color = Color("80afbb")
-	progress_card.add_child(flask)
-	research_label.position = Vector2(329, 5)
-	research_label.size = Vector2(46, 7)
-	research_label.add_theme_font_size_override("font_size", 5)
-	research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	overview_bar = ProgressBar.new()
-	overview_bar.position = Vector2(15, 10)
-	overview_bar.size = Vector2(45, 3)
-	overview_bar.show_percentage = false
-	_style_thin_bar(overview_bar)
-	overview_bar.size = Vector2(45, 3)
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = Color("639dad")
-	fill.set_corner_radius_all(1)
-	overview_bar.add_theme_stylebox_override("fill", fill)
-	progress_card.add_child(overview_bar)
-	var deadline_card := _hud_card(Rect2(314, 23, 65, 17))
-	_hud_text(deadline_card, "Showcase deadline", Vector2(5, 2), 5)
-	_hud_text(deadline_card, "Day 3, 8:00 PM", Vector2(5, 9), 6)
+	_build_right_sidebar()
 	var controls := _hud_card(Rect2(5, 242, 48, 38))
 	var controls_text := _hud_text(controls, "E   Interact\nI    Inventory\nTab Menu", Vector2(4, 3), 6)
 	controls_text.add_theme_constant_override("line_spacing", 0)
-	_hud_card(Rect2(300, 273, 79, 11))
 	sessions_label = _hud_text(self, "", Vector2(304, 274), 6)
 	loop_panel = ColorRect.new()
-	loop_panel.position = Vector2(42, 70)
-	loop_panel.size = Vector2(300, 112)
+	loop_panel.position = Vector2(66, 55)
+	loop_panel.size = Vector2(300, 160)
 	loop_panel.color = Color(0.08, 0.08, 0.12, 0.98)
 	add_child(loop_panel)
 	loop_message = Label.new()
 	loop_message.position = Vector2(8, 8)
-	loop_message.size = Vector2(284, 66)
+	loop_message.size = Vector2(284, 48)
 	loop_message.add_theme_font_size_override("font_size", 8)
 	loop_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	loop_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	loop_message.text = "Day 3 showcase: reach 80% and repair all routines.\nE to interact. Make the bed before resting.\n4 sessions/day: +10%/120 min; tap: +5%/160 min.\nFull sessions must fit before 8:00 PM."
+	loop_message.text = "Day 3 showcase: reach %.0f%% and repair all routines.\nE to interact. Make the bed before resting.\nFour sessions/day; full sessions must fit before 8:00 PM." % GameState.GOOD_ENDING_RESEARCH_THRESHOLD
 	loop_panel.add_child(loop_message)
 	loop_button = Button.new()
-	loop_button.position = Vector2(100, 80)
+	loop_button.position = Vector2(100, 130)
 	loop_button.size = Vector2(100, 24)
 	loop_button.add_theme_font_size_override("font_size", 8)
 	loop_button.text = "Start"
 	loop_button.pressed.connect(_on_loop_pressed)
 	loop_panel.add_child(loop_button)
+	difficulty_controls = HBoxContainer.new()
+	difficulty_controls.position = Vector2(12, 62)
+	difficulty_controls.size = Vector2(276, 22)
+	difficulty_controls.add_theme_constant_override("separation", 3)
+	loop_panel.add_child(difficulty_controls)
+	for index in range(GameState.DIFFICULTIES.size()):
+		var button := Button.new()
+		button.text = GameState.DIFFICULTIES[index]["name"]
+		button.toggle_mode = true
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.add_theme_font_size_override("font_size", 7)
+		button.pressed.connect(_choose_difficulty.bind(index))
+		difficulty_controls.add_child(button)
+	difficulty_description = Label.new()
+	difficulty_description.position = Vector2(12, 90)
+	difficulty_description.size = Vector2(276, 32)
+	difficulty_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	difficulty_description.add_theme_font_size_override("font_size", 6)
+	loop_panel.add_child(difficulty_description)
+	_choose_difficulty(GameState.difficulty)
 	get_tree().paused = true
+
+
+func _choose_difficulty(index: int) -> void:
+	GameState.select_difficulty(index)
+	for item in range(difficulty_controls.get_child_count()):
+		var button: Button = difficulty_controls.get_child(item)
+		button.set_pressed_no_signal(item == GameState.difficulty)
+	difficulty_description.text = "%s\nResearch +%.0f%%; repair %d min / +%.0f%%." % [GameState.profile()["description"], GameState.profile()["research"], GameState.repair_minutes(), GameState.profile()["repair_reward"]]
 
 
 func _on_loop_pressed() -> void:
@@ -503,6 +639,9 @@ func _on_loop_pressed() -> void:
 		_play_day_transition()
 		return
 	loop_panel.hide()
+	GameState.difficulty_locked = true
+	difficulty_controls.hide()
+	difficulty_description.hide()
 	get_tree().paused = false
 	if not story_seen.has("opening"):
 		morning_pending_day = GameState.day
@@ -516,11 +655,12 @@ func _build_transition_ui() -> void:
 	transition_cover = ColorRect.new()
 	transition_cover.color = Color.BLACK
 	transition_cover.size = Vector2(384, 288)
+	transition_cover.size.x = UI_REFERENCE.x
 	transition_cover.hide()
 	transition_layer.add_child(transition_cover)
 	transition_title = Label.new()
 	transition_title.position = Vector2(0, 132)
-	transition_title.size = Vector2(384, 24)
+	transition_title.size = Vector2(UI_REFERENCE.x, 24)
 	transition_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	transition_title.add_theme_font_size_override("font_size", 14)
 	transition_title.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -545,7 +685,7 @@ func _play_day_transition(restarting := false) -> void:
 		loop_panel.hide()
 		GameState.apply_overnight_needs()
 		await get_node("../Player").play_sleep_animation()
-	transition_cover.position = Vector2(-384, 0)
+	transition_cover.position = Vector2(-UI_REFERENCE.x, 0)
 	transition_cover.show()
 	var wipe := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	wipe.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -567,7 +707,7 @@ func _play_day_transition(restarting := false) -> void:
 	transition_title.hide()
 	var reveal := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	reveal.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	reveal.tween_property(transition_cover, "position:x", 384.0, 0.65)
+	reveal.tween_property(transition_cover, "position:x", UI_REFERENCE.x, 0.65)
 	await reveal.finished
 	transition_cover.hide()
 	loop_button.disabled = false
@@ -590,7 +730,7 @@ func _reveal_new_game() -> void:
 	transition_title.hide()
 	var reveal := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	reveal.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	reveal.tween_property(transition_cover, "position:x", 384.0, 0.65)
+	reveal.tween_property(transition_cover, "position:x", UI_REFERENCE.x, 0.65)
 	await reveal.finished
 	transition_cover.hide()
 	loop_button.disabled = false
@@ -616,7 +756,7 @@ func _build_repair_menu() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 8)
 	options.add_child(title)
-	for chore in GameState.REPAIR_COSTS:
+	for chore in GameState.REPAIR_ROUTINES:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(260, 22)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -642,8 +782,10 @@ func _open_repair_menu() -> void:
 	for chore in repair_buttons:
 		var button: Button = repair_buttons[chore]
 		var fixed: bool = GameState.repairs[chore]
-		button.disabled = fixed
-		button.text = "%s — %s (%d min)" % ["Water / sink" if chore == "sink" else chore.capitalize(), "Repaired" if fixed else "Faulty", GameState.REPAIR_COSTS[chore]]
+		var duration := GameState.repair_minutes()
+		var enough_time: bool = GameState.DAY_END - GameState.time_minutes - GameState.clock_fraction - GameState.world_accumulator >= duration
+		button.disabled = fixed or not enough_time
+		button.text = "%s — %s (%d min, +%.0f%%)" % ["Water / sink" if chore == "sink" else chore.capitalize(), "Repaired" if fixed else ("Faulty" if enough_time else "Not enough time"), duration, float(GameState.profile()["repair_reward"])]
 	repair_panel.show()
 	get_tree().paused = true
 
@@ -696,6 +838,7 @@ func _show_feedback(message: String) -> void:
 func _process(delta: float) -> void:
 	_update_clock_hud()
 	_update_needs_ui()
+	_update_sidebar()
 	_sync_overlay_visibility()
 	if not GameState.personal_activity.is_empty():
 		var duration: int = GameState.PERSONAL_ACTIVITIES[GameState.personal_activity][0]
@@ -1144,7 +1287,7 @@ func _on_story_event(event: String) -> void:
 		"day_3":
 			lines = [["TipTop", "Showcase day! My tap routine is ready to do nothing."], ["Judy", "Nice. Now where'd I put my notes?"]] if GameState.repairs["sink"] else [["TipTop", "Showcase day! Shall I demonstrate the water feature?"], ["Judy", "Let's skip that bit, yeah?"]]
 		"ending":
-			if GameState.research_progress < 80:
+			if GameState.research_progress < GameState.GOOD_ENDING_RESEARCH_THRESHOLD:
 				lines = [["Judy", "Yeah, I needed another day with this. Maybe two."], ["TipTop", "I can help with the next draft."], ["Judy", "Thanks, buddy. Let's start with the title."]]
 			elif GameState.tiptop_fixed:
 				lines = [["TipTop", "They're applauding! Celebration routine ready."], ["Judy", "Just bow, buddy. We've earned a dry floor."], ["TipTop", "Bow routine confirmed. No water required."]]
@@ -1170,7 +1313,7 @@ func _on_story_event(event: String) -> void:
 	if event.begins_with("ignored_"):
 		selected = ["neutral", "proud"]
 	elif event == "ending":
-		selected = ["neutral", "worried", "happy"] if GameState.research_progress < 80 else (["proud", "happy", "proud"] if GameState.tiptop_fixed else ["happy", "confused", "annoyed"])
+		selected = ["neutral", "worried", "happy"] if GameState.research_progress < GameState.GOOD_ENDING_RESEARCH_THRESHOLD else (["proud", "happy", "proud"] if GameState.tiptop_fixed else ["happy", "confused", "annoyed"])
 	for index in range(mini(lines.size(), selected.size())):
 		if lines[index].size() == 2:
 			lines[index].append(selected[index])

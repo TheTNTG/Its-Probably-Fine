@@ -14,10 +14,55 @@ const DAILY_WORK_SESSIONS := 4
 const RESEARCH_MINUTES := 120.0
 const PENALIZED_RESEARCH_MINUTES := 160.0
 const WATCH_REAL_SECONDS := 180.0
+const GOOD_ENDING_RESEARCH_THRESHOLD := 75.0
+const DIFFICULTIES := [
+	{"name": "Easy", "research": 15.0, "repair_reward": 5.0, "repair_minutes": 45, "work_mood": 15.0, "depletion": 0.70, "description": "More research, shorter repairs, gentler needs."},
+	{"name": "Medium", "research": 10.0, "repair_reward": 4.0, "repair_minutes": 60, "work_mood": 20.0, "depletion": 1.00, "description": "The established balance, with repair rewards."},
+	{"name": "Hard", "research": 8.0, "repair_reward": 3.0, "repair_minutes": 60, "work_mood": 25.0, "depletion": 1.20, "description": "Less research and faster needs depletion."}
+]
+var difficulty := 1
+var difficulty_locked := false
+const TIME_CATEGORIES := ["research", "eating", "leisure", "repairs", "cleanup", "misc"]
+var daily_time := {"research": 0.0, "eating": 0.0, "leisure": 0.0, "repairs": 0.0, "cleanup": 0.0, "misc": 0.0}
+var daily_time_history: Dictionary = {}
+var time_category := "misc"
+var repair_in_progress := false
+
+
+func profile() -> Dictionary:
+	return DIFFICULTIES[difficulty]
+
+
+func select_difficulty(index: int) -> void:
+	if not difficulty_locked:
+		difficulty = clampi(index, 0, 2)
+
+
+func repair_minutes() -> int:
+	return int(profile()["repair_minutes"])
+
+
+func preview_research_gain() -> float:
+	return float(profile()["research"]) * (0.5 if tap_running else 1.0) * research_efficiency()
+
+
+func displayed_daily_time() -> Dictionary:
+	var totals := daily_time.duplicate()
+	var category := current_time_category()
+	totals[category] += world_accumulator
+	return totals
+
+
+func current_time_category() -> String:
+	if research_active:
+		return "research"
+	if not personal_activity.is_empty():
+		return "eating" if personal_activity == "eat" else "leisure"
+	return time_category
 
 var day := 1
 var time_minutes := DAY_START
-var research_progress := 0
+var research_progress := 0.0
 var work_sessions_remaining := DAILY_WORK_SESSIONS
 var tap_running := false
 var tiptop_fixed := false
@@ -29,7 +74,7 @@ var game_finished := false
 var end_day_reminded := false
 var ending_day_pending := false
 var proactive_fix_eligible := true
-const REPAIR_COSTS := {"sink": 20, "bookshelf": 20, "plant": 20, "bed": 15}
+const REPAIR_ROUTINES := ["sink", "plant", "bookshelf", "bed"]
 const CLEAN_COSTS := {"sink": 15, "plant": 10, "bookshelf": 20, "bed": 5}
 var repairs := {"sink": false, "bookshelf": false, "plant": false, "bed": false}
 var chore_repetitions := {"plant": 0, "sink": 0, "bookshelf": 0, "bed": 0}
@@ -43,7 +88,7 @@ var research_active := false
 var research_playback_rate := 1.0
 var research_duration := 0.0
 var research_elapsed := 0.0
-var research_gain := 0
+var research_gain := 0.0
 var research_accumulator := 0.0
 var research_task := "plant"
 var research_task_serial := 0
@@ -183,6 +228,10 @@ func start_personal_activity(activity: String) -> bool:
 	if DAY_END - time_minutes - clock_fraction - world_accumulator < minutes:
 		action_feedback.emit("Not enough time before 8:00 PM for that activity.")
 		return false
+	if world_accumulator > 0:
+		var pending := world_accumulator
+		world_accumulator = 0.0
+		_simulate_world_step(pending)
 	personal_activity = activity
 	personal_remaining = minutes
 	personal_playback_rate = 1.0
@@ -274,8 +323,8 @@ func begin_research() -> bool:
 		return false
 	research_active = true
 	research_duration = research_session_minutes()
-	# Snapshot needs at the start for identical playback rewards; round only once.
-	research_gain = int(round((5 if tap_running else 10) * research_efficiency()))
+	# Snapshot needs at the start for identical playback rewards; retain fractions.
+	research_gain = preview_research_gain()
 	if pushing_through():
 		action_feedback.emit("Judy is pushing through exhaustion: an extra 20% research penalty.")
 	research_elapsed = 0.0
@@ -358,8 +407,10 @@ func _advance_world(minutes: float) -> void:
 
 
 func _simulate_world_step(minutes: float) -> void:
-	hunger = clampf(hunger - minutes * 7.0 / 60.0, 0, 100)
-	mood = clampf(mood - minutes * 2.0 / 60.0, 0, 100)
+	daily_time[current_time_category()] += minutes
+	var depletion: float = profile()["depletion"]
+	hunger = clampf(hunger - minutes * 7.0 * depletion / 60.0, 0, 100)
+	mood = clampf(mood - minutes * 2.0 * depletion / 60.0, 0, 100)
 	# Clock-driven water/exposure share chronological steps at every speed.
 	# Robot chore outcomes additionally require physical action completion.
 	world_elapsed += minutes
@@ -407,15 +458,15 @@ func complete_research() -> void:
 		return
 	research_active = false
 	research_playback_rate = 1.0
-	research_progress = mini(100, research_progress + research_gain)
-	mood = clampf(mood - 20, 0, 100)
+	research_progress = minf(100, research_progress + research_gain)
+	mood = clampf(mood - float(profile()["work_mood"]), 0, 100)
 	work_streak += 1
 	if work_streak >= 2 and not break_reminded:
 		break_reminded = true
 		break_reminder_count += 1
 		story_event.emit("break_reminder_%d_%d" % [day, break_reminder_count])
 	state_changed.emit()
-	action_feedback.emit("Research complete: +%d%%, %d min, %d session(s) left." % [research_gain, research_duration, work_sessions_remaining])
+	action_feedback.emit("Research complete: +%.1f%%, %d min, %d session(s) left." % [research_gain, research_duration, work_sessions_remaining])
 	if not day_ended:
 		if work_sessions_remaining <= 2:
 			story_event.emit("ambient_%d" % day)
@@ -477,7 +528,7 @@ func manual_clean(chore: String) -> bool:
 	if chore == "sink" and tap_running:
 		action_feedback.emit("Turn off the tap before mopping.")
 		return false
-	_advance_time(CLEAN_COSTS[chore])
+	_advance_time(CLEAN_COSTS[chore], "cleanup")
 	clear_mess(chore)
 	action_feedback.emit("%s tidied. Routine unchanged. (-%d min)" % [chore.capitalize(), CLEAN_COSTS[chore]])
 	return true
@@ -514,8 +565,19 @@ func work() -> void:
 		complete_research()
 
 
-func _advance_time(minutes: int) -> void:
+func _advance_time(minutes: int, category: String = "misc") -> void:
+	# Pending walking/idle time belongs to its original category.
+	if world_accumulator > 0:
+		var pending := world_accumulator
+		world_accumulator = 0.0
+		_simulate_world_step(pending)
+	time_category = category
 	_advance_world(minf(float(minutes), DAY_END - time_minutes - clock_fraction - world_accumulator))
+	if world_accumulator > 0:
+		var residual := world_accumulator
+		world_accumulator = 0.0
+		_simulate_world_step(residual)
+	time_category = "misc"
 	state_changed.emit()
 
 
@@ -526,6 +588,9 @@ func continue_day() -> void:
 		game_finished = true
 	else:
 		apply_overnight_needs()
+		daily_time_history[day] = daily_time.duplicate()
+		for category in TIME_CATEGORIES:
+			daily_time[category] = 0.0
 		day += 1
 		time_minutes = DAY_START
 		clock_fraction = 0.0
@@ -563,6 +628,10 @@ func end_day() -> void:
 		return
 	ending_day_pending = false
 	# Rest ends active simulation; do not run a whole evening of chores in bed.
+	if world_accumulator > 0:
+		var pending := world_accumulator
+		world_accumulator = 0.0
+		_simulate_world_step(pending)
 	time_minutes = DAY_END
 	clock_fraction = 0.0
 	world_accumulator = 0.0
@@ -590,16 +659,28 @@ func fix_tap() -> void:
 
 
 func repair_routine(chore: String) -> void:
-	if not repairs.has(chore) or repairs[chore] or day_ended or game_finished:
+	if repair_in_progress or not repairs.has(chore) or repairs[chore] or day_ended or game_finished:
 		return
+	var duration := repair_minutes()
+	if DAY_END - time_minutes - clock_fraction - world_accumulator < duration:
+		action_feedback.emit("A full repair needs %d minutes before 8:00 PM. No time or reward charged." % duration)
+		return
+	repair_in_progress = true
+	_advance_time(duration, "repairs")
 	repairs[chore] = true
 	tiptop_fixed = not repairs.values().has(false)
 	notification_active = false
+	if chore == "sink":
+		tap_running = false
 	var earned_bonus := proactive_fix_eligible
 	proactive_fix_eligible = false
+	var reward: float = profile()["repair_reward"]
+	research_progress = minf(100, research_progress + reward)
 	if earned_bonus:
-		research_progress = mini(research_progress + 10, 100)
-	_advance_time(REPAIR_COSTS[chore])
+		research_progress = minf(research_progress + 10, 100)
+	repair_in_progress = false
+	state_changed.emit()
+	action_feedback.emit("%s routine repaired: +%.0f%% research. (-%d min)" % [chore.capitalize(), reward, duration])
 	if ending_day_pending:
 		end_day()
 	if chore == "sink":
@@ -630,6 +711,13 @@ func ignore_tap() -> void:
 
 
 func restart() -> void:
+	difficulty = 1
+	difficulty_locked = false
+	time_category = "misc"
+	repair_in_progress = false
+	daily_time_history.clear()
+	for category in TIME_CATEGORIES:
+		daily_time[category] = 0.0
 	reset_needs()
 	overnight_day = 0
 	mosquitoes.clear()
@@ -651,7 +739,7 @@ func restart() -> void:
 	research_accumulator = 0.0
 	research_task_serial = 0
 	research_duration = 0
-	research_gain = 0
+	research_gain = 0.0
 	research_interruptions = 0
 	research_next_chore = 3.0
 	research_task = "plant"
@@ -668,7 +756,7 @@ func restart() -> void:
 	chore_mess = {"plant": 0, "sink": 0, "bookshelf": 0, "bed": 1}
 	day = 1
 	time_minutes = DAY_START
-	research_progress = 0
+	research_progress = 0.0
 	work_sessions_remaining = DAILY_WORK_SESSIONS
 	tap_running = false
 	tiptop_fixed = false

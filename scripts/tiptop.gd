@@ -209,7 +209,7 @@ func _position_thought() -> void:
 	var bubble_size := Vector2(ceilf(width) + 8, ceilf(font.get_height(5)) * rows.size() + 4)
 	var pos: Vector2 = feet + Vector2(-bubble_size.x * 0.5, -20 - bubble_size.y)
 	# HUD reference space is fitted uniformly inside every supported viewport.
-	pos = pos.clamp(Vector2(6, 44), Vector2(378, 238) - bubble_size)
+	pos = pos.clamp(Vector2(6, 44), Vector2(326, 238) - bubble_size)
 	for label in [action_label, monologue_label]:
 		label.position = pos
 		label.size = bubble_size
