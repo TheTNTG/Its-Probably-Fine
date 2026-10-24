@@ -1,22 +1,148 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_script"]
 
+[ext_resource type="Texture2D" uid="uid://bdo31ljtoua1u" path="res://assets/characters/judy_walk_48x48_aligned.png" id="2_judy"]
+
+[sub_resource type="AtlasTexture" id="Atlas_0_0"]
+atlas = ExtResource("2_judy")
+region = Rect2(0, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_0_1"]
+atlas = ExtResource("2_judy")
+region = Rect2(48, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_0_2"]
+atlas = ExtResource("2_judy")
+region = Rect2(96, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_0_3"]
+atlas = ExtResource("2_judy")
+region = Rect2(144, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_1_0"]
+atlas = ExtResource("2_judy")
+region = Rect2(0, 48, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_1_1"]
+atlas = ExtResource("2_judy")
+region = Rect2(48, 48, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_1_2"]
+atlas = ExtResource("2_judy")
+region = Rect2(96, 48, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_1_3"]
+atlas = ExtResource("2_judy")
+region = Rect2(144, 48, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_2_0"]
+atlas = ExtResource("2_judy")
+region = Rect2(0, 96, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_2_1"]
+atlas = ExtResource("2_judy")
+region = Rect2(48, 96, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_2_2"]
+atlas = ExtResource("2_judy")
+region = Rect2(96, 96, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_2_3"]
+atlas = ExtResource("2_judy")
+region = Rect2(144, 96, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_3_0"]
+atlas = ExtResource("2_judy")
+region = Rect2(0, 144, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_3_1"]
+atlas = ExtResource("2_judy")
+region = Rect2(48, 144, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_3_2"]
+atlas = ExtResource("2_judy")
+region = Rect2(96, 144, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_3_3"]
+atlas = ExtResource("2_judy")
+region = Rect2(144, 144, 48, 48)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_judy"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_0_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_0_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_0_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_0_3")
+}],
+"loop": true,
+"name": &"walk_down",
+"speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_1_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_1_2")
+}],
+"loop": true,
+"name": &"walk_left",
+"speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_2_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_2_2")
+}],
+"loop": true,
+"name": &"walk_right",
+"speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_3_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_3_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_3_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_3_3")
+}],
+"loop": true,
+"name": &"walk_up",
+"speed": 7.0
+}]
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
-size = Vector2(12, 12)
+size = Vector2(8, 4)
 
 [node name="Player" type="CharacterBody2D"]
 motion_mode = 1
 script = ExtResource("1_script")
 
-[node name="Visual" type="ColorRect" parent="."]
-offset_left = -6.0
-offset_top = -6.0
-offset_right = 6.0
-offset_bottom = 6.0
-color = Color(0.2, 0.7, 0.4, 1)
+[node name="Visual" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+position = Vector2(0, -10)
+scale = Vector2(0.5, 0.5)
+sprite_frames = SubResource("SpriteFrames_judy")
+animation = &"walk_down"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -2)
 shape = SubResource("RectangleShape2D_body")
 
 [node name="Camera2D" type="Camera2D" parent="."]

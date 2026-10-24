@@ -19,7 +19,7 @@ func _update_prompt() -> void:
 func _on_interaction_zone_body_entered(body: Node2D) -> void:
 	if body.name == "Player":
 		player_nearby = true
-		prompt_label.visible = true
+		GameState.story_event.emit("desk_approach")
 
 
 func _on_interaction_zone_body_exited(body: Node2D) -> void:

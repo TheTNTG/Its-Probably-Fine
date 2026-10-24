@@ -1,16 +1,60 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/characters/tiptop_hover_48x48.png" id="1_tiptop"]
+[ext_resource type="Script" path="res://scripts/tiptop.gd" id="2_motion"]
+
+[sub_resource type="AtlasTexture" id="Atlas_hover_0"]
+atlas = ExtResource("1_tiptop")
+region = Rect2(0, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_hover_1"]
+atlas = ExtResource("1_tiptop")
+region = Rect2(48, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_hover_2"]
+atlas = ExtResource("1_tiptop")
+region = Rect2(96, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="Atlas_hover_3"]
+atlas = ExtResource("1_tiptop")
+region = Rect2(144, 0, 48, 48)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_tiptop"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_hover_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_hover_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_hover_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_hover_3")
+}],
+"loop": true,
+"name": &"hover",
+"speed": 5.0
+}]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
-size = Vector2(10, 14)
+size = Vector2(8, 4)
 
-[node name="TipTop" type="StaticBody2D"]
+[node name="TipTop" type="CharacterBody2D"]
+physics_interpolation_mode = 1
+motion_mode = 1
+script = ExtResource("2_motion")
 
-[node name="Visual" type="ColorRect" parent="."]
-offset_left = -5.0
-offset_top = -7.0
-offset_right = 5.0
-offset_bottom = 7.0
-color = Color(0.3, 0.75, 0.85, 1)
+[node name="Visual" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+position = Vector2(0, -9)
+scale = Vector2(0.375, 0.375)
+sprite_frames = SubResource("SpriteFrames_tiptop")
+animation = &"hover"
+autoplay = "hover"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -2)
 shape = SubResource("RectangleShape2D_body")
