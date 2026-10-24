@@ -57,7 +57,7 @@ func _process(delta: float) -> void:
 	if GameState.day_ended or GameState.game_finished:
 		return
 	if chore_active or (fixture == "sink" and GameState.tap_running) or (fixture == "floor" and GameState.mosquito_level > 0):
-		var playback := GameState.research_playback_rate if GameState.research_active else 1.0
+		var playback: float = GameState.research_playback_rate if GameState.research_active else (GameState.personal_playback_rate if not GameState.personal_activity.is_empty() else 1.0)
 		chore_phase += delta * minf(playback, 3.0)
 		queue_redraw()
 

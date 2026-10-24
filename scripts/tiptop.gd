@@ -395,7 +395,7 @@ func _choose_destination() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	var playback := GameState.research_playback_rate if GameState.research_active else 1.0
+	var playback: float = GameState.research_playback_rate if GameState.research_active else (GameState.personal_playback_rate if not GameState.personal_activity.is_empty() else 1.0)
 	if playback != previous_playback:
 		velocity *= playback / previous_playback
 		previous_playback = playback

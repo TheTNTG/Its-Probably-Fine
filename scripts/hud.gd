@@ -140,6 +140,9 @@ func set_research_controls(active: bool) -> void:
 
 
 func _fast_forward_research() -> void:
+	if not GameState.personal_activity.is_empty():
+		GameState.personal_playback_rate = 1.0
+		return
 	if GameState.research_active:
 		var judy = get_node("../Player")
 		judy.research_fast_forward = not judy.research_fast_forward
@@ -147,6 +150,10 @@ func _fast_forward_research() -> void:
 
 
 func _skip_research() -> void:
+	if not get_tree().paused and not GameState.personal_activity.is_empty():
+		# Accelerate physical chores as well as time; never jump to completion.
+		GameState.personal_playback_rate = 6.0
+		return
 	if get_tree().paused or not GameState.research_active:
 		return
 	var remaining := GameState.research_duration - GameState.research_elapsed - GameState.research_accumulator
@@ -188,6 +195,8 @@ func household_choices(location: String) -> void:
 		options.append(["Watch reels — 15 min, +18 Mood", judy.personal_activity.bind("reels")])
 		options.append(["Play phone games — 30 min, +30 Mood", judy.personal_activity.bind("games")])
 		options.append(["Solve Rubik's cube — 20 min, +25 Mood", judy.personal_activity.bind("cube")])
+	elif location == "fridge":
+		options.append(["Eat at the coffee table — 30 min, +40 Hunger", judy.personal_activity.bind("eat")])
 	elif location == "bookshelf":
 		options.append(["Organize books myself — 20 min", judy.organize_for_research])
 	elif location == "tiptop":
@@ -196,7 +205,7 @@ func household_choices(location: String) -> void:
 			options.append(["Repair TipTop...", GameState.fix_tap])
 	elif GameState.needs_cleanup(location):
 		options.append(["Clean %s myself — %d min" % [location, GameState.CLEAN_COSTS[location]], judy._clean_animation.bind(location)])
-	if GameState.mosquito_level > 0 and location != "research":
+	if GameState.mosquito_level > 0 and location not in ["research", "break", "fridge"]:
 		options.append(["Swat mosquitoes myself — 5 min", judy.swat_animation])
 		options.append(["Ask TipTop to swat mosquitoes — free", _request_swatter])
 	options.append(["Cancel", func(): pass])
@@ -693,6 +702,13 @@ func _process(delta: float) -> void:
 	_update_clock_hud()
 	_update_needs_ui()
 	_sync_overlay_visibility()
+	if not GameState.personal_activity.is_empty():
+		var duration: int = GameState.PERSONAL_ACTIVITIES[GameState.personal_activity][0]
+		research_bar.max_value = duration
+		research_bar.value = duration - GameState.personal_remaining
+		research_speed_button.text = "Watch 1x"
+		var title: String = {"eat": "Eating", "reels": "Reels", "games": "Phone games", "cube": "Rubik's cube"}[GameState.personal_activity]
+		research_status.text = "%s: %d / %d min%s" % [title, int(duration - GameState.personal_remaining), duration, " (6x)" if GameState.personal_playback_rate > 1 else ""]
 	if GameState.research_active:
 		var shown := minf(GameState.research_duration, GameState.research_elapsed + GameState.research_accumulator)
 		research_bar.max_value = GameState.research_duration

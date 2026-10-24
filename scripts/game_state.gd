@@ -67,9 +67,11 @@ var work_streak := 0
 var break_reminded := false
 var break_reminder_count := 0
 var response_counts: Dictionary = {}
-const PERSONAL_ACTIVITIES := {"eat": [20, 40], "reels": [15, 18], "games": [30, 30], "cube": [20, 25]}
+const PERSONAL_ACTIVITIES := {"eat": [30, 40], "reels": [15, 18], "games": [30, 30], "cube": [20, 25]}
 var personal_activity := ""
 var personal_remaining := 0.0
+var personal_playback_rate := 1.0
+var overnight_day := 0
 
 
 func reset_needs() -> void:
@@ -79,6 +81,18 @@ func reset_needs() -> void:
 	break_reminded = false
 	personal_activity = ""
 	personal_remaining = 0.0
+	personal_playback_rate = 1.0
+
+
+func apply_overnight_needs() -> void:
+	if overnight_day == day:
+		return
+	overnight_day = day
+	# Mood is based on bedtime fullness BEFORE the overnight deduction.
+	mood = 90.0 if hunger >= 70 else (80.0 if hunger >= 40 else (65.0 if hunger >= 20 else 40.0))
+	hunger = maxf(0, hunger - 10)
+	work_streak = 0
+	break_reminded = false
 
 
 func hunger_efficiency() -> float:
@@ -106,6 +120,7 @@ func start_personal_activity(activity: String) -> bool:
 		return false
 	personal_activity = activity
 	personal_remaining = minutes
+	personal_playback_rate = 1.0
 	return true
 
 
@@ -131,7 +146,7 @@ func _process(delta: float) -> void:
 	if get_tree().paused or household_busy or ending_day_pending or (notification_active and not research_active and personal_activity.is_empty()) or day_ended or game_finished:
 		return
 	if not personal_activity.is_empty():
-		var step := minf(personal_remaining, delta * RESEARCH_MINUTES / WATCH_REAL_SECONDS)
+		var step := minf(personal_remaining, delta * RESEARCH_MINUTES * personal_playback_rate / WATCH_REAL_SECONDS)
 		_advance_world(step)
 		personal_remaining = maxf(0.0, personal_remaining - step)
 		if personal_remaining <= 0.000001:
@@ -141,6 +156,7 @@ func _process(delta: float) -> void:
 				_simulate_world_step(pending)
 			var activity := personal_activity
 			personal_activity = ""
+			personal_playback_rate = 1.0
 			if activity == "eat":
 				hunger = clampf(hunger + 40, 0, 100)
 			else:
@@ -406,8 +422,8 @@ func continue_day() -> void:
 	if day == LAST_DAY:
 		game_finished = true
 	else:
+		apply_overnight_needs()
 		day += 1
-		reset_needs()
 		time_minutes = DAY_START
 		clock_fraction = 0.0
 		world_accumulator = 0.0
@@ -511,6 +527,7 @@ func ignore_tap() -> void:
 
 func restart() -> void:
 	reset_needs()
+	overnight_day = 0
 	break_reminder_count = 0
 	response_counts.clear()
 	chore_cursor = 0

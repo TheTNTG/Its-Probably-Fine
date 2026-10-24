@@ -60,7 +60,7 @@ func _update_interaction_prompt(target: Node2D) -> void:
 	elif target == tiptop:
 		interaction_prompt.text = "E - Talk to TipTop" if GameState.tiptop_fixed else "E - Talk / Repair TipTop"
 	elif target == fridge:
-		interaction_prompt.text = "E - Eat (20 min)"
+		interaction_prompt.text = "E - Eat (30 min)"
 	elif target == sink:
 		interaction_prompt.text = "E - Tap off" if GameState.tap_running else "E - Mop / clean (15 min)"
 		if not GameState.tap_running and GameState.mosquito_level > 0:
@@ -155,7 +155,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif target == tiptop:
 		get_node("../HUD").tiptop_interaction()
 	elif target == fridge:
-		personal_activity("eat")
+		get_node("../HUD").household_choices("fridge")
 	elif target == bed:
 		if GameState.needs_cleanup("bed"):
 			_clean_animation("bed")
@@ -206,15 +206,137 @@ func _process(_delta: float) -> void:
 
 
 func personal_activity(activity: String) -> void:
-	if animation_busy or get_tree().paused or not GameState.start_personal_activity(activity):
+	if animation_busy or get_tree().paused or not GameState.PERSONAL_ACTIVITIES.has(activity):
+		return
+	var duration: int = GameState.PERSONAL_ACTIVITIES[activity][0]
+	if GameState.DAY_END - GameState.time_minutes - GameState.clock_fraction - GameState.world_accumulator < duration:
+		GameState.action_feedback.emit("Not enough time before 8:00 PM for that activity.")
 		return
 	animation_busy = true
 	velocity = Vector2.ZERO
-	visual.pause()
 	interaction_prompt.hide()
+	var table: Node2D = get_node("../CoffeeTable")
+	var collision: CollisionShape2D = table.get_node("CollisionShape2D")
+	var footprint := collision.shape as RectangleShape2D
+	var seat: Vector2 = table.to_global(collision.position + Vector2(0, footprint.size.y * 0.5)) + Vector2(0, 9)
+	var arrived: bool = await _walk_to_activity_seat(seat)
+	if not arrived or not GameState.start_personal_activity(activity):
+		animation_busy = false
+		GameState.action_feedback.emit("Couldn't start the activity. No activity time or reward applied.")
+		return
+	# Reuse the research pose's cropped torso and bent knees, facing the table.
+	var seated := Node2D.new()
+	add_child(seated)
+	var source: AtlasTexture = visual.sprite_frames.get_frame_texture("walk_up", 0)
+	var crop := AtlasTexture.new()
+	crop.atlas = source.atlas
+	crop.region = Rect2(source.region.position, Vector2(48, 34))
+	var torso := Sprite2D.new()
+	torso.texture = crop
+	torso.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	torso.scale = Vector2(0.5, 0.5)
+	torso.position = Vector2(0, -8.5)
+	seated.add_child(torso)
+	var knees := Polygon2D.new()
+	knees.polygon = PackedVector2Array([Vector2(-4, -2), Vector2(4, -2), Vector2(5, 2), Vector2(2, 4), Vector2(-2, 4), Vector2(-5, 2)])
+	knees.color = Color("34313d")
+	seated.add_child(knees)
+	seated.modulate.a = 0.0
+	var sit := _pose_tween()
+	sit.tween_property(seated, "modulate:a", 1.0, 0.15)
+	visual.hide()
+	get_node("../HUD").research_strip.show()
+	var motion := 0.0
 	while not GameState.personal_activity.is_empty():
 		await get_tree().process_frame
+		if not get_tree().paused:
+			motion += get_process_delta_time()
+			torso.rotation = sin(motion * 1.6) * 0.025
+	get_node("../HUD").research_strip.hide()
+	seated.queue_free()
+	visual.show()
+	visual.animation = "walk_up"
+	visual.frame = 0
+	visual.pause()
 	animation_busy = false
+
+
+func _walk_to_activity_seat(point: Vector2) -> bool:
+	await get_tree().physics_frame
+	# Use the same compact grid and footprint clearance as TipTop, without
+	# changing his active route. Exact connectors handle the shelf's narrow strip.
+	var shelf_front: Vector2 = tiptop._bookshelf_front()
+	var shelf_exit: Vector2 = tiptop._bookshelf_exit()
+	if absf(global_position.y - shelf_front.y) < 3 and global_position.x < shelf_exit.x and test_move(global_transform, point - global_position):
+		await _walk_for_animation(shelf_exit)
+		if global_position.distance_to(shelf_exit) > 2:
+			return false
+	var grid := AStarGrid2D.new()
+	grid.region = Rect2i(5, 3, 31, 22)
+	grid.cell_size = Vector2(8, 8)
+	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	grid.update()
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(10, 6)
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = shape
+	query.collision_mask = collision_mask
+	query.exclude = [get_rid(), tiptop.get_rid()]
+	var start := Vector2i.ZERO
+	var finish := Vector2i.ZERO
+	var start_distance := INF
+	var finish_distance := INF
+	for y in range(3, 25):
+		for x in range(5, 36):
+			var cell := Vector2i(x, y)
+			var location := Vector2(x, y) * 8
+			query.transform = Transform2D(0, location + Vector2(0, -2))
+			var blocked: bool = not Geometry2D.is_point_in_polygon(location, PackedVector2Array(tiptop.APARTMENT_ART.ROOM_EDGE)) or not get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty()
+			grid.set_point_solid(cell, blocked)
+			if blocked:
+				continue
+			if location.distance_squared_to(global_position) < start_distance and not test_move(global_transform, location - global_position):
+				start = cell
+				start_distance = location.distance_squared_to(global_position)
+			var from_cell := global_transform
+			from_cell.origin = location
+			if location.distance_squared_to(point) < finish_distance and not test_move(from_cell, point - location):
+				finish = cell
+				finish_distance = location.distance_squared_to(point)
+	if start_distance == INF or finish_distance == INF:
+		return false
+	var route := grid.get_point_path(start, finish)
+	if route.is_empty():
+		return false
+	route.append(point)
+	var elapsed := 0.0
+	var stalled := 0.0
+	while global_position.distance_to(point) > 1.0 and elapsed < 12.0:
+		await get_tree().physics_frame
+		if get_tree().paused or GameState.day_ended or GameState.game_finished or GameState.notification_active:
+			velocity = Vector2.ZERO
+			visual.pause()
+			return false
+		var delta := get_physics_process_delta_time()
+		elapsed += delta
+		var aim := global_position
+		for index in range(route.size() - 1, -1, -1):
+			if not test_move(global_transform, route[index] - global_position):
+				aim = route[index]
+				break
+		velocity = global_position.direction_to(aim) * minf(SPEED, global_position.distance_to(aim) / delta)
+		if absf(velocity.x) > absf(velocity.y):
+			visual.play("walk_right" if velocity.x > 0 else "walk_left")
+		else:
+			visual.play("walk_down" if velocity.y > 0 else "walk_up")
+		var before := global_position
+		move_and_slide()
+		stalled = stalled + delta if global_position.distance_to(before) < 0.02 else 0.0
+		if stalled > 1.5:
+			break
+	velocity = Vector2.ZERO
+	visual.pause()
+	return global_position.distance_to(point) <= 1.0
 
 
 func _walk_for_animation(point: Vector2) -> void:
@@ -242,7 +364,7 @@ func _research_animation(fast_forward := false) -> void:
 	if animation_busy or GameState.work_sessions_remaining <= 0 or GameState.day_ended or GameState.game_finished:
 		return
 	if not GameState.research_available():
-		if GameState.has_research_time():
+		if GameState.has_research_time() and GameState.mood_allows_research() and int(GameState.chore_mess["bookshelf"]) >= 2:
 			get_node("../HUD").household_choices("bookshelf")
 			return
 		GameState.action_feedback.emit(GameState.research_block_reason())
