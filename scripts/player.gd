@@ -83,7 +83,11 @@ func _update_interaction_prompt(target: Node2D) -> void:
 
 
 func _interaction_position(target: Node2D) -> Vector2:
-	if target in [bed, plant, bookshelf]:
+	if target == bookshelf:
+		# Include the scattered books on the floor, not just the shelf origin.
+		var local := bookshelf.to_local(global_position)
+		return bookshelf.to_global(local.clamp(Vector2(-18, 0), Vector2(18, 12)))
+	if target in [bed, plant]:
 		return target.global_position
 	# Keep interaction centers unchanged when scene origins move to the floor.
 	var height := (8.0 if target == desk else (7.0 if target == tiptop else 6.0)) * target.scale.y
@@ -91,8 +95,10 @@ func _interaction_position(target: Node2D) -> Vector2:
 
 
 func _nearest_interaction() -> Node2D:
-	if GameState.day_ended or GameState.game_finished:
+	if GameState.day_ended or GameState.game_finished or GameState.notification_active:
 		return null
+	if GameState.needs_cleanup("bookshelf") and global_position.distance_to(_interaction_position(bookshelf)) <= 18.0:
+		return bookshelf
 	var nearest: Node2D = null
 	var nearest_distance := INF
 	for target in [desk, tiptop, sink, bed, plant, bookshelf]:
@@ -270,7 +276,6 @@ func _research_animation(fast_forward := false) -> void:
 		var delta := get_process_delta_time()
 		GameState.research_playback_rate = 6.0 if research_fast_forward else 1.0
 		motion_time += delta * minf(2.0, GameState.research_playback_rate)
-		GameState.advance_research(delta * GameState.research_playback_rate / 6.0)
 		if GameState.research_interruptions != interruptions:
 			interruptions = GameState.research_interruptions
 			swat_left = 0.35
@@ -315,8 +320,11 @@ func organize_for_research() -> void:
 	animation_busy = true
 	GameState.household_busy = true
 	# Walk through the open central aisle to the shelf's accessible right side.
-	await _walk_for_animation(Vector2(112, global_position.y))
-	await _walk_for_animation(Vector2(112, bookshelf.global_position.y))
+	var standing := bookshelf.global_position + Vector2(24, 4)
+	var aisle_x := bookshelf.global_position.x + 48.0
+	await _walk_for_animation(Vector2(aisle_x, global_position.y))
+	await _walk_for_animation(Vector2(aisle_x, standing.y))
+	await _walk_for_animation(standing)
 	GameState.household_busy = false
 	animation_busy = false
 	if global_position.distance_to(bookshelf.global_position) <= INTERACTION_DISTANCE + 4:

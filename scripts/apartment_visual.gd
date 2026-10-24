@@ -48,9 +48,6 @@ func set_chore_active(active: bool) -> void:
 func _process(delta: float) -> void:
 	if GameState.day_ended or GameState.game_finished:
 		return
-	if fixture == "sink" and GameState.tap_running and not GameState.research_active:
-		# One elapsed counter, owned by the existing state and frozen on shutoff.
-		GameState.sink_water_elapsed = minf(31.0, GameState.sink_water_elapsed + delta)
 	if chore_active or (fixture == "sink" and GameState.tap_running) or (fixture == "floor" and GameState.mosquito_level > 0):
 		var playback := GameState.research_playback_rate if GameState.research_active else 1.0
 		chore_phase += delta * minf(playback, 3.0)

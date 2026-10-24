@@ -493,7 +493,7 @@ func _process(delta: float) -> void:
 	_sync_overlay_visibility()
 	if GameState.research_active:
 		var shown := minf(GameState.research_duration, GameState.research_elapsed + GameState.research_accumulator)
-		time_label.text = GameState.get_time_string() + ":%02d" % int(fmod(shown, 1.0) * 60.0)
+		time_label.text = GameState.get_time_string() + ":%02d" % int(fmod(GameState.clock_fraction + GameState.world_accumulator, 1.0) * 60.0)
 		research_bar.max_value = GameState.research_duration
 		research_bar.value = shown
 		research_speed_button.text = "Watch 1x" if GameState.research_playback_rate > 1.0 else "Speed 6x"

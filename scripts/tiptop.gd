@@ -73,7 +73,10 @@ func _process(delta: float) -> void:
 
 
 func _state_changed() -> void:
-	if GameState.repairs.values().count(true) != repair_count or GameState.day != last_day or was_research != GameState.research_active or (GameState.research_active and session_serial != GameState.research_task_serial):
+	if session_serial >= 0 and session_serial != GameState.research_task_serial and action_left > 0 and not GameState.repairs[CHORES[visit]] and reaction_day != GameState.day:
+		GameState.action_feedback.emit("TipTop: " + ["Hydration complete.", "Dish cycle successful.", "Book order optimized.", "Sheets aerated."][visit])
+		reaction_day = GameState.day
+	if GameState.repairs.values().count(true) != repair_count or GameState.day != last_day or was_research != GameState.research_active or session_serial != GameState.research_task_serial:
 		wait = 0.8
 		path.clear()
 		has_destination = false
@@ -135,20 +138,10 @@ func _clear_to(point: Vector2) -> bool:
 
 
 func _choose_destination() -> void:
-	cleanup_target = false
-	swatting = GameState.mosquito_task and GameState.mosquito_level > 0
-	for index in [2, 3, 1, 0]:
-		if GameState.repairs[CHORES[index]] and GameState.needs_cleanup(CHORES[index]):
-			visit = index
-			cleanup_target = true
-			break
-	if swatting:
-		visit = 1 if GameState.sink_water_elapsed >= 8.0 else 0
-		cleanup_target = false
-	if GameState.research_active:
-		visit = CHORES.find(GameState.research_task)
-		swatting = GameState.research_swat
-		cleanup_target = GameState.repairs[CHORES[visit]] and GameState.needs_cleanup(CHORES[visit])
+	# The world scheduler owns task order and effects at every playback speed.
+	visit = CHORES.find(GameState.research_task)
+	swatting = GameState.research_swat
+	cleanup_target = GameState.repairs[CHORES[visit]] and GameState.needs_cleanup(CHORES[visit])
 	var stops: Array[Vector2] = [get_node("../PlantPot").global_position + Vector2(-16, 0), get_node("../Sink").global_position + Vector2(0, 14), get_node("../Bookshelf").global_position + Vector2(22, 0), get_node("../Bed").global_position + Vector2(22, 7)]
 	# Small variations keep repeated visits from looking like a fixed rail.
 	var candidate := stops[visit]
@@ -169,7 +162,7 @@ func _physics_process(delta: float) -> void:
 	delta *= playback
 	$Visual.speed_scale = playback
 	repath_cooldown = maxf(0.0, repath_cooldown - delta)
-	if GameState.day_ended or GameState.game_finished or GameState.ending_day_pending or GameState.household_busy:
+	if GameState.day_ended or GameState.game_finished or GameState.ending_day_pending or GameState.household_busy or GameState.notification_active:
 		velocity = Vector2.ZERO
 		_chore_visual().call("set_chore_active", false)
 		return
@@ -198,26 +191,9 @@ func _physics_process(delta: float) -> void:
 		_chore_visual().call("set_chore_active", not swatting)
 		action_left -= delta
 		if action_left <= 0:
-			if GameState.research_active:
-				# Presentation waits here; the shared session scheduler owns effects.
-				action_left = 0.2
-				return
-			_chore_visual().call("set_chore_active", false)
-			if swatting:
-				GameState.swat_mosquitoes(false)
-				swatting = false
-			else:
-				GameState.finish_household_chore(CHORES[visit])
-			if not GameState.repairs[CHORES[visit]] and reaction_day != GameState.day:
-				GameState.action_feedback.emit("TipTop: " + ["Hydration complete.", "Dish cycle successful.", "Book order optimized.", "Sheets aerated."][visit])
-				action_label.hide()
-				reaction_day = GameState.day
-			else:
-				action_label.hide()
-			cleanup_target = false
-			visit = (visit + randi_range(1, 3)) % 4
-			has_destination = false
-			wait = randf_range(0.4, 1.2)
+			# Remain in the chore pose until the scheduler completes this task.
+			# Movement and arrival never apply a second copy of its consequences.
+			action_left = 0.2
 		return
 	if not has_destination:
 		action_label.hide()
@@ -225,8 +201,6 @@ func _physics_process(delta: float) -> void:
 	var distance := global_position.distance_to(destination)
 	if distance < 1.2 and velocity.length() < 2.0 * playback:
 		velocity = Vector2.ZERO
-		if not GameState.research_active and visit == 1 and GameState.repairs["sink"] and GameState.tap_running:
-			GameState.turn_off_tap()
 		action_left = 2.5 if cleanup_target or GameState.research_active else randf_range(1.5, 2.5)
 		action_label.text = ["Drying...", "Mopping...", "Organizing...", "Making bed..."][visit] if cleanup_target else ["Watering...", "Washing...", "Sorting...", "Straightening..."][visit]
 		action_label.show()

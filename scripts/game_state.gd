@@ -37,7 +37,7 @@ var mosquito_level := 0
 var mosquito_task := false
 var research_active := false
 var research_playback_rate := 1.0
-var research_duration := 0
+var research_duration := 0.0
 var research_elapsed := 0.0
 var research_gain := 0
 var research_accumulator := 0.0
@@ -45,22 +45,39 @@ var research_task := "plant"
 var research_task_serial := 0
 var research_swat := false
 var research_interruptions := 0
+# One simulation accumulator for idle play, timed actions, Watch and Skip.
+@export var game_seconds_per_real_second := 10.0
+const WORLD_STEP := 0.25
+var clock_fraction := 0.0
+var world_accumulator := 0.0
+var world_elapsed := 0.0
 var research_next_chore := 3.0
 
 
+func _ready() -> void:
+	_select_research_chore()
+
+
+func _process(delta: float) -> void:
+	if get_tree().paused or household_busy or ending_day_pending or notification_active or day_ended or game_finished:
+		return
+	if research_active:
+		advance_research(delta * game_seconds_per_real_second * research_playback_rate / 60.0)
+	elif time_minutes < DAY_END:
+		_advance_world(delta * game_seconds_per_real_second / 60.0)
+
+
 func begin_research() -> bool:
-	if research_active or day_ended or game_finished or work_sessions_remaining <= 0 or not research_available():
+	if research_active or notification_active or ending_day_pending or day_ended or game_finished or work_sessions_remaining <= 0 or not research_available():
 		return false
 	research_active = true
-	research_duration = mini(40 if tap_running else 30, DAY_END - time_minutes)
+	research_duration = minf(40.0 if tap_running else 30.0, DAY_END - time_minutes - clock_fraction)
 	research_gain = 5 if tap_running else 10
 	research_elapsed = 0.0
-	research_accumulator = 0.0
+	research_accumulator = world_accumulator
 	research_interruptions = 0
-	research_next_chore = 3.0
 	work_sessions_remaining -= 1
 	proactive_fix_eligible = false
-	_select_research_chore()
 	state_changed.emit()
 	return true
 
@@ -81,34 +98,51 @@ func _select_research_chore() -> void:
 func advance_research(minutes: float) -> void:
 	if not research_active:
 		return
-	var previous_elapsed := research_elapsed
-	research_accumulator += minutes
-	# The same quarter-minute event stream is used at every playback speed.
-	while research_accumulator >= 0.25 and research_elapsed < research_duration:
-		research_accumulator -= 0.25
-		research_elapsed += 0.25
-		if tap_running:
-			sink_water_elapsed = minf(31.0, sink_water_elapsed + 1.5)
-		if int(round(research_elapsed * 4)) % 4 == 0:
-			_advance_time(1)
-		if research_elapsed == research_next_chore - 1.0 and research_task == "sink" and repairs["sink"]:
-			# Shut off at the cleanup phase, before the scheduled mopping finishes.
-			tap_running = false
-		if research_elapsed >= research_next_chore:
-			if research_swat:
-				swat_mosquitoes(false)
-			else:
-				if research_task == "sink" and repairs["sink"]:
-					tap_running = false
-				finish_household_chore(research_task)
-			research_next_chore += 3.0
-			_select_research_chore()
-			state_changed.emit()
+	var remaining := maxf(0.0, research_duration - research_elapsed - world_accumulator)
+	_advance_world(minf(minutes, remaining))
+	research_accumulator = world_accumulator
+
+
+func _advance_world(minutes: float) -> void:
+	world_accumulator += maxf(0.0, minutes)
+	while world_accumulator + 0.000001 >= WORLD_STEP and time_minutes < DAY_END:
+		world_accumulator = maxf(0.0, world_accumulator - WORLD_STEP)
+		_simulate_world_step(WORLD_STEP)
+	if time_minutes >= DAY_END:
+		world_accumulator = 0.0
+
+
+func _simulate_world_step(minutes: float) -> void:
+	# Fixed chronological steps keep Watch and Skip consequences identical.
+	world_elapsed += minutes
+	clock_fraction += minutes
+	if clock_fraction >= 1.0:
+		time_minutes = mini(DAY_END, time_minutes + int(clock_fraction))
+		clock_fraction = fmod(clock_fraction, 1.0)
+	if tap_running:
+		sink_water_elapsed = minf(31.0, sink_water_elapsed + minutes * 6.0)
+	if sink_water_elapsed >= 8.0 or int(chore_mess["plant"]) > 0:
+		water_exposure = minf(210.0, water_exposure + minutes)
+	else:
+		water_exposure = maxf(0.0, water_exposure - minutes * 2.0)
+	mosquito_level = mini(3, int(water_exposure / 60.0))
+	if world_elapsed >= research_next_chore - 1.0 and research_task == "sink" and repairs["sink"]:
+		tap_running = false
+	if world_elapsed >= research_next_chore:
+		if research_swat:
+			swat_mosquitoes(false)
+		else:
+			finish_household_chore(research_task, true)
+		research_next_chore += 3.0
+		_select_research_chore()
+	if research_active:
+		research_elapsed = minf(research_duration, research_elapsed + minutes)
 		if int(round(research_elapsed * 4)) % 20 == 0 and mosquito_level > 0:
 			research_interruptions += 1
-			# A short visible swat; no extra research/time penalty.
-	if research_elapsed != previous_elapsed:
-		state_changed.emit()
+	if time_minutes >= DAY_END and int(chore_mess["bed"]) == 0:
+		day_ended = true
+		notification_active = false
+	state_changed.emit()
 
 
 func complete_research() -> void:
@@ -161,14 +195,14 @@ func manual_clean(chore: String) -> bool:
 	if chore == "sink" and tap_running:
 		action_feedback.emit("Turn off the tap before mopping.")
 		return false
-	clear_mess(chore)
 	_advance_time(CLEAN_COSTS[chore])
+	clear_mess(chore)
 	action_feedback.emit("%s tidied. Routine unchanged. (-%d min)" % [chore.capitalize(), CLEAN_COSTS[chore]])
 	return true
 
 
-func finish_household_chore(chore: String) -> void:
-	if day_ended or game_finished or household_busy or not chore_mess.has(chore):
+func finish_household_chore(chore: String, scheduled := false) -> void:
+	if day_ended or game_finished or (household_busy and not scheduled) or not chore_mess.has(chore):
 		return
 	if repairs[chore]:
 		clear_mess(chore)
@@ -183,7 +217,7 @@ func finish_household_chore(chore: String) -> void:
 		if chore_repetitions[chore] >= 2:
 			chore_mess[chore] = mini(3, int(chore_mess[chore]) + 1)
 		# Use the same tap state as desk work and manual shutoff.
-		if chore == "sink" and first_work_done:
+		if chore == "sink":
 			tap_running = true
 	state_changed.emit()
 
@@ -195,16 +229,7 @@ func work() -> void:
 
 
 func _advance_time(minutes: int) -> void:
-	var elapsed := mini(minutes, DAY_END - time_minutes)
-	if sink_water_elapsed >= 8.0 or int(chore_mess["plant"]) > 0:
-		water_exposure = minf(210.0, water_exposure + elapsed)
-	else:
-		water_exposure = maxf(0.0, water_exposure - elapsed * 2.0)
-	mosquito_level = mini(3, int(water_exposure / 60.0))
-	time_minutes = mini(time_minutes + minutes, DAY_END)
-	if time_minutes >= DAY_END and int(chore_mess["bed"]) == 0:
-		day_ended = true
-		notification_active = false
+	_advance_world(minf(float(minutes), DAY_END - time_minutes - clock_fraction - world_accumulator))
 	state_changed.emit()
 
 
@@ -216,6 +241,10 @@ func continue_day() -> void:
 	else:
 		day += 1
 		time_minutes = DAY_START
+		clock_fraction = 0.0
+		world_accumulator = 0.0
+		world_elapsed = 0.0
+		research_next_chore = 3.0
 		work_sessions_remaining = DAILY_WORK_SESSIONS
 		day_ended = false
 		end_day_reminded = false
@@ -224,6 +253,7 @@ func continue_day() -> void:
 		if not repairs["sink"]:
 			first_work_done = false
 			_check_malfunction()
+		_select_research_chore()
 	state_changed.emit()
 	story_event.emit("ending" if game_finished else "day_%d" % day)
 
@@ -242,7 +272,13 @@ func end_day() -> void:
 		state_changed.emit()
 		return
 	ending_day_pending = false
-	_advance_time(DAY_END - time_minutes)
+	# Rest ends active simulation; do not run a whole evening of chores in bed.
+	time_minutes = DAY_END
+	clock_fraction = 0.0
+	world_accumulator = 0.0
+	day_ended = true
+	notification_active = false
+	state_changed.emit()
 
 
 func _check_malfunction() -> void:
@@ -304,6 +340,9 @@ func ignore_tap() -> void:
 
 
 func restart() -> void:
+	clock_fraction = 0.0
+	world_accumulator = 0.0
+	world_elapsed = 0.0
 	research_playback_rate = 1.0
 	research_active = false
 	research_elapsed = 0.0
@@ -339,6 +378,7 @@ func restart() -> void:
 	end_day_reminded = false
 	ending_day_pending = false
 	proactive_fix_eligible = true
+	_select_research_chore()
 
 
 func get_time_string() -> String:
