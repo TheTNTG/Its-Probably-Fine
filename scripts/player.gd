@@ -12,6 +12,7 @@ const INTERACTION_DISTANCE := 32.0
 @onready var plant: Node2D = get_node("../PlantPot")
 @onready var bookshelf: Node2D = get_node("../Bookshelf")
 var interaction_prompt: Label
+var prompt_target: Node2D
 var animation_busy := false
 var sleep_blanket: ColorRect
 var research_fast_forward := false
@@ -37,14 +38,15 @@ func _ready() -> void:
 	interaction_prompt.add_theme_stylebox_override("normal", background)
 	prompt_layer.add_child(interaction_prompt)
 	interaction_prompt.hide()
-	GameState.state_changed.connect(func(): interaction_prompt.hide())
+	# Refresh after TipTop's bubble, once per rendered frame.
+	process_priority = 1
 	GameState.story_event.connect(func(_event: String): interaction_prompt.hide())
 
 
 func _update_interaction_prompt(target: Node2D) -> void:
 	desk.get_node("PromptLabel").hide()
-	interaction_prompt.hide()
 	if target == null or get_tree().paused or GameState.notification_active:
+		interaction_prompt.hide()
 		return
 	interaction_prompt.modulate = Color.WHITE
 	if target == desk:
@@ -69,16 +71,25 @@ func _update_interaction_prompt(target: Node2D) -> void:
 	else:
 		interaction_prompt.text = "E - Make bed (5 min)" if GameState.needs_cleanup("bed") else "E - Rest"
 	interaction_prompt.size = interaction_prompt.get_combined_minimum_size()
-	var point := target.get_global_transform_with_canvas().origin
-	var feet := get_global_transform_with_canvas().origin
-	var judy_rect := Rect2(feet - Vector2(8, 23), Vector2(16, 27))
-	var offsets := [Vector2(-interaction_prompt.size.x / 2, -39), Vector2(-interaction_prompt.size.x / 2, 8), Vector2(12, -20), Vector2(-interaction_prompt.size.x - 12, -20)]
-	for offset in offsets:
-		var pos: Vector2 = point + offset
-		pos = pos.clamp(Vector2(4, 42), Vector2(380, 232) - interaction_prompt.size)
-		interaction_prompt.position = pos.round()
-		if not Rect2(pos, interaction_prompt.size).intersects(judy_rect):
-			break
+	var point: Vector2 = target.get_global_transform_with_canvas().origin
+	# Stay above the fixture instead of jumping to a distant side to avoid Judy.
+	var pos: Vector2 = point + Vector2(-interaction_prompt.size.x * 0.5, -28 - interaction_prompt.size.y)
+	var top_margin := 42.0
+	if target == tiptop:
+		var thought: Label = tiptop.monologue_label if tiptop.monologue_label.visible else tiptop.action_label
+		if thought.visible:
+			# Stack the interaction cue above the bubble, in the prompt's canvas.
+			# Include the HUD scale so the gap remains correct after resizing.
+			var to_prompt: Transform2D = interaction_prompt.get_canvas_transform().affine_inverse() * thought.get_global_transform_with_canvas()
+			var bubble_rect: Rect2 = to_prompt * Rect2(Vector2.ZERO, thought.size)
+			pos = Vector2(bubble_rect.get_center().x - interaction_prompt.size.x * 0.5, bubble_rect.position.y - interaction_prompt.size.y - 3)
+			top_margin = 4.0
+	pos = pos.clamp(Vector2(4, top_margin), Vector2(380, 232) - interaction_prompt.size)
+	if interaction_prompt.visible and prompt_target == target:
+		interaction_prompt.position = interaction_prompt.position.lerp(pos, 1.0 - exp(-20.0 * get_process_delta_time()))
+	else:
+		interaction_prompt.position = pos
+	prompt_target = target
 	interaction_prompt.show()
 
 
@@ -175,8 +186,13 @@ func _physics_process(_delta: float) -> void:
 	else:
 		visual.pause()
 		visual.frame = 0
-	var target := _nearest_interaction()
-	_update_interaction_prompt(target)
+
+
+func _process(_delta: float) -> void:
+	if animation_busy or get_tree().paused:
+		interaction_prompt.hide()
+		return
+	_update_interaction_prompt(_nearest_interaction())
 
 
 func _walk_for_animation(point: Vector2) -> void:

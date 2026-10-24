@@ -52,6 +52,7 @@ var time_bar_fill: StyleBoxFlat
 var deferred_story_events: Array[String] = []
 var dialogue_resume_loop := false
 var morning_pending_day := 0
+var sleep_dialogue_pending := false
 var tiptop_talk_count := 0
 
 
@@ -430,7 +431,7 @@ func _build_loop_ui() -> void:
 
 
 func _on_loop_pressed() -> void:
-	if transitioning or get_node("../Player").animation_busy:
+	if transitioning or sleep_dialogue_pending or get_node("../Player").animation_busy:
 		return
 	if GameState.game_finished:
 		_play_day_transition(true)
@@ -466,13 +467,19 @@ func _build_transition_ui() -> void:
 func _play_day_transition(restarting := false) -> void:
 	if transitioning or (not restarting and not GameState.day_ended):
 		return
+	if not restarting and get_node("../TipTop").goodnight_day != GameState.day:
+		if not _comic_safe() or dialogue_overlay.visible or not dialogue_lines.is_empty():
+			return
+		loop_panel.hide()
+		sleep_dialogue_pending = true
+		get_node("../TipTop").say_goodnight()
+		return
 	transitioning = true
 	loop_button.disabled = true
 	get_tree().paused = true
 	transition_title.hide()
 	if not restarting:
 		loop_panel.hide()
-		get_node("../TipTop").say_goodnight()
 		await get_node("../Player").play_sleep_animation()
 	transition_cover.position = Vector2(-384, 0)
 	transition_cover.show()
@@ -638,7 +645,7 @@ func _process(delta: float) -> void:
 			_on_story_event(deferred_story_events.pop_front())
 		elif not dialogue_lines.is_empty():
 			_advance_dialogue()
-	if morning_pending_day == GameState.day and _comic_safe() and overhead_thoughts_allowed() and not GameState.notification_active:
+	if morning_pending_day == GameState.day and dialogue_lines.is_empty() and pending_feedback.is_empty() and deferred_story_events.is_empty() and _comic_safe() and overhead_thoughts_allowed() and not GameState.notification_active:
 		if get_node("../TipTop").greet_morning():
 			morning_pending_day = 0
 	if not dialogue_overlay.visible and not loop_panel.visible and not GameState.notification_active and not get_node("../Player").animation_busy:
@@ -860,6 +867,9 @@ func _advance_dialogue() -> void:
 		_sync_overlay_visibility()
 		last_portrait = ""
 		_restore_modal_pause()
+		if sleep_dialogue_pending:
+			sleep_dialogue_pending = false
+			_play_day_transition()
 		return
 	if not dialogue_overlay.visible:
 		dialogue_resume_loop = loop_panel.visible
@@ -870,7 +880,7 @@ func _advance_dialogue() -> void:
 	var pages := _dialogue_pages(line[1])
 	for index in range(pages.size() - 1, 0, -1):
 		dialogue_lines.push_front([line[0], pages[index], line[2] if line.size() > 2 else "neutral"])
-	dialogue_text.text = pages[0]
+	dialogue_text.text = _dialogue_line_breaks(pages[0])
 	dialogue_text.size = dialogue_bounds
 	reveal_characters = 0.0
 	dialogue_text.visible_characters = 0
@@ -884,32 +894,83 @@ func _advance_dialogue() -> void:
 
 
 func _dialogue_pages(text: String) -> Array[String]:
+	var sentences := RegEx.new()
+	sentences.compile("[^.!?]+[.!?]+[\"')]*|[^.!?]+$")
+	var pages: Array[String] = []
+	var page := ""
+	for match_result in sentences.search_all(text):
+		var sentence: String = match_result.get_string().strip_edges()
+		if sentence.is_empty():
+			continue
+		var candidate := sentence if page.is_empty() else page + " " + sentence
+		if _dialogue_fits(candidate):
+			page = candidate
+			continue
+		if not page.is_empty():
+			pages.append(page)
+			page = ""
+		if _dialogue_fits(sentence):
+			page = sentence
+			continue
+		# A sentence taller than the panel needs continuation. Prefer a clause
+		# ending, then a word boundary; every remaining word stays in the queue.
+		var words := sentence.replace("\n", " ").split(" ", false)
+		while not words.is_empty():
+			var count := 1
+			while count < words.size() and _dialogue_fits(" ".join(words.slice(0, count + 1))):
+				count += 1
+			if count < words.size():
+				for index in range(count - 1, 0, -1):
+					var word: String = words[index]
+					if word.ends_with(",") or word.ends_with(";") or word.ends_with(":") or word.ends_with("—"):
+						count = index + 1
+					break
+			var fragment := " ".join(words.slice(0, count))
+			words = words.slice(count)
+			if words.is_empty():
+				page = fragment
+			else:
+				pages.append(fragment)
+	if not page.is_empty():
+		pages.append(page)
+	if pages.is_empty():
+		pages.append(text)
+	return pages
+
+
+func _dialogue_line_breaks(text: String) -> String:
 	var font := dialogue_text.get_theme_font("font")
 	var font_size := dialogue_text.get_theme_font_size("font_size")
-	var width := dialogue_bounds.x - 4.0
 	var rows: Array[String] = []
 	for paragraph in text.split("\n"):
 		var row := ""
 		for word in paragraph.split(" ", false):
 			var candidate := word if row.is_empty() else row + " " + word
-			if font.get_string_size(candidate, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > width and not row.is_empty():
+			if not row.is_empty() and font.get_string_size(candidate, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > dialogue_bounds.x - 4.0:
 				rows.append(row)
-				row = ""
-			for character in word:
-				var fragment := row + character
-				if font.get_string_size(fragment, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > width and not row.is_empty():
-					rows.append(row)
-					row = ""
-				row += character
-			row += " "
-		rows.append(row.strip_edges())
-	var per_page := maxi(1, int(dialogue_bounds.y / (ceilf(font.get_height(font_size)) + 1.0)))
-	var pages: Array[String] = []
-	for start in range(0, rows.size(), per_page):
-		pages.append("\n".join(rows.slice(start, start + per_page)))
-	if pages.is_empty():
-		pages.append("")
-	return pages
+				row = word
+			else:
+				row = candidate
+		rows.append(row)
+	return "\n".join(rows)
+
+
+func _dialogue_fits(text: String) -> bool:
+	var font := dialogue_text.get_theme_font("font")
+	var font_size := dialogue_text.get_theme_font_size("font_size")
+	var width := dialogue_bounds.x - 4.0
+	var rows := 0
+	for paragraph in text.split("\n"):
+		var row := ""
+		for word in paragraph.split(" ", false):
+			var candidate := word if row.is_empty() else row + " " + word
+			if font.get_string_size(candidate, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > width and not row.is_empty():
+				rows += 1
+				row = word
+			else:
+				row = candidate
+		rows += 1
+	return rows * (ceilf(font.get_height(font_size)) + 1.0) <= dialogue_bounds.y
 
 
 func _present_speaker(speaker: String, expression: String) -> void:
@@ -921,8 +982,9 @@ func _present_speaker(speaker: String, expression: String) -> void:
 	dialogue_art.size = Vector2(224, 54) if robot else Vector2(248, 60)
 	dialogue_portrait_frame.scale = Vector2(0.68, 0.68) if robot else Vector2(0.76, 0.76)
 	dialogue_hint.position = Vector2(133, 47) if robot else Vector2(153, 53)
-	# Prevent the previous line's minimum width from enlarging TipTop's text rect.
-	dialogue_text.clip_text = robot
+	# Keep both characters' labels inside their panel, regardless of text length.
+	dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dialogue_text.clip_text = true
 	dialogue_art.visible = known
 	dialogue_portrait_frame.visible = known
 	dialogue_plain.visible = not known

@@ -21,7 +21,8 @@ var action_label: Label
 var monologue_label: Label
 var monologue_left := 0.0
 var thought_layer: CanvasLayer
-const THOUGHT_SIZE := Vector2(92, 24)
+var thought_anchor := Vector2.ZERO
+const THOUGHT_SIZE := Vector2(76, 24)
 const THOUGHT_LIMIT := 56
 const CHORES := ["plant", "sink", "bookshelf", "bed"]
 enum BrainState { IDLE, SELECT_TASK, MOVING_TO_TASK, PERFORMING_TASK, REACTING, COOLDOWN, RECOVERING }
@@ -32,34 +33,34 @@ var morning_day := 0
 var goodnight_day := 0
 var thought_counts: Dictionary = {}
 const APPROACH_THOUGHTS := {
-	"sink": ["Time to give those dishes a fresh start.", "Dish duty. My specialty. One of four."],
-	"plant": ["Checking on our leafy colleague.", "The plant has requested my attention. Silently."],
-	"bookshelf": ["The bookshelf requires my expertise.", "Books. Such rectangular possibilities."],
-	"bed": ["A tidy bed supports untidy scientific ideas.", "Checking the sheet situation."]
+	"sink": ["These dishes deserve a fresh start.", "Dish duty is one of my four specialties."],
+	"plant": ["I shall check on our leafy colleague.", "The plant has silently requested my attention."],
+	"bookshelf": ["The bookshelf requires my expertise.", "These books have rectangular potential."],
+	"bed": ["A tidy bed supports untidy scientific ideas.", "I shall assess the sheet situation."]
 }
 const FAULTY_WORK_THOUGHTS := {
-	"sink": ["Maximum cleanliness requires maximum water!", "A continuous rinse. Very thorough."],
+	"sink": ["Maximum cleanliness requires maximum water!", "A continuous rinse must be very thorough."],
 	"plant": ["Plants love water. More must be better!", "A generous drink for a generous plant."],
-	"bookshelf": ["Largest books on top. A superior system.", "Testing a more aerodynamic arrangement."],
-	"bed": ["Extra ventilation for every sheet!", "A little creative folding should help."]
+	"bookshelf": ["The largest books belong on top.", "I am testing an aerodynamic arrangement."],
+	"bed": ["Every sheet deserves extra ventilation!", "A little creative folding should help."]
 }
 const REPAIRED_WORK_THOUGHTS := {
-	"sink": ["Tap off. Dishes clean. Floor stays dry.", "A controlled rinse. I have revised my methods."],
-	"plant": ["Just enough water. Excellent restraint.", "Checking the soil before I pour."],
-	"bookshelf": ["Titles in order. Spines facing out.", "Upright books. A surprisingly elegant solution."],
-	"bed": ["Corners tucked. Pillow restored.", "Smoothing, not aerating. I remember."]
+	"sink": ["I shall rinse the dishes, then close the tap.", "I have revised my rinsing methods."],
+	"plant": ["I shall give it just enough water.", "I shall check the soil before I pour."],
+	"bookshelf": ["The titles belong in order, spines facing out.", "Upright books are an elegant solution."],
+	"bed": ["I shall tuck the corners and restore the pillow.", "I remember to smooth the sheets gently."]
 }
 const FAULTY_REACTIONS := {
-	"sink": ["Dish cycle successful.", "The water is certainly flowing efficiently."],
-	"plant": ["Hydration complete.", "Our colleague will be delighted."],
-	"bookshelf": ["A bold new arrangement. Excellent.", "Book order optimized."],
-	"bed": ["Sheets aerated.", "A refreshingly unconventional bed."]
+	"sink": ["The dish cycle was successful.", "The water is certainly flowing efficiently."],
+	"plant": ["Hydration is complete.", "Our colleague will be delighted."],
+	"bookshelf": ["This bold new arrangement is excellent.", "I have optimized the book order."],
+	"bed": ["The sheets are thoroughly aerated.", "This bed is refreshingly unconventional."]
 }
 const REPAIRED_REACTIONS := {
-	"sink": ["Clean dishes. No bonus indoor pond.", "Another successful chore!"],
-	"plant": ["Water delivered. Correct amount this time.", "A healthy plant and a dry floor. Remarkable."],
-	"bookshelf": ["Alphabetical. And upright. All done.", "Everything in its place. Even the books."],
-	"bed": ["Bed made. I shall leave it made.", "Ready for sleeping. Or admiring briefly."]
+	"sink": ["The dishes are clean and the floor is dry.", "That was another successful chore!"],
+	"plant": ["I delivered the correct amount this time.", "The plant is healthy and the floor is dry."],
+	"bookshelf": ["The books are alphabetical and upright.", "Everything is in its place, even the books."],
+	"bed": ["The bed is made. I shall leave it made.", "The bed is ready for sleeping or admiring."]
 }
 var cleanup_target := false
 var swatting := false
@@ -78,7 +79,7 @@ func _ready() -> void:
 	action_label.position = Vector2(-32, -29)
 	action_label.size = Vector2(64, 12)
 	action_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	action_label.add_theme_font_size_override("font_size", 6)
+	action_label.add_theme_font_size_override("font_size", 5)
 	action_label.add_theme_color_override("font_shadow_color", Color.BLACK)
 	action_label.add_theme_constant_override("shadow_offset_x", 1)
 	action_label.add_theme_constant_override("shadow_offset_y", 1)
@@ -93,7 +94,7 @@ func _ready() -> void:
 	monologue_label.position = Vector2(-38, -43)
 	monologue_label.size = Vector2(76, 24)
 	monologue_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	monologue_label.add_theme_font_size_override("font_size", 6)
+	monologue_label.add_theme_font_size_override("font_size", 5)
 	monologue_label.add_theme_color_override("font_outline_color", Color("211d26"))
 	monologue_label.add_theme_constant_override("outline_size", 2)
 	monologue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -105,17 +106,18 @@ func _ready() -> void:
 	bubble.set_corner_radius_all(3)
 	bubble.content_margin_left = 4
 	bubble.content_margin_right = 4
-	bubble.content_margin_top = 3
-	bubble.content_margin_bottom = 3
+	bubble.content_margin_top = 2
+	bubble.content_margin_bottom = 2
 	for label in [action_label, monologue_label]:
 		label.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		label.max_lines_visible = 2
+		label.max_lines_visible = 3
 		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		label.clip_text = true
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.add_theme_stylebox_override("normal", bubble)
 		label.add_theme_constant_override("outline_size", 0)
+		label.add_theme_constant_override("line_spacing", 0)
 		label.size = THOUGHT_SIZE
 	reset_physics_interpolation()
 	_state_changed()
@@ -130,7 +132,7 @@ func show_monologue(message: String, during_sleep: bool = false) -> void:
 	if not farewell and not get_node("../HUD").overhead_thoughts_allowed():
 		clear_monologue()
 		return
-	monologue_label.text = message
+	monologue_label.text = _thought_line_breaks(message)
 	monologue_left = clampf(message.length() * 0.06, 2.0, 5.0)
 	monologue_label.show()
 	action_label.hide()
@@ -158,23 +160,44 @@ func _process(delta: float) -> void:
 	_position_thought()
 
 
+func _thought_line_breaks(message: String) -> String:
+	var font := monologue_label.get_theme_font("font")
+	var rows: Array[String] = []
+	var row := ""
+	for word in message.split(" ", false):
+		var candidate := word if row.is_empty() else row + " " + word
+		if not row.is_empty() and font.get_string_size(candidate, HORIZONTAL_ALIGNMENT_LEFT, -1, 5).x > THOUGHT_SIZE.x - 8:
+			rows.append(row)
+			row = word
+		else:
+			row = candidate
+	rows.append(row)
+	return "\n".join(rows)
+
+
 func _position_thought() -> void:
 	var hud: CanvasLayer = get_node("../HUD")
 	thought_layer.transform = hud.transform
-	var to_ui := hud.transform.affine_inverse()
-	var feet := to_ui * get_global_transform_with_canvas().origin
-	var pos := feet + Vector2(-THOUGHT_SIZE.x * 0.5, -46)
-	# At the shelf, put the bubble on its open right side instead of over the books.
-	if global_position.distance_to(_bookshelf_front()) < 28.0:
-		pos = feet + Vector2(18, -40)
-	var judy_feet := to_ui * judy.get_global_transform_with_canvas().origin
-	if Rect2(pos, THOUGHT_SIZE).intersects(Rect2(judy_feet - Vector2(8, 24), Vector2(16, 28))):
-		pos.x = feet.x - THOUGHT_SIZE.x - 18
+	var to_ui: Transform2D = hud.transform.affine_inverse()
+	var feet: Vector2 = to_ui * get_global_transform_with_canvas().origin
+	if thought_anchor.distance_to(feet) > 40.0:
+		thought_anchor = feet
+	else:
+		thought_anchor = thought_anchor.lerp(feet, 1.0 - exp(-20.0 * get_process_delta_time()))
+	feet = thought_anchor
+	var active: Label = monologue_label if monologue_left > 0 else action_label
+	var font := active.get_theme_font("font")
+	var rows := active.text.split("\n")
+	var width := 0.0
+	for row in rows:
+		width = maxf(width, font.get_string_size(row, HORIZONTAL_ALIGNMENT_LEFT, -1, 5).x)
+	var bubble_size := Vector2(ceilf(width) + 8, ceilf(font.get_height(5)) * rows.size() + 4)
+	var pos: Vector2 = feet + Vector2(-bubble_size.x * 0.5, -20 - bubble_size.y)
 	# HUD reference space is fitted uniformly inside every supported viewport.
-	pos = pos.clamp(Vector2(6, 44), Vector2(378, 238) - THOUGHT_SIZE)
+	pos = pos.clamp(Vector2(6, 44), Vector2(378, 238) - bubble_size)
 	for label in [action_label, monologue_label]:
-		label.position = pos.round()
-		label.size = THOUGHT_SIZE
+		label.position = pos
+		label.size = bubble_size
 
 
 func greet_morning() -> bool:
@@ -183,8 +206,10 @@ func greet_morning() -> bool:
 	if GameState.research_active or not get_node("../HUD").overhead_thoughts_allowed():
 		return false
 	morning_day = GameState.day
-	var lines := ["Morning, Judy! Productive intentions ready.", "Good morning! Helpful intentions prepared.", "Showcase day, Judy! I believe in us."]
-	show_monologue(lines[(GameState.day - 1) % lines.size()])
+	var lines := ["Good morning, Judy! I've prepared a perfectly organized day.", "Good morning, Judy! I have several helpful intentions.", "Good morning, Judy! It's showcase day. I believe in us."]
+	var hud = get_node("../HUD")
+	hud.dialogue_lines.append_array([["TipTop", lines[(GameState.day - 1) % lines.size()], "proud"], ["Judy", "That sounds suspiciously optimistic.", "neutral"]])
+	hud._advance_dialogue()
 	return true
 
 
@@ -193,7 +218,9 @@ func say_goodnight() -> void:
 	if goodnight_day == GameState.day:
 		return
 	goodnight_day = GameState.day
-	show_monologue("Good night, Judy. Everything is under control. Probably.", true)
+	var hud = get_node("../HUD")
+	hud.dialogue_lines.append_array([["TipTop", "Good night, Judy. Everything is under control. Probably.", "neutral"], ["Judy", "That's exactly what worries me. Night, TipTop.", "happy"]])
+	hud._advance_dialogue()
 
 
 func prepare_for_sleep() -> void:
