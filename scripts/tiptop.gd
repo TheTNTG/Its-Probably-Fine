@@ -66,6 +66,7 @@ var cleanup_target := false
 var swatting := false
 var swat_target := -1
 var target_refresh := 0.0
+var batch_elapsed := 0.0
 var logical_motion := false
 var display_position := Vector2.ZERO
 var session_serial := -1
@@ -252,7 +253,7 @@ func _say_chore(phase: String) -> void:
 		elif phase == "working":
 			show_monologue("I have the situation under control.")
 		elif phase == "reaction":
-			show_monologue("One less mosquito. You're welcome, Judy.")
+			show_monologue("One less mosquito. You're welcome, Judy." if GameState.batch_removed == 1 else "I removed %d airborne intruders." % GameState.batch_removed)
 		return
 	var chore: String = CHORES[visit]
 	var pool: Array = APPROACH_THOUGHTS[chore]
@@ -282,6 +283,7 @@ func _clear_task_motion() -> void:
 func _state_changed() -> void:
 	var new_day := GameState.day != last_day
 	if new_day or session_serial != GameState.research_task_serial:
+		batch_elapsed = 0.0
 		var reacting := not new_day and brain_state == BrainState.REACTING and reaction_left > 0
 		clear_monologue()
 		_clear_task_motion()
@@ -351,6 +353,24 @@ func _clear_to(point: Vector2) -> bool:
 func _finish_presentation(outcome: String) -> void:
 	if outcome == "completed" and swatting and not GameState.eliminate_mosquito(swat_target, global_position):
 		outcome = "failed"
+	if swatting:
+		if outcome == "completed":
+			GameState.batch_removed += 1
+		GameState.mosquito_batch.erase(swat_target)
+		while not GameState.mosquito_batch.is_empty() and not GameState.mosquitoes.has(GameState.mosquito_batch[0]):
+			GameState.mosquito_batch.pop_front()
+		if not GameState.mosquito_batch.is_empty() and GameState.batch_removed < 3 and batch_elapsed < 30.0:
+			GameState.mosquito_target_id = int(GameState.mosquito_batch[0])
+			_clear_task_motion()
+			clear_monologue()
+			navigation_attempts = 0
+			travel_elapsed = 0.0
+			blocked_elapsed = 0.0
+			stalled = 0.0
+			brain_state = BrainState.SELECT_TASK
+			return
+		if GameState.batch_removed > 0:
+			outcome = "completed"
 	if outcome == "completed":
 		_say_chore("reaction")
 	else:
@@ -460,6 +480,10 @@ func _tick_ai(delta: float, playback: float) -> void:
 	$Visual.skew = lerpf($Visual.skew, -0.08 if face.y < 0 else 0.0, 1.0 - exp(-8.0 * delta))
 	repath_cooldown = maxf(0.0, repath_cooldown - delta)
 	if swatting and brain_state in [BrainState.MOVING_TO_TASK, BrainState.PERFORMING_TASK, BrainState.RECOVERING]:
+		batch_elapsed += delta
+		if batch_elapsed > 30.0:
+			_finish_presentation("failed")
+			return
 		if not GameState.mosquitoes.has(swat_target):
 			_finish_presentation("cancelled")
 			return

@@ -73,6 +73,10 @@ var usage_rows: Dictionary = {}
 var usage_segments: Dictionary = {}
 var difficulty_controls: HBoxContainer
 var difficulty_description: Label
+var pause_panel: ColorRect
+var eject_button: Button
+var eject_hint: Label
+var mood_hint: Label
 const TIME_COLORS := [Color("72a7be"), Color("e0b065"), Color("a78abd"), Color("83b6a2"), Color("bd947a"), Color("7f8595")]
 
 
@@ -80,16 +84,20 @@ func _household_open() -> bool:
 	return is_instance_valid(household_panel) and household_panel.visible
 
 
+func _pause_open() -> bool:
+	return is_instance_valid(pause_panel) and pause_panel.visible
+
+
 func _comic_safe() -> bool:
-	return not GameState.research_active and not get_node("../Player").animation_busy and not transitioning and not repair_panel.visible and not _household_open()
+	return not _pause_open() and not GameState.research_active and not get_node("../Player").animation_busy and not transitioning and not repair_panel.visible and not _household_open()
 
 
 func overhead_thoughts_allowed() -> bool:
-	return not dialogue_overlay.visible and not repair_panel.visible and not loop_panel.visible and not notification_panel.visible and not transitioning and not _household_open() and not GameState.day_ended and not GameState.game_finished
+	return not _pause_open() and not dialogue_overlay.visible and not repair_panel.visible and not loop_panel.visible and not notification_panel.visible and not transitioning and not _household_open() and not GameState.day_ended and not GameState.game_finished
 
 
 func _restore_modal_pause() -> void:
-	get_tree().paused = dialogue_overlay.visible or repair_panel.visible or loop_panel.visible or _household_open() or transitioning or GameState.day_ended or GameState.game_finished
+	get_tree().paused = _pause_open() or dialogue_overlay.visible or repair_panel.visible or loop_panel.visible or _household_open() or transitioning or GameState.day_ended or GameState.game_finished
 
 
 func research_choices() -> void:
@@ -240,8 +248,10 @@ func _household_selected(action: Callable, prior_pause: bool) -> void:
 
 
 func _request_swatter() -> void:
-	GameState.mosquito_task = true
-	GameState.state_changed.emit()
+	if GameState.mosquitoes.is_empty():
+		_show_feedback("TipTop: No airborne intruders detected.")
+		return
+	GameState.request_mosquito_batch()
 	_show_feedback("TipTop: Mosquito removal requested. On my way!")
 
 
@@ -254,6 +264,7 @@ func _ready() -> void:
 	_build_system_notice()
 	_build_research_controls()
 	_build_needs_ui()
+	_build_pause_menu()
 	_fit_screen_ui()
 	get_viewport().size_changed.connect(_fit_screen_ui)
 	_smooth_ui_text(self)
@@ -263,6 +274,9 @@ func _ready() -> void:
 	GameState.repair_menu_requested.connect(_open_repair_menu)
 	GameState.action_feedback.connect(_show_feedback)
 	_update_hud()
+	if get_tree().has_meta("restart_playing"):
+		get_tree().remove_meta("restart_playing")
+		_on_loop_pressed.call_deferred()
 	if get_tree().has_meta("new_game_slide"):
 		get_tree().remove_meta("new_game_slide")
 		_reveal_new_game()
@@ -276,7 +290,7 @@ func _fit_screen_ui() -> void:
 	transform = Transform2D(0.0, Vector2(factor, factor), 0.0, (screen - reference * factor) * 0.5)
 	# Reserve the sidebar in screen space; keep the whole apartment in the left pane.
 	var camera: Camera2D = get_node("../FramingCamera")
-	camera.zoom = Vector2(factor, factor)
+	camera.zoom = Vector2(factor, factor) * 1.08
 	camera.position = Vector2(208, 110)
 	(transition_cover.get_parent() as CanvasLayer).transform = transform
 	if is_instance_valid(repair_panel):
@@ -287,6 +301,9 @@ func _fit_screen_ui() -> void:
 		# against the visible screen, independently of the camera.
 		household_panel.position = -transform.origin / factor
 		household_panel.size = screen / factor
+	if is_instance_valid(pause_panel):
+		pause_panel.position = -transform.origin / factor
+		pause_panel.size = screen / factor
 
 
 func _smooth_ui_text(node: Node) -> void:
@@ -375,8 +392,9 @@ func _hud_card(bounds: Rect2) -> Panel:
 
 
 func _build_needs_ui() -> void:
-	var card := _side_section()
-	hunger_label = _hud_text(card, "", Vector2.ZERO, 6)
+	var card := _hud_card(Rect2(162, 4, 146, 30))
+	hunger_label = _hud_text(card, "", Vector2(4, 1), 6)
+	mood_label = _hud_text(card, "", Vector2(77, 1), 6)
 	hunger_bar = ProgressBar.new()
 	mood_bar = ProgressBar.new()
 	hunger_fill = StyleBoxFlat.new()
@@ -384,17 +402,18 @@ func _build_needs_ui() -> void:
 	for bar in [hunger_bar, mood_bar]:
 		bar.show_percentage = false
 		_style_thin_bar(bar)
-		bar.custom_minimum_size = Vector2(0, 3)
+		bar.size = Vector2(64, 3)
 		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(hunger_bar)
-	hunger_status_label = _hud_text(card, "", Vector2.ZERO, 5)
-	mood_label = _hud_text(card, "", Vector2.ZERO, 6)
-	card.add_child(mood_bar)
+		card.add_child(bar)
+	hunger_bar.position = Vector2(4, 12)
+	mood_bar.position = Vector2(77, 12)
 	hunger_bar.add_theme_stylebox_override("fill", hunger_fill)
 	mood_bar.add_theme_stylebox_override("fill", mood_fill)
-	efficiency_label = _hud_text(card, "", Vector2.ZERO, 5)
-	sessions_label.reparent(card, false)
-	sessions_label.add_theme_font_size_override("font_size", 5)
+	hunger_status_label = _hud_text(card, "", Vector2(4, 20), 5)
+	mood_hint = _hud_text(card, "", Vector2(77, 20), 5)
+	efficiency_label = _hud_text(sidebar, "", Vector2.ZERO, 6)
+	sessions_label.reparent(sidebar, false)
+	sessions_label.add_theme_font_size_override("font_size", 6)
 
 
 func _side_section() -> VBoxContainer:
@@ -404,15 +423,15 @@ func _side_section() -> VBoxContainer:
 	style.border_color = Color("565459")
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(4)
-	style.content_margin_left = 4
-	style.content_margin_right = 4
-	style.content_margin_top = 4
-	style.content_margin_bottom = 4
+	style.content_margin_left = 5
+	style.content_margin_right = 5
+	style.content_margin_top = 5
+	style.content_margin_bottom = 5
 	panel.add_theme_stylebox_override("panel", style)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sidebar.add_child(panel)
 	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 1)
+	body.add_theme_constant_override("separation", 2)
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(body)
 	return body
@@ -428,7 +447,7 @@ func _build_right_sidebar() -> void:
 	var progress := _side_section()
 	research_label.reparent(progress, false)
 	research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	research_label.add_theme_font_size_override("font_size", 8)
+	research_label.add_theme_font_size_override("font_size", 9)
 	overview_bar = ProgressBar.new()
 	overview_bar.show_percentage = false
 	_style_thin_bar(overview_bar)
@@ -446,8 +465,8 @@ func _build_right_sidebar() -> void:
 	marker.anchor_right = marker.anchor_left
 	marker.anchor_bottom = 1.0
 	marker.offset_right = 1
-	_hud_text(progress, "Target: %.0f%% | Max: 100%%" % GameState.GOOD_ENDING_RESEARCH_THRESHOLD, Vector2.ZERO, 5)
-	_hud_text(progress, "Deadline: Day 3, 8:00 PM", Vector2.ZERO, 5)
+	_hud_text(progress, "Target: %.0f%% | Max: 100%%" % GameState.GOOD_ENDING_RESEARCH_THRESHOLD, Vector2.ZERO, 6)
+	_hud_text(progress, "Deadline: Day 3, 8:00 PM", Vector2.ZERO, 6)
 	var problems := _side_section()
 	_hud_text(problems, "TipTop's Problems", Vector2.ZERO, 6)
 	var names := ["Sink routine", "Plant watering", "Bookshelf organizing", "Bed-making"]
@@ -457,11 +476,11 @@ func _build_right_sidebar() -> void:
 		row.fit_content = true
 		row.scroll_active = false
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_theme_font_size_override("normal_font_size", 5)
+		row.add_theme_font_size_override("normal_font_size", 6)
 		row.set_meta("routine_name", names[index])
 		problems.add_child(row)
 		problem_rows[GameState.REPAIR_ROUTINES[index]] = row
-	problem_count = _hud_text(problems, "", Vector2.ZERO, 5)
+	problem_count = _hud_text(problems, "", Vector2.ZERO, 6)
 	var usage := _side_section()
 	usage_title = _hud_text(usage, "Today's Time Usage", Vector2.ZERO, 6)
 	var distribution := HBoxContainer.new()
@@ -477,7 +496,7 @@ func _build_right_sidebar() -> void:
 		segment.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		distribution.add_child(segment)
 		usage_segments[category] = segment
-		var row := _hud_text(usage, "", Vector2.ZERO, 5)
+		var row := _hud_text(usage, "", Vector2.ZERO, 6)
 		row.modulate = TIME_COLORS[index]
 		row.set_meta("caption", captions[index])
 		usage_rows[category] = row
@@ -520,6 +539,7 @@ func _update_needs_ui() -> void:
 	hunger_fill.bg_color = Color("dc795d") if GameState.hunger <= 45 else Color("e0b065")
 	mood_fill.bg_color = Color("df806a") if GameState.mood < 45 else Color("8fbb91")
 	mood_label.modulate = Color("ffad8e") if GameState.mood < 45 else Color.WHITE
+	mood_hint.text = "Push through (-20%)" if GameState.pushing_through() else ("Rest needed (<45)" if GameState.mood < 45 else "Ready for research")
 	efficiency_label.text = "Efficiency: %d%%" % int(round(GameState.research_efficiency() * 100))
 	hunger_status_label.text = GameState.hunger_status()
 	hunger_status_label.modulate = Color("8fbb91") if GameState.hunger >= 75 else (Color("ffad8e") if GameState.hunger <= 45 else Color.WHITE)
@@ -574,8 +594,8 @@ func _build_loop_ui() -> void:
 	time_bar.add_theme_stylebox_override("fill", time_bar_fill)
 	day_card.add_child(time_bar)
 	_build_right_sidebar()
-	var controls := _hud_card(Rect2(5, 242, 48, 38))
-	var controls_text := _hud_text(controls, "E   Interact\nI    Inventory\nTab Menu", Vector2(4, 3), 6)
+	var controls := _hud_card(Rect2(5, 242, 54, 28))
+	var controls_text := _hud_text(controls, "E   Interact\nESC Pause", Vector2(4, 3), 7)
 	controls_text.add_theme_constant_override("line_spacing", 0)
 	sessions_label = _hud_text(self, "", Vector2(304, 274), 6)
 	loop_panel = ColorRect.new()
@@ -626,7 +646,7 @@ func _choose_difficulty(index: int) -> void:
 	for item in range(difficulty_controls.get_child_count()):
 		var button: Button = difficulty_controls.get_child(item)
 		button.set_pressed_no_signal(item == GameState.difficulty)
-	difficulty_description.text = "%s\nResearch +%.0f%%; repair %d min / +%.0f%%." % [GameState.profile()["description"], GameState.profile()["research"], GameState.repair_minutes(), GameState.profile()["repair_reward"]]
+	difficulty_description.text = "%s\nResearch %.0f min / +%.0f%%; repair %d min / +%.0f%%." % [GameState.profile()["description"], GameState.profile()["research_minutes"], GameState.profile()["research"], GameState.repair_minutes(), GameState.profile()["repair_reward"]]
 
 
 func _on_loop_pressed() -> void:
@@ -840,6 +860,8 @@ func _process(delta: float) -> void:
 	_update_needs_ui()
 	_update_sidebar()
 	_sync_overlay_visibility()
+	if _pause_open():
+		return
 	if not GameState.personal_activity.is_empty():
 		var duration: int = GameState.PERSONAL_ACTIVITIES[GameState.personal_activity][0]
 		research_bar.max_value = duration
@@ -966,7 +988,7 @@ func _sync_overlay_visibility() -> void:
 		get_node("../Player").interaction_prompt.hide()
 		get_node("../TipTop").monologue_label.hide()
 		get_node("../TipTop").action_label.hide()
-	var blocked: bool = dialogue_overlay.visible or repair_panel.visible or transitioning or loop_panel.visible or GameState.research_active or get_node("../Player").animation_busy or (is_instance_valid(household_panel) and household_panel.visible)
+	var blocked: bool = _pause_open() or dialogue_overlay.visible or repair_panel.visible or transitioning or loop_panel.visible or GameState.research_active or get_node("../Player").animation_busy or (is_instance_valid(household_panel) and household_panel.visible)
 	notification_panel.visible = GameState.notification_active and not blocked and not GameState.day_ended and not GameState.game_finished
 	if blocked or GameState.notification_active or get_node("../Player").animation_busy:
 		system_notice.hide()
@@ -1051,13 +1073,102 @@ func _build_dialogue_ui() -> void:
 	dialogue_portrait.set_meta("dialogue_pixel_art", true)
 
 
+func _build_pause_menu() -> void:
+	pause_panel = ColorRect.new()
+	pause_panel.color = Color(0.05, 0.06, 0.08, 0.92)
+	pause_panel.size = UI_REFERENCE
+	pause_panel.hide()
+	add_child(pause_panel)
+	var center := CenterContainer.new()
+	pause_panel.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("23242b")
+	style.border_color = Color("78747a")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(5)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	panel.add_theme_stylebox_override("panel", style)
+	center.add_child(panel)
+	var choices := VBoxContainer.new()
+	choices.add_theme_constant_override("separation", 5)
+	panel.add_child(choices)
+	_hud_text(choices, "Paused", Vector2.ZERO, 12)
+	var items := [["Resume", _resume_pause], ["Eject Current Task", _eject_from_pause], ["Restart Game", _restart_from_pause.bind(true)], ["Return to Main Menu", _restart_from_pause.bind(false)], ["Quit Game", func(): get_tree().quit()]]
+	for index in range(items.size()):
+		var button := Button.new()
+		button.text = items[index][0]
+		button.custom_minimum_size = Vector2(210, 22)
+		button.add_theme_font_size_override("font_size", 9)
+		button.pressed.connect(items[index][1])
+		choices.add_child(button)
+		if index == 1:
+			eject_button = button
+	eject_hint = _hud_text(choices, "", Vector2.ZERO, 7)
+	eject_hint.custom_minimum_size.x = 210
+	eject_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+
+func _open_pause() -> void:
+	if transitioning or loop_panel.visible:
+		return
+	eject_button.disabled = not GameState.can_eject_task()
+	eject_hint.text = "Eject keeps elapsed time and gives no completion reward." if not eject_button.disabled else "Eject unavailable: no unfinished seated task. Repairs are atomic; walking and pose animations must finish."
+	pause_panel.show()
+	get_node("../Player").interaction_prompt.hide()
+	get_node("../TipTop").clear_monologue()
+	get_node("../TipTop").action_label.hide()
+	get_tree().paused = true
+	get_viewport().gui_release_focus()
+
+
+func _resume_pause() -> void:
+	pause_panel.hide()
+	_restore_modal_pause()
+	get_viewport().gui_release_focus()
+
+
+func _eject_from_pause() -> void:
+	if not GameState.can_eject_task():
+		return
+	GameState.eject_current_task()
+	research_strip.hide()
+	_resume_pause()
+
+
+func _restart_from_pause(play_now: bool) -> void:
+	var selected := GameState.difficulty
+	GameState.restart()
+	if play_now:
+		GameState.select_difficulty(selected)
+		get_tree().set_meta("restart_playing", true)
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_I, KEY_TAB] and not get_tree().paused and not GameState.research_active and not get_node("../Player").animation_busy:
-		loop_message.text = "Inventory\nNo carried items. Household repairs and cleanup are available at each fixture." if event.keycode == KEY_I else "Apartment menu\nE: interact near furniture or TipTop.\nFour research sessions each day. Make the bed to rest.\nShowcase: Day 3 at 8:00 PM."
-		loop_button.text = "Resume"
-		loop_panel.show()
-		get_tree().paused = true
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
+		if transitioning:
+			return
+		if _pause_open():
+			_resume_pause()
+		elif repair_panel.visible:
+			_close_repair_menu()
+		elif _household_open():
+			household_panel.hide()
+			household_panel.queue_free()
+			_restore_modal_pause()
+		else:
+			_open_pause()
+		return
+	if _pause_open():
+		if event is InputEventKey:
+			get_viewport().set_input_as_handled()
 		return
 	if transitioning:
 		get_viewport().set_input_as_handled()

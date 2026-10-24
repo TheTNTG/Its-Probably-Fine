@@ -439,8 +439,10 @@ func _research_animation(fast_forward := false) -> void:
 	var motion_time := 0.0
 	var interruptions := 0
 	var swat_left := 0.0
-	while GameState.research_elapsed < GameState.research_duration:
+	while GameState.research_active and GameState.research_elapsed < GameState.research_duration:
 		await get_tree().process_frame
+		if not GameState.research_active:
+			break
 		if get_tree().paused:
 			continue
 		var delta := get_process_delta_time()

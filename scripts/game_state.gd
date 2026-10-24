@@ -16,9 +16,9 @@ const PENALIZED_RESEARCH_MINUTES := 160.0
 const WATCH_REAL_SECONDS := 180.0
 const GOOD_ENDING_RESEARCH_THRESHOLD := 75.0
 const DIFFICULTIES := [
-	{"name": "Easy", "research": 15.0, "repair_reward": 5.0, "repair_minutes": 45, "work_mood": 15.0, "depletion": 0.70, "description": "More research, shorter repairs, gentler needs."},
-	{"name": "Medium", "research": 10.0, "repair_reward": 4.0, "repair_minutes": 60, "work_mood": 20.0, "depletion": 1.00, "description": "The established balance, with repair rewards."},
-	{"name": "Hard", "research": 8.0, "repair_reward": 3.0, "repair_minutes": 60, "work_mood": 25.0, "depletion": 1.20, "description": "Less research and faster needs depletion."}
+	{"name": "Easy", "research": 15.0, "research_minutes": 90.0, "repair_reward": 5.0, "repair_minutes": 45, "work_mood": 15.0, "depletion": 0.70, "description": "More research, shorter repairs, gentler needs."},
+	{"name": "Medium", "research": 10.0, "research_minutes": 120.0, "repair_reward": 4.0, "repair_minutes": 60, "work_mood": 20.0, "depletion": 1.00, "description": "The established balance, with repair rewards."},
+	{"name": "Hard", "research": 8.0, "research_minutes": 180.0, "repair_reward": 3.0, "repair_minutes": 60, "work_mood": 25.0, "depletion": 1.20, "description": "Less research and faster needs depletion."}
 ]
 var difficulty := 1
 var difficulty_locked := false
@@ -123,6 +123,44 @@ var mosquito_target_id := -1
 var mosquito_spawn_after := 0.0
 var last_robot_swat := false
 var activity_skip_busy := false
+var mosquito_batch: Array = []
+var batch_removed := 0
+
+
+func can_eject_task() -> bool:
+	return (research_active and research_elapsed + world_accumulator < research_duration) or (not personal_activity.is_empty() and personal_remaining > 0.000001)
+
+
+func eject_current_task() -> void:
+	if not can_eject_task():
+		return
+	# Commit only the time already accumulated before clearing the activity owner.
+	if world_accumulator > 0:
+		var pending := world_accumulator
+		world_accumulator = 0.0
+		_simulate_world_step(pending)
+	research_active = false
+	research_playback_rate = 1.0
+	personal_activity = ""
+	personal_remaining = 0.0
+	personal_playback_rate = 1.0
+	# Player coroutines restore the seated pose and release their own locks.
+	# A started research session remains charged; completion effects are not run.
+	action_feedback.emit("Task ejected. Elapsed time kept; no completion reward.")
+	state_changed.emit()
+
+
+func request_mosquito_batch() -> void:
+	if mosquitoes.is_empty():
+		action_feedback.emit("TipTop: No airborne intruders detected.")
+		return
+	mosquito_task = true
+	if research_swat and not robot_chore_resolved:
+		return # Do not reset a pursuit already in progress.
+	# Cancel the current presentation via the serial handoff, without its effects.
+	chore_ready_at["swat"] = world_elapsed
+	_select_research_chore()
+	state_changed.emit()
 
 
 func hunger_status() -> String:
@@ -361,7 +399,9 @@ func _select_research_chore() -> void:
 	research_swat = not mosquitoes.is_empty() and (mosquito_task or not last_robot_swat) and world_elapsed >= float(chore_ready_at.get("swat", 0.0))
 	if research_swat:
 		selected = "sink" # Existing task slot; destination is the actual insect.
-		mosquito_target_id = int(mosquitoes.keys()[research_task_serial % mosquitoes.size()])
+		mosquito_batch = mosquitoes.keys().slice(0, 3)
+		batch_removed = 0
+		mosquito_target_id = int(mosquito_batch[0])
 	if selected != research_task or not selected.is_empty():
 		research_task_serial += 1
 	research_task = selected
@@ -497,7 +537,7 @@ func research_available() -> bool:
 
 
 func research_session_minutes() -> float:
-	return PENALIZED_RESEARCH_MINUTES if tap_running else RESEARCH_MINUTES
+	return float(profile()["research_minutes"]) * (PENALIZED_RESEARCH_MINUTES / RESEARCH_MINUTES if tap_running else 1.0)
 
 
 func has_research_time() -> bool:
@@ -711,6 +751,8 @@ func ignore_tap() -> void:
 
 
 func restart() -> void:
+	mosquito_batch.clear()
+	batch_removed = 0
 	difficulty = 1
 	difficulty_locked = false
 	time_category = "misc"
