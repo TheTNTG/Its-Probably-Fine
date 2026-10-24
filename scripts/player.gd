@@ -75,7 +75,7 @@ func _update_interaction_prompt(target: Node2D) -> void:
 	var offsets := [Vector2(-interaction_prompt.size.x / 2, -39), Vector2(-interaction_prompt.size.x / 2, 8), Vector2(12, -20), Vector2(-interaction_prompt.size.x - 12, -20)]
 	for offset in offsets:
 		var pos: Vector2 = point + offset
-		pos = pos.clamp(Vector2(4, 33), Vector2(316, 208) - interaction_prompt.size)
+		pos = pos.clamp(Vector2(4, 42), Vector2(380, 232) - interaction_prompt.size)
 		interaction_prompt.position = pos.round()
 		if not Rect2(pos, interaction_prompt.size).intersects(judy_rect):
 			break

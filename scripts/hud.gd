@@ -92,9 +92,16 @@ func household_choices(location: String) -> void:
 	var prior_pause := get_tree().paused
 	get_tree().paused = true
 	household_panel = ColorRect.new()
-	household_panel.size = Vector2(320, 214)
+	household_panel.size = Vector2(384, 288)
 	household_panel.color = Color(0.08, 0.08, 0.12, 0.98)
 	add_child(household_panel)
+	var center := CenterContainer.new()
+	household_panel.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var choices := VBoxContainer.new()
+	choices.add_theme_constant_override("separation", 4)
+	center.add_child(choices)
+	_fit_screen_ui()
 	var options: Array = []
 	var judy = get_node("../Player")
 	if location == "research":
@@ -112,12 +119,12 @@ func household_choices(location: String) -> void:
 	options.append(["Cancel", func(): pass])
 	for index in range(options.size()):
 		var button := Button.new()
-		button.position = Vector2(35, 36 + index * 25)
-		button.size = Vector2(250, 22)
+		button.custom_minimum_size = Vector2(250, 22)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.text = options[index][0]
 		button.add_theme_font_size_override("font_size", 8)
 		button.pressed.connect(_household_selected.bind(options[index][1], prior_pause))
-		household_panel.add_child(button)
+		choices.add_child(button)
 
 
 func _household_selected(action: Callable, prior_pause: bool) -> void:
@@ -143,6 +150,8 @@ func _ready() -> void:
 	_build_repair_menu()
 	_build_system_notice()
 	_build_research_controls()
+	_fit_screen_ui()
+	get_viewport().size_changed.connect(_fit_screen_ui)
 	_smooth_ui_text(self)
 	GameState.state_changed.connect(_update_hud)
 	GameState.malfunction_triggered.connect(_show_malfunction)
@@ -153,6 +162,20 @@ func _ready() -> void:
 	if get_tree().has_meta("new_game_slide"):
 		get_tree().remove_meta("new_game_slide")
 		_reveal_new_game()
+
+
+func _fit_screen_ui() -> void:
+	# Fit a reference canvas uniformly, retaining safe margins at any aspect ratio.
+	var screen := get_viewport().get_visible_rect().size
+	var reference := Vector2(384, 288)
+	var factor := minf(screen.x / reference.x, screen.y / reference.y)
+	transform = Transform2D(0.0, Vector2(factor, factor), 0.0, (screen - reference * factor) * 0.5)
+	(transition_cover.get_parent() as CanvasLayer).transform = transform
+	if is_instance_valid(household_panel):
+		# Include any aspect-ratio margins in the dimmer; center its contents
+		# against the visible screen, independently of the camera.
+		household_panel.position = -transform.origin / factor
+		household_panel.size = screen / factor
 
 
 func _smooth_ui_text(node: Node) -> void:
@@ -166,7 +189,7 @@ func _update_hud() -> void:
 	if not GameState.notification_active and fix_button.visible:
 		notification_panel.hide()
 	day_label.text = "Day %d" % GameState.day
-	time_label.text = GameState.get_time_string()
+	time_label.text = "%02d" % int(GameState.time_minutes / 60)
 	research_label.text = "Research: %d%%" % GameState.research_progress
 	sessions_label.text = "Work sessions: %d / 4" % GameState.work_sessions_remaining
 	weekday_label.text = ["Monday", "Tuesday", "Wednesday"][clampi(GameState.day - 1, 0, 2)]
@@ -264,12 +287,13 @@ func _build_loop_ui() -> void:
 	time_label.position = Vector2(62, 6)
 	time_label.size = Vector2(42, 12)
 	time_label.add_theme_font_size_override("font_size", 10)
-	var progress_card := _hud_card(Rect2(250, 4, 65, 16))
+	var progress_card := _hud_card(Rect2(314, 4, 65, 16))
+	progress_card.clip_contents = true
 	var flask := Polygon2D.new()
 	flask.polygon = PackedVector2Array([Vector2(5, 3), Vector2(9, 3), Vector2(9, 7), Vector2(12, 12), Vector2(3, 12), Vector2(6, 7), Vector2(6, 3)])
 	flask.color = Color("80afbb")
 	progress_card.add_child(flask)
-	research_label.position = Vector2(265, 5)
+	research_label.position = Vector2(329, 5)
 	research_label.size = Vector2(46, 7)
 	research_label.add_theme_font_size_override("font_size", 5)
 	research_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -277,20 +301,23 @@ func _build_loop_ui() -> void:
 	overview_bar.position = Vector2(15, 10)
 	overview_bar.size = Vector2(45, 3)
 	overview_bar.show_percentage = false
+	_style_thin_bar(overview_bar)
+	overview_bar.size = Vector2(45, 3)
 	var fill := StyleBoxFlat.new()
 	fill.bg_color = Color("639dad")
 	fill.set_corner_radius_all(1)
 	overview_bar.add_theme_stylebox_override("fill", fill)
 	progress_card.add_child(overview_bar)
-	var deadline_card := _hud_card(Rect2(250, 23, 65, 17))
+	var deadline_card := _hud_card(Rect2(314, 23, 65, 17))
 	_hud_text(deadline_card, "Showcase deadline", Vector2(5, 2), 5)
 	_hud_text(deadline_card, "Day 3, 18:00", Vector2(5, 9), 6)
-	var controls := _hud_card(Rect2(5, 179, 43, 30))
-	_hud_text(controls, "E   Interact\nI    Inventory\nTab Menu", Vector2(4, 3), 6)
-	_hud_card(Rect2(236, 199, 79, 11))
-	sessions_label = _hud_text(self, "", Vector2(240, 200), 6)
+	var controls := _hud_card(Rect2(5, 242, 48, 38))
+	var controls_text := _hud_text(controls, "E   Interact\nI    Inventory\nTab Menu", Vector2(4, 3), 6)
+	controls_text.add_theme_constant_override("line_spacing", 0)
+	_hud_card(Rect2(300, 273, 79, 11))
+	sessions_label = _hud_text(self, "", Vector2(304, 274), 6)
 	loop_panel = ColorRect.new()
-	loop_panel.position = Vector2(10, 42)
+	loop_panel.position = Vector2(42, 70)
 	loop_panel.size = Vector2(300, 112)
 	loop_panel.color = Color(0.08, 0.08, 0.12, 0.98)
 	add_child(loop_panel)
@@ -333,12 +360,12 @@ func _build_transition_ui() -> void:
 	add_child(transition_layer)
 	transition_cover = ColorRect.new()
 	transition_cover.color = Color.BLACK
-	transition_cover.size = Vector2(320, 214)
+	transition_cover.size = Vector2(384, 288)
 	transition_cover.hide()
 	transition_layer.add_child(transition_cover)
 	transition_title = Label.new()
-	transition_title.position = Vector2(0, 95)
-	transition_title.size = Vector2(320, 24)
+	transition_title.position = Vector2(0, 132)
+	transition_title.size = Vector2(384, 24)
 	transition_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	transition_title.add_theme_font_size_override("font_size", 14)
 	transition_title.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -355,7 +382,7 @@ func _play_day_transition(restarting := false) -> void:
 	if not restarting:
 		loop_panel.hide()
 		await get_node("../Player").play_sleep_animation()
-	transition_cover.position = Vector2(-320, 0)
+	transition_cover.position = Vector2(-384, 0)
 	transition_cover.show()
 	var wipe := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	wipe.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -376,7 +403,7 @@ func _play_day_transition(restarting := false) -> void:
 	transition_title.hide()
 	var reveal := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	reveal.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	reveal.tween_property(transition_cover, "position:x", 320.0, 0.65)
+	reveal.tween_property(transition_cover, "position:x", 384.0, 0.65)
 	await reveal.finished
 	transition_cover.hide()
 	loop_button.disabled = false
@@ -399,7 +426,7 @@ func _reveal_new_game() -> void:
 	transition_title.hide()
 	var reveal := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	reveal.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	reveal.tween_property(transition_cover, "position:x", 320.0, 0.65)
+	reveal.tween_property(transition_cover, "position:x", 384.0, 0.65)
 	await reveal.finished
 	transition_cover.hide()
 	loop_button.disabled = false
@@ -410,7 +437,7 @@ func _reveal_new_game() -> void:
 
 func _build_repair_menu() -> void:
 	repair_panel = ColorRect.new()
-	repair_panel.size = Vector2(320, 214)
+	repair_panel.size = Vector2(384, 288)
 	repair_panel.color = Color(0.08, 0.08, 0.12, 0.98)
 	repair_panel.hide()
 	add_child(repair_panel)
@@ -493,7 +520,7 @@ func _process(delta: float) -> void:
 	_sync_overlay_visibility()
 	if GameState.research_active:
 		var shown := minf(GameState.research_duration, GameState.research_elapsed + GameState.research_accumulator)
-		time_label.text = GameState.get_time_string() + ":%02d" % int(fmod(GameState.clock_fraction + GameState.world_accumulator, 1.0) * 60.0)
+		time_label.text = "%02d" % int(GameState.time_minutes / 60)
 		research_bar.max_value = GameState.research_duration
 		research_bar.value = shown
 		research_speed_button.text = "Watch 1x" if GameState.research_playback_rate > 1.0 else "Speed 6x"
@@ -518,9 +545,22 @@ func _process(delta: float) -> void:
 			_advance_dialogue()
 
 
+func _style_thin_bar(bar: ProgressBar) -> void:
+	# Both theme styleboxes contribute minimum size, even at zero progress.
+	var background := StyleBoxFlat.new()
+	background.bg_color = Color("171b23")
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color("639dad")
+	bar.add_theme_stylebox_override("background", background)
+	bar.add_theme_stylebox_override("fill", fill)
+	bar.custom_minimum_size = Vector2.ZERO
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
 func _build_research_controls() -> void:
 	research_strip = ColorRect.new()
-	research_strip.position = Vector2(52, 181)
+	research_strip.position = Vector2(64, 242)
 	research_strip.size = Vector2(248, 26)
 	research_strip.color = Color("29272d")
 	research_strip.hide()
@@ -533,6 +573,8 @@ func _build_research_controls() -> void:
 	research_bar.position = Vector2(6, 16)
 	research_bar.size = Vector2(138, 5)
 	research_bar.show_percentage = false
+	_style_thin_bar(research_bar)
+	research_bar.size = Vector2(138, 5)
 	research_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	research_strip.add_child(research_bar)
 	var skip := Button.new()
@@ -554,7 +596,7 @@ func _build_research_controls() -> void:
 
 func _build_system_notice() -> void:
 	system_notice = ColorRect.new()
-	system_notice.position = Vector2(64, 22)
+	system_notice.position = Vector2(96, 242)
 	system_notice.size = Vector2(192, 30)
 	system_notice.color = Color(0.08, 0.08, 0.12, 0.94)
 	system_notice.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -570,6 +612,11 @@ func _build_system_notice() -> void:
 
 
 func _sync_overlay_visibility() -> void:
+	get_node("../Desk/PromptLabel").hide()
+	if dialogue_overlay.visible:
+		get_node("../Player").interaction_prompt.hide()
+		get_node("../TipTop").monologue_label.hide()
+		get_node("../TipTop").action_label.hide()
 	var blocked := dialogue_overlay.visible or repair_panel.visible or transitioning or loop_panel.visible or GameState.research_active or (is_instance_valid(household_panel) and household_panel.visible)
 	notification_panel.visible = GameState.notification_active and not blocked and not GameState.day_ended and not GameState.game_finished
 	if blocked or GameState.notification_active or get_node("../Player").animation_busy:
@@ -578,13 +625,14 @@ func _sync_overlay_visibility() -> void:
 
 func _build_dialogue_ui() -> void:
 	dialogue_overlay = ColorRect.new()
-	dialogue_overlay.size = Vector2(320, 214)
+	dialogue_overlay.size = Vector2(384, 288)
 	dialogue_overlay.color = Color(0, 0, 0, 0)
 	dialogue_overlay.hide()
 	add_child(dialogue_overlay)
 	var panel := Control.new()
-	panel.position = Vector2(36, 154)
+	panel.position = Vector2(60, 236)
 	panel.size = Vector2(248, 60)
+	panel.scale = Vector2(0.85, 0.85)
 	dialogue_overlay.add_child(panel)
 	dialogue_plain = ColorRect.new()
 	dialogue_plain.position = Vector2(0, 16)
@@ -744,7 +792,7 @@ func _present_speaker(speaker: String, expression: String) -> void:
 	var known := character in ["judy", "tiptop"]
 	var robot := character == "tiptop"
 	var panel := dialogue_art.get_parent() as Control
-	panel.position = Vector2(48, 160) if robot else Vector2(36, 154)
+	panel.position = Vector2(60, 236)
 	dialogue_art.size = Vector2(224, 54) if robot else Vector2(248, 60)
 	dialogue_portrait_frame.scale = Vector2(0.68, 0.68) if robot else Vector2(0.76, 0.76)
 	dialogue_hint.position = Vector2(133, 47) if robot else Vector2(153, 53)

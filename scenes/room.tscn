@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/desk.tscn" id="2_desk"]
@@ -17,10 +17,10 @@ size = Vector2(8, 144)
 size = Vector2(28, 38)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_shelf"]
-size = Vector2(30, 6)
+size = Vector2(30, 14)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fridge"]
-size = Vector2(20, 6)
+size = Vector2(20, 34)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_chair"]
 size = Vector2(10, 4)
@@ -29,7 +29,10 @@ size = Vector2(10, 4)
 size = Vector2(24, 12)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_counter"]
-size = Vector2(30, 12)
+size = Vector2(30, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kitchen"]
+size = Vector2(38, 42)
 
 [node name="Room" type="Node2D"]
 physics_interpolation_mode = 2
@@ -105,7 +108,7 @@ script = ExtResource("6_art")
 fixture = "bookshelf"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Bookshelf"]
-position = Vector2(0, -3)
+position = Vector2(0, -7)
 shape = SubResource("RectangleShape2D_shelf")
 
 [node name="Fridge" type="StaticBody2D" parent="."]
@@ -117,7 +120,7 @@ script = ExtResource("6_art")
 fixture = "fridge"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Fridge"]
-position = Vector2(0, -3)
+position = Vector2(0, -17)
 shape = SubResource("RectangleShape2D_fridge")
 
 [node name="Chair" type="StaticBody2D" parent="."]
@@ -160,7 +163,7 @@ script = ExtResource("6_art")
 fixture = "counter"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="KitchenCounter"]
-position = Vector2(0, -6)
+position = Vector2(0, -10)
 shape = SubResource("RectangleShape2D_counter")
 
 [node name="BedsideLamp" type="Node2D" parent="."]
@@ -169,3 +172,12 @@ position = Vector2(47, 100)
 [node name="Visual" type="Node2D" parent="BedsideLamp"]
 script = ExtResource("6_art")
 fixture = "lamp"
+
+[node name="FramingCamera" type="Camera2D" parent="."]
+position = Vector2(160, 110)
+
+[node name="KitchenBuiltIn" type="StaticBody2D" parent="."]
+position = Vector2(211, 45)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="KitchenBuiltIn"]
+shape = SubResource("RectangleShape2D_kitchen")

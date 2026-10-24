@@ -12,6 +12,7 @@ var mapped := false
 var last_day := 1
 var was_fixed := false
 var destination := Vector2.ZERO
+var bookshelf_approach := Vector2.ZERO
 var has_destination := false
 var action_left := 0.0
 var near_judy := false
@@ -143,12 +144,21 @@ func _choose_destination() -> void:
 	swatting = GameState.research_swat
 	cleanup_target = GameState.repairs[CHORES[visit]] and GameState.needs_cleanup(CHORES[visit])
 	var stops: Array[Vector2] = [get_node("../PlantPot").global_position + Vector2(-16, 0), get_node("../Sink").global_position + Vector2(0, 14), get_node("../Bookshelf").global_position + Vector2(22, 0), get_node("../Bed").global_position + Vector2(22, 7)]
+	var shelf: Node2D = get_node("../Bookshelf")
+	var shelf_collision: CollisionShape2D = shelf.get_node("CollisionShape2D")
+	var shelf_shape := shelf_collision.shape as RectangleShape2D
+	var front := shelf_collision.position.y + shelf_shape.size.y * 0.5
+	stops[2] = shelf.to_global(Vector2(0, front)) + Vector2(0, 5)
+	var right_edge := shelf_collision.position.x + shelf_shape.size.x * 0.5
+	bookshelf_approach = shelf.to_global(Vector2(right_edge, front)) + Vector2(8, 5)
 	# Small variations keep repeated visits from looking like a fixed rail.
 	var candidate := stops[visit]
-	if not GameState.research_active:
+	if not GameState.research_active and visit != 2:
 		candidate += Vector2(randf_range(-3, 3), randf_range(-2, 2))
 	destination = Vector2(_open_cell(candidate)) * CELL
-	if _clear_to(candidate):
+	# The narrow floor strip in front of the shelf has no grid-cell center.
+	# Keep its exact destination; pathfinding still guides the approach around it.
+	if visit == 2 or _clear_to(candidate):
 		destination = candidate
 	has_destination = true
 	path.clear()
@@ -161,6 +171,9 @@ func _physics_process(delta: float) -> void:
 		previous_playback = playback
 	delta *= playback
 	$Visual.speed_scale = playback
+	# The available hover sheet has one facing; a small forward lean and
+	# upward task cue show attention toward the shelf without rotating the body.
+	$Visual.skew = lerpf($Visual.skew, -0.08 if visit == 2 and action_left > 0 else 0.0, 1.0 - exp(-8.0 * delta))
 	repath_cooldown = maxf(0.0, repath_cooldown - delta)
 	if GameState.day_ended or GameState.game_finished or GameState.ending_day_pending or GameState.household_busy or GameState.notification_active:
 		velocity = Vector2.ZERO
@@ -206,11 +219,17 @@ func _physics_process(delta: float) -> void:
 		action_label.show()
 		if swatting:
 			action_label.text = "Swatting..."
+		elif visit == 2:
+			action_label.text = "Organizing ↑"
 		return
-	var aim := destination
-	if not _clear_to(destination):
+	var route_target := destination
+	if visit == 2 and not _clear_to(destination):
+		# First clear the shelf's right corner, then float along its front edge.
+		route_target = bookshelf_approach
+	var aim := route_target
+	if not _clear_to(route_target):
 		if path.is_empty() and repath_cooldown <= 0:
-			path = grid.get_point_path(_open_cell(global_position), _open_cell(destination))
+			path = grid.get_point_path(_open_cell(global_position), _open_cell(route_target))
 			repath_cooldown = 0.35
 		# Steer to the furthest visible waypoint, skipping grid corners.
 		var visible_index := -1

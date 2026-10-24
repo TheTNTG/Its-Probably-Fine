@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/apartment_visual.gd" id="1_art"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
-size = Vector2(20, 4)
+size = Vector2(20, 16)
 
 [node name="Sink" type="StaticBody2D"]
 
@@ -12,5 +12,5 @@ script = ExtResource("1_art")
 fixture = "sink"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, -2)
+position = Vector2(0, -8)
 shape = SubResource("RectangleShape2D_body")

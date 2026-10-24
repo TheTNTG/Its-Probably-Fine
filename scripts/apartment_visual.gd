@@ -30,6 +30,14 @@ func _ready() -> void:
 		outline.polygon = PackedVector2Array(ROOM_EDGE)
 		boundary.add_child(outline)
 		add_child(boundary)
+		# Give the painted caps and corner pillars physical thickness.
+		for point in ROOM_EDGE:
+			var pillar := CollisionShape2D.new()
+			var footprint := RectangleShape2D.new()
+			footprint.size = Vector2(8, 8)
+			pillar.shape = footprint
+			pillar.position = point
+			boundary.add_child(pillar)
 	elif fixture == "floor":
 		for row in range(29):
 			for col in range(-1, 7):
