@@ -106,13 +106,13 @@ func _detect() -> void:
 		return
 	var anywhere := reviewing
 	_offer("guide_move", "Move with WASD or arrows; approach objects for E prompts. TipTop waits until you read all eight tips or choose Skip Tutorial. Essential warnings stay enabled.", "Player", true)
-	_offer("guide_clock", "The clock keeps moving while you explore. Your showcase deadline is Day 3, 8 PM. Menus and dialogue pause time; plan room for meals and repairs.", "clock", true)
+	_offer("guide_clock", "The clock runs while you explore. Showcase: Day 3, 8 PM. This bar counts 27 playable hours, excluding nights. Hover/focus icons for details; click to pin.", "deadline", true)
 	if anywhere or _near("Desk"):
 		_offer("guide_desk", "Use E at the desk to research, up to four sessions each day. Watch, 6x or Skip process the same world time and household consequences.", "Desk", true)
 	if anywhere or _near("TipTop"):
-		_offer("guide_robot", "TipTop means well. Faulty chores make real messes. E near him opens individual routine repairs; cleaning alone doesn't teach him a better routine.", "TipTop", true)
+		_offer("guide_robot", "TipTop means well. Faulty chores make real messes. His robot icon shows the repair checklist; E near him opens repairs. Cleaning alone doesn't correct a routine.", "repairs", true)
 	if anywhere or _near("Fridge") or _near("CoffeeTable") or GameState.hunger < 75:
-		_offer("guide_needs", "Watch fullness and Mood. Eat through the fridge; take a coffee-table break with reels, games or the cube. Low needs make research harder.", "needs", true)
+		_offer("guide_needs", "Fullness shifts from sage to amber, orange, then brick as it falls. Eat at the fridge; coffee-table leisure restores Mood. Hover/focus or click the heart for details.", "needs", true)
 	if anywhere or _near("Desk"):
 		_offer("guide_target", "Aim for 75% research. On %s, a standard session costs %d game minutes. A running tap adds time and cuts gains; repairs can also earn progress." % [GameState.profile()["name"], GameState.profile()["research_minutes"]], "research", true)
 	if anywhere or _near("Bed"):
@@ -189,6 +189,10 @@ func _bounds(target: String) -> Rect2:
 	match target:
 		"clock":
 			node = hud.get("time_bar").get_parent()
+		"deadline":
+			node = hud.get("deadline_bar").get_parent()
+		"repairs":
+			node = hud.get("detail_buttons")["repairs"]
 		"needs":
 			node = hud.get("hunger_bar").get_parent()
 		"research":

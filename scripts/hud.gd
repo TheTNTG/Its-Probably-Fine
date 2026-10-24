@@ -80,6 +80,17 @@ var mood_hint: Label
 var tutorial: Control
 var showcase: Control
 var ending_kind := ""
+var deadline_label: Label
+var deadline_bar: ProgressBar
+var deadline_fill: StyleBoxFlat
+var detail_controller: Node
+var detail_panel: PanelContainer
+var detail_buttons: Dictionary = {}
+var detail_groups: Dictionary = {}
+var detail_research: Label
+var detail_needs: Label
+var detail_repair_count: Label
+var compact_warning: Label
 const TIME_COLORS := [Color("72a7be"), Color("e0b065"), Color("a78abd"), Color("83b6a2"), Color("bd947a"), Color("7f8595")]
 
 
@@ -333,7 +344,7 @@ func _fit_screen_ui() -> void:
 
 func _smooth_ui_text(node: Node) -> void:
 	if node is Control:
-		node.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if node.has_meta("dialogue_pixel_art") else CanvasItem.TEXTURE_FILTER_LINEAR
+		node.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if (node.has_meta("dialogue_pixel_art") or node.has_meta("pixel_icon")) else CanvasItem.TEXTURE_FILTER_LINEAR
 	for child in node.get_children():
 		_smooth_ui_text(child)
 
@@ -348,6 +359,15 @@ func _update_clock_hud() -> void:
 	var fraction := (GameState.DAY_END - current) / float(GameState.DAY_END - GameState.DAY_START)
 	time_bar.value = fraction * 100.0
 	time_bar_fill.bg_color = Color("d87369") if fraction < 0.15 else (Color("df9e48") if fraction < 0.40 else Color("e1bd70"))
+	# Remaining playable time: future nine-hour days plus today's remainder.
+	# Overnight hours are deliberately absent; pending clock fractions are shared.
+	var total := float(GameState.LAST_DAY * GameState.DAY_LENGTH)
+	var remaining := clampf((GameState.LAST_DAY - GameState.day) * GameState.DAY_LENGTH + GameState.DAY_END - current, 0, total)
+	var minutes := int(ceil(remaining - 0.000001))
+	deadline_label.text = "Showcase in\n%dh %02dm playable" % [minutes / 60, minutes % 60]
+	deadline_bar.value = remaining / total * 100.0
+	deadline_fill.bg_color = _muted_gradient(remaining / total, [0.0, 0.10, 0.25, 0.5, 1.0], [Color("aa625c"), Color("aa625c"), Color("c28764"), Color("c6a367"), Color("86a795")])
+	deadline_label.modulate = Color("dca69a") if remaining <= 60 else Color.WHITE
 
 
 func _update_hud() -> void:
@@ -447,8 +467,8 @@ func _hud_card(bounds: Rect2) -> Panel:
 
 func _build_needs_ui() -> void:
 	var card := _hud_card(Rect2(162, 4, 146, 30))
-	hunger_label = _hud_text(card, "", Vector2(4, 1), 6)
-	mood_label = _hud_text(card, "", Vector2(77, 1), 6)
+	hunger_label = _hud_text(card, "", Vector2(15, 1), 6)
+	mood_label = _hud_text(card, "", Vector2(88, 1), 6)
 	hunger_bar = ProgressBar.new()
 	mood_bar = ProgressBar.new()
 	hunger_fill = StyleBoxFlat.new()
@@ -465,24 +485,37 @@ func _build_needs_ui() -> void:
 	mood_bar.add_theme_stylebox_override("fill", mood_fill)
 	hunger_status_label = _hud_text(card, "", Vector2(4, 20), 5)
 	mood_hint = _hud_text(card, "", Vector2(77, 20), 5)
-	efficiency_label = _hud_text(sidebar, "", Vector2.ZERO, 6)
-	sessions_label.reparent(sidebar, false)
+	for spec in [["food", 4, "Fullness"], ["needs", 77, "Mood"]]:
+		var icon := TextureRect.new()
+		icon.texture = _hud_icon(spec[0])
+		icon.position = Vector2(spec[1], 1)
+		icon.size = Vector2(9, 9)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.set_meta("pixel_icon", true)
+		card.add_child(icon)
+		var hit := Button.new()
+		hit.position = Vector2(spec[1] - 2, 0)
+		hit.size = Vector2(69, 30)
+		hit.tooltip_text = spec[2]
+		hit.set_meta("details_category", "needs")
+		for state in ["normal", "hover", "pressed"]:
+			hit.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+		var focus := StyleBoxFlat.new()
+		focus.bg_color = Color.TRANSPARENT
+		focus.border_color = Color("e6b369")
+		focus.set_border_width_all(1)
+		focus.set_corner_radius_all(3)
+		hit.add_theme_stylebox_override("focus", focus)
+		card.add_child(hit)
+		detail_buttons["top_" + str(spec[0])] = hit
+	sessions_label.reparent(detail_groups["research"], false)
 	sessions_label.add_theme_font_size_override("font_size", 6)
+	detail_controller.call("setup", self, detail_buttons, detail_groups, detail_panel, sidebar, UI_REFERENCE.y)
 
 
 func _side_section() -> VBoxContainer:
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("23242bed")
-	style.border_color = Color("565459")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	style.content_margin_left = 5
-	style.content_margin_right = 5
-	style.content_margin_top = 5
-	style.content_margin_bottom = 5
-	panel.add_theme_stylebox_override("panel", style)
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_theme_stylebox_override("panel", _detail_style())
 	sidebar.add_child(panel)
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override("separation", 2)
@@ -491,10 +524,45 @@ func _side_section() -> VBoxContainer:
 	return body
 
 
+func _detail_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("23242bf5")
+	style.border_color = Color("565459")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(5)
+	return style
+
+
+func _hud_icon(category: String) -> Texture2D:
+	# Tiny monochrome pixel icons, built once; no emoji or external assets.
+	var patterns := {
+		"research": [".###.###.", ".#..#..#.", ".#..#..#.", ".#.###.#.", ".#..#..#.", ".#..#..#.", ".###.###.", "....#....", "........."],
+		"repairs": ["..#####..", ".#.....#.", ".#.#.#.#.", ".#.....#.", "..#####..", "....#....", "..#####..", ".#..#..#.", "........."],
+		"time": ["..#####..", ".#.....#.", "#...#...#", "#...#...#", "#...###.#", "#.......#", ".#.....#.", "..#####..", "........."],
+		"needs": [".##...##.", "#..#.#..#", "#...#...#", "#.......#", ".#.....#.", "..#...#..", "...#.#...", "....#....", "........."],
+		"food": ["#.#.#....", "#.#.#..#.", "#####..#.", "..#....#.", "..#....#.", "..#....#.", "..#....#.", "..#....#.", "........."]}
+	var image := Image.create(9, 9, false, Image.FORMAT_RGBA8)
+	image.fill(Color.TRANSPARENT)
+	var rows: Array = patterns[category]
+	for y in range(9):
+		for x in range(9):
+			if rows[y][x] == "#":
+				image.set_pixel(x, y, Color("eadbc0"))
+	return ImageTexture.create_from_image(image)
+
+
+func _detail_text(parent: Node, text: String, font_size: int = 7) -> Label:
+	var label := _hud_text(parent, text, Vector2.ZERO, font_size)
+	label.custom_minimum_size.x = 72
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return label
+
+
 func _build_right_sidebar() -> void:
 	sidebar = VBoxContainer.new()
 	sidebar.position = Vector2(SIDEBAR_X, 4)
-	sidebar.size = Vector2(96, 280)
+	sidebar.size = Vector2(96, 0)
 	sidebar.add_theme_constant_override("separation", 3)
 	sidebar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(sidebar)
@@ -510,7 +578,6 @@ func _build_right_sidebar() -> void:
 	fill.bg_color = Color("639dad")
 	overview_bar.add_theme_stylebox_override("fill", fill)
 	progress.add_child(overview_bar)
-	# A marker at the true target, while the bar still ranges to 100%.
 	var marker := ColorRect.new()
 	marker.color = Color("f3d087")
 	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -519,10 +586,65 @@ func _build_right_sidebar() -> void:
 	marker.anchor_right = marker.anchor_left
 	marker.anchor_bottom = 1.0
 	marker.offset_right = 1
-	_hud_text(progress, "Target: %.0f%% | Max: 100%%" % GameState.GOOD_ENDING_RESEARCH_THRESHOLD, Vector2.ZERO, 6)
-	_hud_text(progress, "Deadline: Day 3, 8:00 PM", Vector2.ZERO, 6)
-	var problems := _side_section()
-	_hud_text(problems, "TipTop's Problems", Vector2.ZERO, 6)
+	_hud_text(progress, "Target: %.0f%%" % GameState.GOOD_ENDING_RESEARCH_THRESHOLD, Vector2.ZERO, 6)
+	deadline_label = _hud_text(progress, "", Vector2.ZERO, 6)
+	deadline_bar = ProgressBar.new()
+	deadline_bar.show_percentage = false
+	deadline_bar.step = 0.0
+	_style_thin_bar(deadline_bar)
+	deadline_bar.custom_minimum_size = Vector2(0, 3)
+	deadline_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	deadline_fill = StyleBoxFlat.new()
+	deadline_bar.add_theme_stylebox_override("fill", deadline_fill)
+	progress.add_child(deadline_bar)
+	var categories := HBoxContainer.new()
+	categories.add_theme_constant_override("separation", 0)
+	sidebar.add_child(categories)
+	for category in ["research", "repairs", "time", "needs"]:
+		var button := Button.new()
+		button.icon = _hud_icon(category)
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.custom_minimum_size = Vector2(24, 22)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.tooltip_text = {"research": "Research", "repairs": "TipTop repairs", "time": "Time usage", "needs": "Needs"}[category]
+		button.set_meta("details_category", category)
+		button.set_meta("pixel_icon", true)
+		for state in ["normal", "hover", "pressed", "focus"]:
+			var style := _detail_style()
+			style.set_content_margin_all(3)
+			if state != "normal":
+				style.border_color = Color("e6b369")
+			button.add_theme_stylebox_override(state, style)
+		categories.add_child(button)
+		detail_buttons[category] = button
+	problem_count = _hud_text(sidebar, "", Vector2.ZERO, 6)
+	compact_warning = _hud_text(sidebar, "", Vector2.ZERO, 6)
+	compact_warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	compact_warning.add_theme_color_override("font_color", Color("d3987b"))
+	detail_panel = PanelContainer.new()
+	detail_panel.add_theme_stylebox_override("panel", _detail_style())
+	detail_panel.size = Vector2(96, 145)
+	detail_panel.hide()
+	add_child(detail_panel)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.focus_mode = Control.FOCUS_ALL
+	scroll.follow_focus = true
+	detail_panel.add_child(scroll)
+	var pages := VBoxContainer.new()
+	pages.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(pages)
+	for category in ["research", "repairs", "time", "needs"]:
+		var group := VBoxContainer.new()
+		group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		group.add_theme_constant_override("separation", 3)
+		pages.add_child(group)
+		detail_groups[category] = group
+		_detail_text(group, {"research": "Research", "repairs": "TipTop routines", "time": "Time usage", "needs": "Fullness / Mood"}[category], 8)
+	var research: VBoxContainer = detail_groups["research"]
+	detail_research = _detail_text(research, "")
+	efficiency_label = _detail_text(research, "", 6)
+	var problems: VBoxContainer = detail_groups["repairs"]
 	var names := ["Sink routine", "Plant watering", "Bookshelf organizing", "Bed-making"]
 	for index in range(GameState.REPAIR_ROUTINES.size()):
 		var row := RichTextLabel.new()
@@ -534,9 +656,10 @@ func _build_right_sidebar() -> void:
 		row.set_meta("routine_name", names[index])
 		problems.add_child(row)
 		problem_rows[GameState.REPAIR_ROUTINES[index]] = row
-	problem_count = _hud_text(problems, "", Vector2.ZERO, 6)
-	var usage := _side_section()
-	usage_title = _hud_text(usage, "Today's Time Usage", Vector2.ZERO, 6)
+	detail_repair_count = _detail_text(problems, "", 6)
+	_detail_text(problems, "Repair each routine through TipTop. Cleanup does not repair it.")
+	var usage: VBoxContainer = detail_groups["time"]
+	usage_title = _detail_text(usage, "", 6)
 	var distribution := HBoxContainer.new()
 	distribution.custom_minimum_size = Vector2(0, 4)
 	distribution.add_theme_constant_override("separation", 0)
@@ -550,10 +673,14 @@ func _build_right_sidebar() -> void:
 		segment.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		distribution.add_child(segment)
 		usage_segments[category] = segment
-		var row := _hud_text(usage, "", Vector2.ZERO, 6)
+		var row := _detail_text(usage, "", 6)
 		row.modulate = TIME_COLORS[index]
 		row.set_meta("caption", captions[index])
 		usage_rows[category] = row
+	detail_needs = _detail_text(detail_groups["needs"], "")
+	detail_controller = Node.new()
+	detail_controller.set_script(preload("res://scripts/hud_details.gd"))
+	add_child(detail_controller)
 
 
 func _update_sidebar() -> void:
@@ -566,7 +693,20 @@ func _update_sidebar() -> void:
 		if row.text != content:
 			row.text = content
 		fixed_count += int(fixed)
-	problem_count.text = "%d / 4 fixed" % fixed_count
+	problem_count.text = "TipTop: %d/4 fixed" % fixed_count
+	detail_repair_count.text = "%d / 4 repaired" % fixed_count
+	detail_research.text = "Progress: %.1f%%\nTarget: %.0f%%\n%s\nSession: %d min%s\nBase reward: +%.0f%%\nNow: +%.1f%%\nWatch / 6x / Skip simulate the same time." % [GameState.research_progress, GameState.GOOD_ENDING_RESEARCH_THRESHOLD, GameState.profile()["name"], GameState.research_session_minutes(), " (tap penalty)" if GameState.tap_running else "", GameState.profile()["research"], GameState.preview_research_gain()]
+	var warning := ""
+	if int(GameState.chore_mess["bookshelf"]) >= 2:
+		warning = "! Books block research"
+	elif not GameState.mood_allows_research():
+		warning = "! Mood blocks research"
+	elif GameState.hunger < 25:
+		warning = "! Eat soon"
+	elif not GameState.has_research_time() and GameState.work_sessions_remaining > 0:
+		warning = "! Not enough work time"
+	compact_warning.text = warning
+	compact_warning.visible = not warning.is_empty()
 	var totals := GameState.displayed_daily_time()
 	var elapsed := 0.0
 	for category in GameState.TIME_CATEGORIES:
@@ -586,17 +726,30 @@ func _minutes_text(minutes: float) -> String:
 
 
 func _update_needs_ui() -> void:
-	hunger_label.text = "Hunger: %d%%" % int(GameState.hunger)
+	hunger_label.text = "Full: %d%%" % int(GameState.hunger)
 	mood_label.text = "Mood: %d%%" % int(GameState.mood)
 	hunger_bar.value = GameState.hunger
 	mood_bar.value = GameState.mood
-	hunger_fill.bg_color = Color("dc795d") if GameState.hunger <= 45 else Color("e0b065")
-	mood_fill.bg_color = Color("df806a") if GameState.mood < 45 else Color("8fbb91")
-	mood_label.modulate = Color("ffad8e") if GameState.mood < 45 else Color.WHITE
+	hunger_fill.bg_color = _muted_gradient(GameState.hunger, [0.0, 24.0, 45.0, 60.0, 75.0, 100.0], [Color("aa625c"), Color("aa625c"), Color("c28764"), Color("c6a367"), Color("92aa85"), Color("92aa85")])
+	mood_fill.bg_color = Color("c28764") if GameState.mood < 45 else Color("83aaa2")
+	mood_label.modulate = Color("dca69a") if GameState.mood < 45 else Color.WHITE
 	mood_hint.text = "Push through (-20%)" if GameState.pushing_through() else ("Rest needed (<45)" if GameState.mood < 45 else "Ready for research")
 	efficiency_label.text = "Efficiency: %d%%" % int(round(GameState.research_efficiency() * 100))
-	hunger_status_label.text = GameState.hunger_status()
-	hunger_status_label.modulate = Color("8fbb91") if GameState.hunger >= 75 else (Color("ffad8e") if GameState.hunger <= 45 else Color.WHITE)
+	hunger_status_label.text = "! Critical fullness" if GameState.hunger < 25 else GameState.hunger_status()
+	if GameState.hunger < 60:
+		var loss := int(round((1.0 - GameState.hunger_efficiency()) * 100))
+		hunger_status_label.text = ("! Critical" if GameState.hunger < 25 else GameState.hunger_status()) + " (-%d%%)" % loss
+	hunger_status_label.modulate = Color("92aa85") if GameState.hunger >= 75 else (Color("dca69a") if GameState.hunger <= 45 else Color.WHITE)
+	detail_needs.text = "Fullness: %d%% (%s)\nFood efficiency: %d%%\nEat: 30 min, +40.\n\nMood: %d%%\n%s\n\nLeisure: reels +18 / 15 min; games +30 / 30 min; cube +25 / 20 min.\n\nWell-fed: 75+. Hungry: 45 or less. Fullness below 60 reduces research gains. Bedtime fullness affects tomorrow's Mood." % [int(GameState.hunger), GameState.hunger_status(), int(round(GameState.hunger_efficiency() * 100)), int(GameState.mood), "Pushing through: -20% research." if GameState.pushing_through() else ("Research needs 45 Mood. Take a coffee-table break." if GameState.mood < 45 else "Ready for research (45+ Mood).")]
+
+
+func _muted_gradient(value: float, stops: Array, colors: Array) -> Color:
+	for index in range(1, stops.size()):
+		if value <= float(stops[index]):
+			var weight := inverse_lerp(float(stops[index - 1]), float(stops[index]), value)
+			var previous: Color = colors[index - 1]
+			return previous.lerp(colors[index], clampf(weight, 0, 1))
+	return colors.back()
 
 
 func _hud_text(parent: Node, text: String, point: Vector2, font_size: int) -> Label:
