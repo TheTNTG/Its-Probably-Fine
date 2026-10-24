@@ -163,6 +163,7 @@ func _process(delta: float) -> void:
 
 
 func _open_panel(heading: String, width: float = 310) -> void:
+	ApartmentAudio.play_ui("menu")
 	_close_panel(false)
 	main_menu.hide()
 	modal = ColorRect.new()
@@ -191,6 +192,8 @@ func _paragraph(text: String, font_size: int = 10) -> Label:
 
 
 func _close_panel(restore_focus: bool = true) -> void:
+	if restore_focus:
+		ApartmentAudio.play_ui("menu")
 	if is_instance_valid(modal):
 		canvas.remove_child(modal)
 		modal.queue_free()
@@ -330,21 +333,29 @@ func _help_visual(parent: Control, kind: String) -> void:
 
 func _show_settings() -> void:
 	_open_panel("Settings")
-	var master := AudioServer.get_bus_index("Master")
-	if master >= 0:
-		var volume_label := _label(modal_body, "Master volume", 10)
+	for bus_name in ["Master", "SFX", "Ambience", "Music"]:
+		var bus := AudioServer.get_bus_index(bus_name)
+		if bus < 0:
+			continue
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		modal_body.add_child(row)
+		var volume_label := _label(row, bus_name, 9)
+		volume_label.custom_minimum_size.x = 100
 		var slider := HSlider.new()
 		slider.min_value = 0
 		slider.max_value = 100
 		slider.step = 1
 		slider.custom_minimum_size.y = 18
-		slider.value = 0.0 if AudioServer.is_bus_mute(master) else db_to_linear(AudioServer.get_bus_volume_db(master)) * 100.0
-		modal_body.add_child(slider)
-		volume_label.text = "Master volume: %d%%" % slider.value
+		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slider.accessibility_name = bus_name + " volume"
+		slider.value = 0.0 if AudioServer.is_bus_mute(bus) else db_to_linear(AudioServer.get_bus_volume_db(bus)) * 100.0
+		row.add_child(slider)
+		volume_label.text = "%s: %d%%" % [bus_name, slider.value]
 		slider.value_changed.connect(func(value: float):
-			AudioServer.set_bus_mute(master, value <= 0)
-			AudioServer.set_bus_volume_db(master, linear_to_db(maxf(value / 100.0, 0.0001)))
-			volume_label.text = "Master volume: %d%%" % value)
+			AudioServer.set_bus_mute(bus, value <= 0)
+			AudioServer.set_bus_volume_db(bus, linear_to_db(maxf(value / 100.0, 0.0001)))
+			volume_label.text = "%s: %d%%" % [bus_name, value])
 	var fullscreen := CheckButton.new()
 	fullscreen.text = "Fullscreen"
 	fullscreen.button_pressed = DisplayServer.window_get_mode() in [DisplayServer.WINDOW_MODE_FULLSCREEN, DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]

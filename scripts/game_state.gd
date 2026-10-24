@@ -139,6 +139,7 @@ func can_eject_task() -> bool:
 func eject_current_task() -> void:
 	if not can_eject_task():
 		return
+	ApartmentAudio.stop_activity()
 	# Commit only the time already accumulated before clearing the activity owner.
 	if world_accumulator > 0:
 		var pending := world_accumulator
@@ -220,6 +221,7 @@ func eliminate_mosquito(id: int, from_point: Vector2) -> bool:
 	if not mosquitoes.has(id) or from_point.distance_to(mosquitoes[id]["position"]) > 9.0:
 		return false
 	mosquitoes.erase(id)
+	ApartmentAudio.play_world("swat", from_point)
 	water_exposure = maxf(0, water_exposure - 30)
 	mosquito_level = int(ceil(mosquitoes.size() / 2.0))
 	mosquito_spawn_after = world_elapsed + 10.0
@@ -346,11 +348,13 @@ func skip_personal_activity() -> void:
 	if activity_skip_busy or personal_activity.is_empty() or get_tree().paused:
 		return
 	activity_skip_busy = true
+	ApartmentAudio.begin_instant()
 	advance_personal_activity(personal_remaining)
 	for id in mosquitoes:
 		mosquitoes[id]["previous"] = mosquitoes[id]["position"]
 	get_tree().current_scene.get_node("Floor").reset_mosquito_visuals()
 	activity_skip_busy = false
+	ApartmentAudio.end_instant()
 
 
 func begin_research() -> bool:
@@ -522,6 +526,8 @@ func complete_research() -> void:
 
 
 func swat_mosquitoes(manual: bool) -> void:
+	if manual and not mosquitoes.is_empty():
+		ApartmentAudio.play_world("swat", get_tree().current_scene.get_node("Player").global_position)
 	water_exposure = maxf(0.0, water_exposure - 60.0)
 	mosquito_level = mini(3, int(water_exposure / 60.0))
 	mosquito_task = false
@@ -587,6 +593,8 @@ func manual_clean(chore: String) -> bool:
 		return false
 	_advance_time(CLEAN_COSTS[chore], "cleanup")
 	clear_mess(chore)
+	var fixture: String = {"sink": "Sink", "plant": "PlantPot", "bookshelf": "Bookshelf", "bed": "Bed"}[chore]
+	ApartmentAudio.play_world("books" if chore == "bookshelf" else ("bedding" if chore == "bed" else "clean"), get_tree().current_scene.get_node(fixture).global_position)
 	action_feedback.emit("%s tidied. Routine unchanged. (-%d min)" % [chore.capitalize(), CLEAN_COSTS[chore]])
 	return true
 
@@ -738,6 +746,7 @@ func repair_routine(chore: String) -> void:
 	if earned_bonus:
 		research_progress = minf(research_progress + 10, 100)
 	repair_in_progress = false
+	ApartmentAudio.play_ui("repair", true)
 	state_changed.emit()
 	action_feedback.emit("%s routine repaired: +%.0f%% research. (-%d min)" % [chore.capitalize(), reward, duration])
 	if ending_day_pending:

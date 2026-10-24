@@ -230,6 +230,8 @@ func personal_activity(activity: String) -> void:
 	if GameState.DAY_END - GameState.time_minutes - GameState.clock_fraction - GameState.world_accumulator < duration:
 		GameState.action_feedback.emit("Not enough time before 8:00 PM for that activity.")
 		return
+	if activity == "eat":
+		ApartmentAudio.fridge_access()
 	animation_busy = true
 	velocity = Vector2.ZERO
 	interaction_prompt.hide()
@@ -538,6 +540,7 @@ func play_sleep_animation() -> void:
 		await _walk_for_animation(standing)
 	visual.animation = "walk_down"
 	visual.frame = 0
+	ApartmentAudio.play_ui("bedding", true)
 	var tuck_in := _pose_tween().set_parallel()
 	tuck_in.tween_property(visual, "position", bed.global_position + Vector2(0, -22) * bed.scale - global_position, 0.3)
 	tuck_in.tween_property(visual, "scale", Vector2(0.5, 0.4), 0.3)

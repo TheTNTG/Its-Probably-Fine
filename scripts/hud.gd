@@ -202,7 +202,9 @@ func _skip_research() -> void:
 	if remaining > 0.0:
 		# Preserve scheduled chores, messes and mosquitoes; the player animation
 		# handles standing up and awarding the session exactly once afterward.
+		ApartmentAudio.begin_instant()
 		GameState.advance_research(remaining)
+		ApartmentAudio.end_instant()
 
 
 func household_choices(location: String) -> void:
@@ -1536,6 +1538,7 @@ func _open_pause() -> void:
 	detail_controller.call("exit_navigation")
 	if transitioning or loop_panel.visible:
 		return
+	ApartmentAudio.play_ui("menu")
 	pause_panel.show()
 	get_node("../Player").interaction_prompt.hide()
 	get_node("../TipTop").clear_monologue()
@@ -1557,6 +1560,7 @@ func request_rest() -> void:
 
 
 func _resume_pause() -> void:
+	ApartmentAudio.play_ui("menu")
 	pause_panel.hide()
 	_restore_modal_pause()
 	get_viewport().gui_release_focus()
@@ -1679,6 +1683,7 @@ func _advance_dialogue() -> void:
 		dialogue_resume_loop = loop_panel.visible
 		loop_panel.hide()
 	var line: Array = dialogue_lines.pop_front()
+	ApartmentAudio.play_ui("page")
 	active_dialogue_event = str(line[4]) if line.size() > 4 else ""
 	if line[0] == "Judy" and line.size() > 3 and not str(line[3]).is_empty():
 		line[1] = GameState.judy_response(line[3])

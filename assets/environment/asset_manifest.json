@@ -1,0 +1,178 @@
+{
+  "tile_size": 32,
+  "atlas_tiles": [
+    "wood_warm",
+    "wood_dark",
+    "wood_light",
+    "wall_straight",
+    "wall_left_cap",
+    "wall_right_cap",
+    "wall_corner_inner",
+    "wall_corner_outer"
+  ],
+  "furniture": {
+    "bed": {
+      "size_px": [
+        127,
+        187
+      ],
+      "suggested_origin_px": [
+        63,
+        186
+      ],
+      "source_box": [
+        14,
+        323,
+        141,
+        510
+      ],
+      "status": "draft crop; visually verify edges/labels before use",
+      "collision": "define separately at feet/base in Godot"
+    },
+    "desk": {
+      "size_px": [
+        255,
+        139
+      ],
+      "suggested_origin_px": [
+        127,
+        138
+      ],
+      "source_box": [
+        466,
+        341,
+        721,
+        480
+      ],
+      "status": "draft crop; visually verify edges/labels before use",
+      "collision": "define separately at feet/base in Godot"
+    },
+    "chair": {
+      "size_px": [
+        99,
+        97
+      ],
+      "suggested_origin_px": [
+        49,
+        96
+      ],
+      "source_box": [
+        575,
+        443,
+        674,
+        540
+      ],
+      "status": "draft crop; visually verify edges/labels before use",
+      "collision": "define separately at feet/base in Godot"
+    },
+    "sink": {
+      "size_px": [
+        165,
+        128
+      ],
+      "suggested_origin_px": [
+        82,
+        127
+      ],
+      "source_box": [
+        1190,
+        36,
+        1355,
+        164
+      ],
+      "status": "draft crop; visually verify edges/labels before use",
+      "collision": "define separately at feet/base in Godot"
+    },
+    "fridge": {
+      "size_px": [
+        140,
+        179
+      ],
+      "suggested_origin_px": [
+        70,
+        178
+      ],
+      "source_box": [
+        1220,
+        349,
+        1360,
+        528
+      ],
+      "status": "draft crop; visually verify edges/labels before use",
+      "collision": "define separately at feet/base in Godot"
+    },
+    "bookshelf": {
+      "size_px": [
+        140,
+        174
+      ],
+      "suggested_origin_px": [
+        70,
+        173
+      ],
+      "source_box": [
+        924,
+        348,
+        1064,
+        522
+      ],
+      "status": "draft crop; visually verify edges/labels before use",
+      "collision": "define separately at feet/base in Godot"
+    },
+    "plant": {
+      "size_px": [
+        106,
+        173
+      ],
+      "suggested_origin_px": [
+        53,
+        172
+      ],
+      "source_box": [
+        260,
+        555,
+        366,
+        728
+      ],
+      "status": "draft crop; visually verify edges/labels before use",
+      "collision": "define separately at feet/base in Godot"
+    },
+    "rug": {
+      "size_px": [
+        238,
+        207
+      ],
+      "suggested_origin_px": [
+        119,
+        206
+      ],
+      "source_box": [
+        227,
+        76,
+        465,
+        283
+      ],
+      "status": "draft crop; visually verify edges/labels before use",
+      "collision": "define separately at feet/base in Godot"
+    },
+    "coffee_table": {
+      "size_px": [
+        117,
+        122
+      ],
+      "suggested_origin_px": [
+        58,
+        121
+      ],
+      "source_box": [
+        94,
+        555,
+        211,
+        677
+      ],
+      "status": "draft crop; visually verify edges/labels before use",
+      "collision": "define separately at feet/base in Godot"
+    }
+  },
+  "warning": "Furniture are draft crops from an illustrated sheet, not certified production sprites. Inspect for stray labels/background and correct perspective before import. Seamless wood/wall tiles are deliberately simple original pixel patterns; concept-level detail still requires dedicated artwork."
+}
