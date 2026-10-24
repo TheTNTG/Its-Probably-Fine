@@ -171,7 +171,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if GameState.needs_cleanup("bed"):
 			_clean_animation("bed")
 		else:
-			GameState.end_day()
+			get_node("../HUD").request_rest()
 	elif target == plant or target == bookshelf:
 		if target == plant and GameState.mosquito_level > 0:
 			get_node("../HUD").household_choices("plant")

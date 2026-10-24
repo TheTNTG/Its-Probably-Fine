@@ -22,6 +22,10 @@ const DIFFICULTIES := [
 ]
 var difficulty := 1
 var difficulty_locked := false
+# Tutorial-only memory: independent of rewards, repairs and story flags.
+var tutorial_seen: Dictionary = {}
+var tutorial_skipped := false
+var tutorial_finished := false
 const TIME_CATEGORIES := ["research", "eating", "leisure", "repairs", "cleanup", "misc"]
 var daily_time := {"research": 0.0, "eating": 0.0, "leisure": 0.0, "repairs": 0.0, "cleanup": 0.0, "misc": 0.0}
 var daily_time_history: Dictionary = {}
@@ -575,6 +579,8 @@ func manual_clean(chore: String) -> bool:
 
 
 func finish_household_chore(chore: String, scheduled := false) -> void:
+	if not tutorial_finished:
+		return
 	if day_ended or game_finished or (household_busy and not scheduled) or not chore_mess.has(chore):
 		return
 	if repairs[chore]:
@@ -751,6 +757,9 @@ func ignore_tap() -> void:
 
 
 func restart() -> void:
+	tutorial_seen.clear()
+	tutorial_skipped = false
+	tutorial_finished = false
 	mosquito_batch.clear()
 	batch_removed = 0
 	difficulty = 1

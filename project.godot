@@ -26,7 +26,6 @@ window/size/viewport_height=288
 window/size/window_width_override=1152
 window/size/window_height_override=864
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
 window/stretch/scale_mode="integer"
 
 [input]
@@ -61,15 +60,12 @@ interact={
 ]
 }
 
-[rendering]
-
-environment/defaults/default_clear_color=Color(0.09, 0.098, 0.122, 1)
-
-textures/canvas_textures/default_texture_filter=0
-rendering_device/driver.windows="d3d12"
-2d/snap/snap_2d_transforms_to_pixel=false
-2d/snap/snap_2d_vertices_to_pixel=false
-
 [physics]
 
 common/physics_interpolation=true
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+rendering_device/driver.windows="d3d12"
+environment/defaults/default_clear_color=Color(0.09, 0.098, 0.122, 1)

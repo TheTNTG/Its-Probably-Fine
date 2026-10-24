@@ -77,6 +77,7 @@ var pause_panel: ColorRect
 var eject_button: Button
 var eject_hint: Label
 var mood_hint: Label
+var tutorial: Control
 const TIME_COLORS := [Color("72a7be"), Color("e0b065"), Color("a78abd"), Color("83b6a2"), Color("bd947a"), Color("7f8595")]
 
 
@@ -274,6 +275,9 @@ func _ready() -> void:
 	GameState.repair_menu_requested.connect(_open_repair_menu)
 	GameState.action_feedback.connect(_show_feedback)
 	_update_hud()
+	tutorial = Control.new()
+	tutorial.set_script(preload("res://scripts/tutorial.gd"))
+	add_child(tutorial)
 	if get_tree().has_meta("restart_playing"):
 		get_tree().remove_meta("restart_playing")
 		loop_panel.hide()
@@ -1116,7 +1120,7 @@ func _build_pause_menu() -> void:
 	choices.add_theme_constant_override("separation", 5)
 	panel.add_child(choices)
 	_hud_text(choices, "Paused", Vector2.ZERO, 12)
-	var items := [["Resume", _resume_pause], ["Eject Current Task", _eject_from_pause], ["Restart Game", _restart_from_pause.bind(true)], ["Return to Main Menu", _restart_from_pause.bind(false)], ["Quit Game", func(): get_tree().quit()]]
+	var items := [["Resume", _resume_pause], ["Eject Current Task", _eject_from_pause], ["Review Tutorial", _review_tutorial], ["Restart Game", _restart_from_pause.bind(true)], ["Return to Main Menu", _restart_from_pause.bind(false)], ["Quit Game", func(): get_tree().quit()]]
 	for index in range(items.size()):
 		var button := Button.new()
 		button.text = items[index][0]
@@ -1142,6 +1146,17 @@ func _open_pause() -> void:
 	get_node("../TipTop").action_label.hide()
 	get_tree().paused = true
 	get_viewport().gui_release_focus()
+
+
+func _review_tutorial() -> void:
+	_resume_pause()
+	tutorial.call("review")
+
+
+func request_rest() -> void:
+	if tutorial.call("warn_before_sleep"):
+		return
+	GameState.end_day()
 
 
 func _resume_pause() -> void:
@@ -1173,6 +1188,9 @@ func _restart_from_pause(play_now: bool) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if is_instance_valid(tutorial) and tutorial.call("handle_input", event):
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
 		if transitioning:

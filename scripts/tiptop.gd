@@ -466,6 +466,10 @@ func _move_actor(delta: float, playback: float) -> void:
 
 
 func _tick_ai(delta: float, playback: float) -> void:
+	# Covers ordinary movement, Watch/6x and world-step Skip simulation.
+	if not GameState.tutorial_finished:
+		velocity = Vector2.ZERO
+		return
 	if playback != previous_playback:
 		velocity *= playback / previous_playback
 		previous_playback = playback
