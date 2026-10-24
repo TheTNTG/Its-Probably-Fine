@@ -27,6 +27,7 @@ var cleanup_target := false
 var swatting := false
 var session_serial := -1
 var finished_chore_serial := -1
+var thought_serial := -1
 var task_outcome := "idle"
 var navigation_attempts := 0
 var travel_elapsed := 0.0
@@ -157,6 +158,24 @@ func _finish_presentation(outcome: String) -> void:
 	_chore_visual().call("set_chore_active", false)
 	action_label.hide()
 	finished_chore_serial = GameState.research_task_serial
+	if outcome in ["completed", "failed", "cancelled"]:
+		GameState.resolve_robot_chore(finished_chore_serial, outcome == "completed")
+
+
+func _bookshelf_front() -> Vector2:
+	var shelf: Node2D = get_node("../Bookshelf")
+	var collision: CollisionShape2D = shelf.get_node("CollisionShape2D")
+	var footprint := collision.shape as RectangleShape2D
+	return shelf.to_global(Vector2(0, collision.position.y + footprint.size.y * 0.5)) + Vector2(0, 5)
+
+
+func _at_chore() -> bool:
+	if global_position.distance_to(destination) > 2.0:
+		return false
+	if visit == 2:
+		return global_position.distance_to(_bookshelf_front()) <= 2.0
+	var fixture: Node2D = _chore_visual().get_parent()
+	return global_position.distance_to(fixture.global_position) <= 26.0
 
 
 func _choose_destination() -> void:
@@ -169,7 +188,7 @@ func _choose_destination() -> void:
 	var shelf_collision: CollisionShape2D = shelf.get_node("CollisionShape2D")
 	var shelf_shape := shelf_collision.shape as RectangleShape2D
 	var front := shelf_collision.position.y + shelf_shape.size.y * 0.5
-	stops[2] = shelf.to_global(Vector2(0, front)) + Vector2(0, 5)
+	stops[2] = _bookshelf_front()
 	var right_edge := shelf_collision.position.x + shelf_shape.size.x * 0.5
 	bookshelf_approach = shelf.to_global(Vector2(right_edge, front)) + Vector2(8, 5)
 	# Small variations keep repeated visits from looking like a fixed rail.
@@ -184,6 +203,9 @@ func _choose_destination() -> void:
 	has_destination = true
 	task_outcome = "travelling"
 	path.clear()
+	if visit == 2 and thought_serial != GameState.research_task_serial:
+		thought_serial = GameState.research_task_serial
+		show_monologue("The bookshelf requires my expertise.")
 
 
 func _physics_process(delta: float) -> void:
@@ -226,18 +248,23 @@ func _physics_process(delta: float) -> void:
 		return
 	if action_left > 0:
 		velocity = Vector2.ZERO
+		if not _at_chore():
+			_finish_presentation("failed")
+			return
 		_chore_visual().call("set_chore_active", not swatting)
 		action_left -= delta
 		if action_left <= 0:
 			# End the visible action once; do not loop its pose/label while
 			# waiting for the authoritative scheduler to select the next task.
+			if visit == 2:
+				show_monologue("Alphabetical. And upright. All done." if GameState.repairs["bookshelf"] else "A bold new arrangement. Excellent.")
 			_finish_presentation("completed")
 		return
 	if not has_destination:
 		action_label.hide()
 		_choose_destination()
 	var distance := global_position.distance_to(destination)
-	if distance < 1.2 and velocity.length() < 2.0 * playback:
+	if distance < 1.2 and _at_chore() and velocity.length() < 2.0 * playback:
 		velocity = Vector2.ZERO
 		path.clear()
 		task_outcome = "working"
@@ -248,6 +275,9 @@ func _physics_process(delta: float) -> void:
 			action_label.text = "Swatting..."
 		elif visit == 2:
 			action_label.text = "Organizing ↑"
+			show_monologue("Titles in order. Spines facing out." if GameState.repairs["bookshelf"] else "Largest books on top. A superior system.")
+		if visit == 1 and GameState.repairs["sink"] and GameState.tap_running:
+			GameState.turn_off_tap()
 		return
 	travel_elapsed += delta
 	if travel_elapsed > 20.0:

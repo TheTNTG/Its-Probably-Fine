@@ -57,6 +57,7 @@ var world_accumulator := 0.0
 var world_elapsed := 0.0
 var research_next_chore := 3.0
 var chore_cursor := 0
+var robot_chore_resolved := false
 
 
 func _ready() -> void:
@@ -123,6 +124,20 @@ func _select_research_chore() -> void:
 	if selected != research_task or not selected.is_empty():
 		research_task_serial += 1
 	research_task = selected
+	robot_chore_resolved = false
+
+
+func resolve_robot_chore(serial: int, succeeded: bool) -> void:
+	# Only the robot's completed physical action can produce chore effects.
+	if serial != research_task_serial or robot_chore_resolved or research_task.is_empty():
+		return
+	robot_chore_resolved = true
+	if succeeded and not day_ended and not game_finished:
+		if research_swat:
+			swat_mosquitoes(false)
+		else:
+			finish_household_chore(research_task, true)
+	state_changed.emit()
 
 
 func advance_research(minutes: float) -> void:
@@ -160,14 +175,9 @@ func _simulate_world_step(minutes: float) -> void:
 	else:
 		water_exposure = maxf(0.0, water_exposure - minutes * 2.0)
 	mosquito_level = mini(3, int(water_exposure / 60.0))
-	if world_elapsed >= research_next_chore - 1.0 and research_task == "sink" and repairs["sink"]:
-		tap_running = false
-	if world_elapsed >= research_next_chore:
-		if research_swat:
-			swat_mosquitoes(false)
-		elif not research_task.is_empty():
-			finish_household_chore(research_task, true)
-		research_next_chore += 3.0
+	if world_elapsed >= research_next_chore and (robot_chore_resolved or research_task.is_empty()):
+		# Cooldown starts now, never catch up by firing remote chores in a loop.
+		research_next_chore = world_elapsed + 3.0
 		_select_research_chore()
 	if research_active:
 		research_elapsed = minf(research_duration, research_elapsed + minutes)
@@ -188,7 +198,6 @@ func complete_research() -> void:
 	state_changed.emit()
 	action_feedback.emit("Research complete: +%d%%, %d min, %d session(s) left." % [research_gain, research_duration, work_sessions_remaining])
 	if not day_ended:
-		_check_malfunction()
 		if work_sessions_remaining <= 2:
 			story_event.emit("ambient_%d" % day)
 
@@ -267,6 +276,7 @@ func finish_household_chore(chore: String, scheduled := false) -> void:
 		# Use the same tap state as desk work and manual shutoff.
 		if chore == "sink":
 			tap_running = true
+			_check_malfunction()
 	state_changed.emit()
 
 
@@ -301,7 +311,6 @@ func continue_day() -> void:
 		chore_mess["bed"] = 1
 		if not repairs["sink"]:
 			first_work_done = false
-			_check_malfunction()
 		_select_research_chore()
 	state_changed.emit()
 	story_event.emit("ending" if game_finished else "day_%d" % day)
