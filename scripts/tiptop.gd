@@ -64,6 +64,10 @@ const REPAIRED_REACTIONS := {
 }
 var cleanup_target := false
 var swatting := false
+var swat_target := -1
+var target_refresh := 0.0
+var logical_motion := false
+var display_position := Vector2.ZERO
 var session_serial := -1
 var finished_chore_serial := -1
 var task_outcome := "idle"
@@ -124,6 +128,9 @@ func _ready() -> void:
 
 
 func show_monologue(message: String, during_sleep: bool = false) -> void:
+	if GameState.activity_skip_busy:
+		clear_monologue()
+		return
 	if message.length() > THOUGHT_LIMIT:
 		# Long conversations use the existing safe comic queue, never a tall bubble.
 		get_node("../HUD")._show_feedback("TipTop: " + message)
@@ -146,6 +153,14 @@ func clear_monologue() -> void:
 
 
 func _process(delta: float) -> void:
+	if not GameState.personal_activity.is_empty():
+		if display_position.distance_to(global_position) > 60:
+			display_position = global_position
+		display_position = display_position.lerp(global_position, 1.0 - exp(-12 * delta))
+		$Visual.position = Vector2(0, -9) + display_position - global_position
+	else:
+		display_position = global_position
+		$Visual.position = Vector2(0, -9)
 	var allowed: bool = get_node("../HUD").overhead_thoughts_allowed()
 	if not allowed:
 		clear_monologue()
@@ -232,8 +247,12 @@ func prepare_for_sleep() -> void:
 
 func _say_chore(phase: String) -> void:
 	if swatting:
-		if phase == "working":
-			show_monologue("Mosquito interception in progress.")
+		if phase == "approach":
+			show_monologue("Tiny airborne intruder detected.")
+		elif phase == "working":
+			show_monologue("I have the situation under control.")
+		elif phase == "reaction":
+			show_monologue("One less mosquito. You're welcome, Judy.")
 		return
 	var chore: String = CHORES[visit]
 	var pool: Array = APPROACH_THOUGHTS[chore]
@@ -330,6 +349,8 @@ func _clear_to(point: Vector2) -> bool:
 
 
 func _finish_presentation(outcome: String) -> void:
+	if outcome == "completed" and swatting and not GameState.eliminate_mosquito(swat_target, global_position):
+		outcome = "failed"
 	if outcome == "completed":
 		_say_chore("reaction")
 	else:
@@ -358,6 +379,8 @@ func _bookshelf_exit() -> Vector2:
 
 
 func _at_chore() -> bool:
+	if swatting:
+		return GameState.mosquitoes.has(swat_target) and global_position.distance_to(GameState.mosquitoes[swat_target]["position"]) <= 9.0
 	if global_position.distance_to(destination) > 2.0:
 		return false
 	if visit == 2:
@@ -383,6 +406,13 @@ func _choose_destination() -> void:
 	bookshelf_approach = _bookshelf_exit()
 	# Grid cells guide travel, never replace the actual fixture approach point.
 	destination = stops[visit]
+	if swatting:
+		swat_target = GameState.mosquito_target_id
+		if not GameState.mosquitoes.has(swat_target):
+			_finish_presentation("cancelled")
+			return
+		destination = GameState.mosquitoes[swat_target]["position"]
+		target_refresh = 0.0
 	# The shelf-to-wall strip has no grid row. Use its exact connector in BOTH
 	# directions; snapping the starting point to the grid would cut through books.
 	var front := _bookshelf_front()
@@ -395,7 +425,27 @@ func _choose_destination() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	var playback: float = GameState.research_playback_rate if GameState.research_active else (GameState.personal_playback_rate if not GameState.personal_activity.is_empty() else 1.0)
+	if not GameState.personal_activity.is_empty():
+		return # The same world-step callback owns Watch, 6x and instant Skip.
+	_tick_ai(delta, GameState.research_playback_rate if GameState.research_active else 1.0)
+
+
+func advance_activity_ai(seconds: float) -> void:
+	logical_motion = true
+	_tick_ai(seconds, 1.0)
+	logical_motion = false
+
+
+func _move_actor(delta: float, playback: float) -> void:
+	if not logical_motion:
+		move_and_slide()
+		return
+	var collision := move_and_collide(velocity * delta / playback)
+	if collision:
+		move_and_collide(collision.get_remainder().slide(collision.get_normal()))
+
+
+func _tick_ai(delta: float, playback: float) -> void:
 	if playback != previous_playback:
 		velocity *= playback / previous_playback
 		previous_playback = playback
@@ -403,9 +453,23 @@ func _physics_process(delta: float) -> void:
 	$Visual.speed_scale = playback
 	var face := Vector2.ZERO
 	if brain_state == BrainState.PERFORMING_TASK:
-		face = global_position.direction_to(_chore_visual().get_parent().global_position)
+		if swatting and GameState.mosquitoes.has(swat_target):
+			face = global_position.direction_to(GameState.mosquitoes[swat_target]["position"])
+		else:
+			face = global_position.direction_to(_chore_visual().get_parent().global_position)
 	$Visual.skew = lerpf($Visual.skew, -0.08 if face.y < 0 else 0.0, 1.0 - exp(-8.0 * delta))
 	repath_cooldown = maxf(0.0, repath_cooldown - delta)
+	if swatting and brain_state in [BrainState.MOVING_TO_TASK, BrainState.PERFORMING_TASK, BrainState.RECOVERING]:
+		if not GameState.mosquitoes.has(swat_target):
+			_finish_presentation("cancelled")
+			return
+		target_refresh -= delta
+		if target_refresh <= 0 and brain_state != BrainState.PERFORMING_TASK:
+			var point: Vector2 = GameState.mosquitoes[swat_target]["position"]
+			if destination.distance_to(point) > 3:
+				destination = point
+				path.clear()
+			target_refresh = 0.6
 	if GameState.day_ended or GameState.game_finished:
 		if brain_state != BrainState.IDLE:
 			prepare_for_sleep()
@@ -449,7 +513,7 @@ func _physics_process(delta: float) -> void:
 		if wait > 0 or distance_to_judy < 14.0:
 			wait = maxf(0.0, wait - delta)
 			velocity = velocity.move_toward(Vector2.ZERO, 75.0 * delta * playback)
-			move_and_slide()
+			_move_actor(delta, playback)
 			return
 	match brain_state:
 		BrainState.RECOVERING:
@@ -478,8 +542,9 @@ func _begin_action() -> void:
 	action_label.text = ["Drying...", "Mopping...", "Organizing...", "Making bed..."][visit] if cleanup_target else ["Watering...", "Washing...", "Organizing...", "Straightening..."][visit]
 	if swatting:
 		action_label.text = "Swatting..."
+		action_left = 0.4
 	_say_chore("working")
-	if visit == 1 and GameState.repairs["sink"] and GameState.tap_running:
+	if not swatting and visit == 1 and GameState.repairs["sink"] and GameState.tap_running:
 		GameState.turn_off_tap()
 
 
@@ -499,6 +564,9 @@ func _recover_route() -> void:
 
 func _move_to_task(delta: float, playback: float) -> void:
 	var distance := global_position.distance_to(destination)
+	if swatting and _at_chore():
+		_begin_action()
+		return
 	if distance < 1.2 and _at_chore() and velocity.length() < 2.0 * playback:
 		_begin_action()
 		return
@@ -544,7 +612,7 @@ func _move_to_task(delta: float, playback: float) -> void:
 	var desired := global_position.direction_to(aim) * minf(SPEED, maxf(0.0, aim_distance - 0.6) * 2.2) * playback
 	velocity = velocity.lerp(desired, 1.0 - exp(-7.0 * delta))
 	var before := global_position
-	move_and_slide()
+	_move_actor(delta, playback)
 	stalled = stalled + delta if global_position.distance_to(before) < 0.05 else 0.0
 	if stalled > 0.7:
 		path.clear()

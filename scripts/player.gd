@@ -12,6 +12,7 @@ const INTERACTION_DISTANCE := 32.0
 @onready var plant: Node2D = get_node("../PlantPot")
 @onready var bookshelf: Node2D = get_node("../Bookshelf")
 @onready var fridge: Node2D = get_node("../Fridge")
+@onready var coffee_table: Node2D = get_node("../CoffeeTable")
 var interaction_prompt: Label
 var prompt_target: Node2D
 var animation_busy := false
@@ -61,6 +62,8 @@ func _update_interaction_prompt(target: Node2D) -> void:
 		interaction_prompt.text = "E - Talk to TipTop" if GameState.tiptop_fixed else "E - Talk / Repair TipTop"
 	elif target == fridge:
 		interaction_prompt.text = "E - Eat (30 min)"
+	elif target == coffee_table:
+		interaction_prompt.text = "E - Take a break"
 	elif target == sink:
 		interaction_prompt.text = "E - Tap off" if GameState.tap_running else "E - Mop / clean (15 min)"
 		if not GameState.tap_running and GameState.mosquito_level > 0:
@@ -97,6 +100,8 @@ func _update_interaction_prompt(target: Node2D) -> void:
 
 
 func _interaction_position(target: Node2D) -> Vector2:
+	if target == coffee_table:
+		return coffee_table.to_global(Vector2(0, 8))
 	if target == fridge:
 		return fridge.to_global(Vector2(0, 7))
 	if target == bookshelf:
@@ -117,7 +122,7 @@ func _nearest_interaction() -> Node2D:
 		return bookshelf
 	var nearest: Node2D = null
 	var nearest_distance := INF
-	for target in [desk, tiptop, sink, bed, plant, bookshelf, fridge]:
+	for target in [desk, tiptop, sink, bed, plant, bookshelf, fridge, coffee_table]:
 		if target == desk:
 			if not desk.get("player_nearby"):
 				continue
@@ -129,6 +134,9 @@ func _nearest_interaction() -> Node2D:
 				continue
 		elif target == fridge:
 			if global_position.y < fridge.global_position.y or global_position.distance_to(_interaction_position(fridge)) > 20:
+				continue
+		elif target == coffee_table:
+			if global_position.distance_to(_interaction_position(coffee_table)) > 22:
 				continue
 		else:
 			var chore := "sink" if target == sink else ("plant" if target == plant else "bookshelf")
@@ -156,6 +164,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_node("../HUD").tiptop_interaction()
 	elif target == fridge:
 		get_node("../HUD").household_choices("fridge")
+	elif target == coffee_table:
+		get_node("../HUD").household_choices("break")
 	elif target == bed:
 		if GameState.needs_cleanup("bed"):
 			_clean_animation("bed")

@@ -72,6 +72,70 @@ var personal_activity := ""
 var personal_remaining := 0.0
 var personal_playback_rate := 1.0
 var overnight_day := 0
+var mosquitoes: Dictionary = {}
+var next_mosquito_id := 0
+var mosquito_target_id := -1
+var mosquito_spawn_after := 0.0
+var last_robot_swat := false
+var activity_skip_busy := false
+
+
+func hunger_status() -> String:
+	return "Well-fed" if hunger >= 75 else ("Normal" if hunger > 45 else "Hungry")
+
+
+func _update_mosquito_population() -> void:
+	var desired := mosquito_level * 2
+	# Exposure controls spawning; lowering it must not remotely kill other flies.
+	if mosquitoes.size() >= desired or world_elapsed < mosquito_spawn_after:
+		mosquito_level = int(ceil(mosquitoes.size() / 2.0))
+		return
+	var robot: Node = get_tree().current_scene.get_node("TipTop")
+	if not robot.mapped:
+		robot._map_obstacles()
+	while mosquitoes.size() < desired:
+		var id := next_mosquito_id
+		next_mosquito_id += 1
+		var fixture: Node2D = get_tree().current_scene.get_node("Sink" if id % 2 else "PlantPot")
+		var cell: Vector2i = robot._open_cell(fixture.global_position + Vector2(-16, 9))
+		mosquitoes[id] = {"position": Vector2(cell) * 8, "previous": Vector2(cell) * 8, "velocity": Vector2.ZERO, "turn": 0.0, "count": id, "direction": Vector2.RIGHT}
+	mosquito_level = int(ceil(mosquitoes.size() / 2.0))
+
+
+func _move_mosquitoes(seconds: float) -> void:
+	if mosquitoes.is_empty():
+		return
+	var robot: Node = get_tree().current_scene.get_node("TipTop")
+	if not robot.mapped:
+		robot._map_obstacles()
+	for id in mosquitoes:
+		var fly: Dictionary = mosquitoes[id]
+		fly["turn"] -= seconds
+		if float(fly["turn"]) <= 0:
+			fly["count"] += 1
+			var count: int = fly["count"]
+			fly["turn"] = 1.5 + fposmod(count * 0.73, 1.8)
+			fly["direction"] = Vector2.ZERO if count % 5 == 0 else Vector2.from_angle(count * 2.399 + int(id))
+		var velocity: Vector2 = fly["velocity"]
+		velocity = velocity.lerp(Vector2(fly["direction"]) * 4.0, 1.0 - exp(-4 * seconds))
+		var point: Vector2 = fly["position"] + velocity * seconds
+		var cell := Vector2i((point / 8).round())
+		if robot.grid.is_in_boundsv(cell) and not robot.grid.is_point_solid(cell):
+			fly["position"] = point
+		else:
+			fly["direction"] = Vector2(fly["direction"]).rotated(1.8)
+			velocity = Vector2.ZERO
+		fly["velocity"] = velocity
+
+
+func eliminate_mosquito(id: int, from_point: Vector2) -> bool:
+	if not mosquitoes.has(id) or from_point.distance_to(mosquitoes[id]["position"]) > 9.0:
+		return false
+	mosquitoes.erase(id)
+	water_exposure = maxf(0, water_exposure - 30)
+	mosquito_level = int(ceil(mosquitoes.size() / 2.0))
+	mosquito_spawn_after = world_elapsed + 10.0
+	return true
 
 
 func reset_needs() -> void:
@@ -88,9 +152,10 @@ func apply_overnight_needs() -> void:
 	if overnight_day == day:
 		return
 	overnight_day = day
+	var overnight_loss := 10.0 if mood >= 45 else 15.0
 	# Mood is based on bedtime fullness BEFORE the overnight deduction.
 	mood = 90.0 if hunger >= 70 else (80.0 if hunger >= 40 else (65.0 if hunger >= 20 else 40.0))
-	hunger = maxf(0, hunger - 10)
+	hunger = maxf(0, hunger - overnight_loss)
 	work_streak = 0
 	break_reminded = false
 
@@ -147,30 +212,49 @@ func _process(delta: float) -> void:
 		return
 	if not personal_activity.is_empty():
 		var step := minf(personal_remaining, delta * RESEARCH_MINUTES * personal_playback_rate / WATCH_REAL_SECONDS)
-		_advance_world(step)
-		personal_remaining = maxf(0.0, personal_remaining - step)
-		if personal_remaining <= 0.000001:
-			if world_accumulator > 0:
-				var pending := world_accumulator
-				world_accumulator = 0.0
-				_simulate_world_step(pending)
-			var activity := personal_activity
-			personal_activity = ""
-			personal_playback_rate = 1.0
-			if activity == "eat":
-				hunger = clampf(hunger + 40, 0, 100)
-			else:
-				mood = clampf(mood + float(PERSONAL_ACTIVITIES[activity][1]), 0, 100)
-				work_streak = 0
-				break_reminded = false
-			action_feedback.emit("Meal finished: +40 Hunger." if activity == "eat" else "Break finished. Feeling more like myself.")
-			state_changed.emit()
+		advance_personal_activity(step)
 	elif research_active:
 		# Research compresses 120 game minutes into three real minutes. The
 		# same authoritative world stepper owns time and every consequence.
 		advance_research(delta * RESEARCH_MINUTES * research_playback_rate / WATCH_REAL_SECONDS)
 	elif time_minutes < DAY_END:
 		_advance_world(delta * game_seconds_per_real_second / 60.0)
+
+
+func advance_personal_activity(minutes: float) -> void:
+	if personal_activity.is_empty():
+		return
+	var remaining := minf(personal_remaining, maxf(0, minutes))
+	_advance_world(remaining)
+	personal_remaining = maxf(0, personal_remaining - remaining)
+	if personal_remaining > 0.000001:
+		return
+	if world_accumulator > 0:
+		var pending := world_accumulator
+		world_accumulator = 0.0
+		_simulate_world_step(pending)
+	var activity := personal_activity
+	personal_activity = ""
+	personal_playback_rate = 1.0
+	if activity == "eat":
+		hunger = clampf(hunger + 40, 0, 100)
+	else:
+		mood = clampf(mood + float(PERSONAL_ACTIVITIES[activity][1]), 0, 100)
+		work_streak = 0
+		break_reminded = false
+	action_feedback.emit("Meal finished: +40 Hunger." if activity == "eat" else "Break finished. Feeling more like myself.")
+	state_changed.emit()
+
+
+func skip_personal_activity() -> void:
+	if activity_skip_busy or personal_activity.is_empty() or get_tree().paused:
+		return
+	activity_skip_busy = true
+	advance_personal_activity(personal_remaining)
+	for id in mosquitoes:
+		mosquitoes[id]["previous"] = mosquitoes[id]["position"]
+	get_tree().current_scene.get_node("Floor").reset_mosquito_visuals()
+	activity_skip_busy = false
 
 
 func begin_research() -> bool:
@@ -225,9 +309,10 @@ func _select_research_chore() -> void:
 				break
 			if not selected.is_empty():
 				break
-	research_swat = mosquito_task and mosquito_level > 0 and world_elapsed >= float(chore_ready_at.get("swat", 0.0))
+	research_swat = not mosquitoes.is_empty() and (mosquito_task or not last_robot_swat) and world_elapsed >= float(chore_ready_at.get("swat", 0.0))
 	if research_swat:
-		selected = "sink" if sink_water_elapsed >= 8.0 else "plant"
+		selected = "sink" # Existing task slot; destination is the actual insect.
+		mosquito_target_id = int(mosquitoes.keys()[research_task_serial % mosquitoes.size()])
 	if selected != research_task or not selected.is_empty():
 		research_task_serial += 1
 	research_task = selected
@@ -240,12 +325,13 @@ func resolve_robot_chore(serial: int, succeeded: bool) -> void:
 		return
 	robot_chore_resolved = true
 	last_robot_chore = research_task
+	last_robot_swat = research_swat
 	var cooldown_key := "swat" if research_swat else research_task
-	chore_ready_at[cooldown_key] = world_elapsed + (float(CHORE_COOLDOWNS[research_task]) if succeeded else 15.0)
+	chore_ready_at[cooldown_key] = world_elapsed + ((8.0 if research_swat else float(CHORE_COOLDOWNS[research_task])) if succeeded else 15.0)
 	research_next_chore = world_elapsed + 0.5
 	if succeeded and not day_ended and not game_finished:
 		if research_swat:
-			swat_mosquitoes(false)
+			mosquito_task = false # The robot already confirmed a nearby removal.
 		else:
 			finish_household_chore(research_task, true)
 	state_changed.emit()
@@ -289,6 +375,19 @@ func _simulate_world_step(minutes: float) -> void:
 	else:
 		water_exposure = maxf(0.0, water_exposure - minutes * 2.0)
 	mosquito_level = mini(3, int(water_exposure / 60.0))
+	_update_mosquito_population()
+	for id in mosquitoes:
+		mosquitoes[id]["previous"] = mosquitoes[id]["position"]
+	var robot: Node = get_tree().current_scene.get_node("TipTop")
+	var seconds: float = minutes * (WATCH_REAL_SECONDS / RESEARCH_MINUTES if research_active or not personal_activity.is_empty() else 60.0 / game_seconds_per_real_second)
+	# Activities share bounded logical AI substeps across Watch, 6x and instant
+	# Skip. These are swept motion updates, not engine physics-frame simulation.
+	while seconds > 0.000001:
+		var tick := minf(0.05, seconds)
+		_move_mosquitoes(tick)
+		if not personal_activity.is_empty():
+			robot.advance_activity_ai(tick)
+		seconds -= tick
 	if world_elapsed >= research_next_chore and (robot_chore_resolved or research_task.is_empty()):
 		# Poll briefly during rest; cooldowns use the same authoritative clock.
 		research_next_chore = world_elapsed + 0.5
@@ -326,6 +425,10 @@ func swat_mosquitoes(manual: bool) -> void:
 	water_exposure = maxf(0.0, water_exposure - 60.0)
 	mosquito_level = mini(3, int(water_exposure / 60.0))
 	mosquito_task = false
+	for index in range(mini(2, mosquitoes.size())):
+		mosquitoes.erase(mosquitoes.keys()[0])
+	mosquito_spawn_after = world_elapsed + 10.0
+	_update_mosquito_population()
 	if manual:
 		_advance_time(5)
 	state_changed.emit()
@@ -428,6 +531,7 @@ func continue_day() -> void:
 		clock_fraction = 0.0
 		world_accumulator = 0.0
 		world_elapsed = 0.0
+		mosquito_spawn_after = 0.0
 		research_next_chore = 3.0
 		chore_cursor = 0
 		chore_ready_at.clear()
@@ -528,6 +632,11 @@ func ignore_tap() -> void:
 func restart() -> void:
 	reset_needs()
 	overnight_day = 0
+	mosquitoes.clear()
+	next_mosquito_id = 0
+	mosquito_spawn_after = 0.0
+	mosquito_target_id = -1
+	last_robot_swat = false
 	break_reminder_count = 0
 	response_counts.clear()
 	chore_cursor = 0

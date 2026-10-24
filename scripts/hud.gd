@@ -61,7 +61,8 @@ var mood_bar: ProgressBar
 var hunger_fill: StyleBoxFlat
 var mood_fill: StyleBoxFlat
 var efficiency_label: Label
-var break_button: Button
+var hunger_status_label: Label
+var activity_watch_button: Button
 
 
 func _household_open() -> bool:
@@ -141,7 +142,7 @@ func set_research_controls(active: bool) -> void:
 
 func _fast_forward_research() -> void:
 	if not GameState.personal_activity.is_empty():
-		GameState.personal_playback_rate = 1.0
+		GameState.personal_playback_rate = 6.0
 		return
 	if GameState.research_active:
 		var judy = get_node("../Player")
@@ -151,8 +152,7 @@ func _fast_forward_research() -> void:
 
 func _skip_research() -> void:
 	if not get_tree().paused and not GameState.personal_activity.is_empty():
-		# Accelerate physical chores as well as time; never jump to completion.
-		GameState.personal_playback_rate = 6.0
+		GameState.skip_personal_activity()
 		return
 	if get_tree().paused or not GameState.research_active:
 		return
@@ -376,14 +376,8 @@ func _build_needs_ui() -> void:
 	mood_bar.position = Vector2(77, 12)
 	hunger_bar.add_theme_stylebox_override("fill", hunger_fill)
 	mood_bar.add_theme_stylebox_override("fill", mood_fill)
-	efficiency_label = _hud_text(card, "", Vector2(5, 23), 5)
-	break_button = Button.new()
-	break_button.position = Vector2(75, 20)
-	break_button.size = Vector2(66, 12)
-	break_button.add_theme_font_size_override("font_size", 5)
-	break_button.text = "Take a break"
-	break_button.pressed.connect(func(): household_choices("break"))
-	card.add_child(break_button)
+	efficiency_label = _hud_text(card, "", Vector2(77, 23), 5)
+	hunger_status_label = _hud_text(card, "", Vector2(5, 23), 5)
 
 
 func _update_needs_ui() -> void:
@@ -391,12 +385,12 @@ func _update_needs_ui() -> void:
 	mood_label.text = "Mood: %d%%" % int(GameState.mood)
 	hunger_bar.value = GameState.hunger
 	mood_bar.value = GameState.mood
-	hunger_fill.bg_color = Color("dc795d") if GameState.hunger < 30 else Color("e0b065")
+	hunger_fill.bg_color = Color("dc795d") if GameState.hunger <= 45 else Color("e0b065")
 	mood_fill.bg_color = Color("df806a") if GameState.mood < 45 else Color("8fbb91")
 	mood_label.modulate = Color("ffad8e") if GameState.mood < 45 else Color.WHITE
 	efficiency_label.text = "Efficiency: %d%%" % int(round(GameState.research_efficiency() * 100))
-	break_button.disabled = not _comic_safe() or dialogue_overlay.visible or loop_panel.visible or GameState.notification_active or GameState.day_ended or GameState.game_finished
-	break_button.text = "%s: %d min" % ["Eating" if GameState.personal_activity == "eat" else "Break", int(ceil(GameState.personal_remaining))] if not GameState.personal_activity.is_empty() else "Take a break"
+	hunger_status_label.text = GameState.hunger_status()
+	hunger_status_label.modulate = Color("8fbb91") if GameState.hunger >= 75 else (Color("ffad8e") if GameState.hunger <= 45 else Color.WHITE)
 
 
 func _hud_text(parent: Node, text: String, point: Vector2, font_size: int) -> Label:
@@ -549,6 +543,7 @@ func _play_day_transition(restarting := false) -> void:
 	transition_title.hide()
 	if not restarting:
 		loop_panel.hide()
+		GameState.apply_overnight_needs()
 		await get_node("../Player").play_sleep_animation()
 	transition_cover.position = Vector2(-384, 0)
 	transition_cover.show()
@@ -706,9 +701,14 @@ func _process(delta: float) -> void:
 		var duration: int = GameState.PERSONAL_ACTIVITIES[GameState.personal_activity][0]
 		research_bar.max_value = duration
 		research_bar.value = duration - GameState.personal_remaining
-		research_speed_button.text = "Watch 1x"
+		research_speed_button.text = "Fast 6x"
+		activity_watch_button.show()
+		research_bar.size.x = 104
 		var title: String = {"eat": "Eating", "reels": "Reels", "games": "Phone games", "cube": "Rubik's cube"}[GameState.personal_activity]
 		research_status.text = "%s: %d / %d min%s" % [title, int(duration - GameState.personal_remaining), duration, " (6x)" if GameState.personal_playback_rate > 1 else ""]
+	elif activity_watch_button.visible:
+		activity_watch_button.hide()
+		research_bar.size.x = 138
 	if GameState.research_active:
 		var shown := minf(GameState.research_duration, GameState.research_elapsed + GameState.research_accumulator)
 		research_bar.max_value = GameState.research_duration
@@ -790,6 +790,14 @@ func _build_research_controls() -> void:
 	skip_time.add_theme_font_size_override("font_size", 7)
 	skip_time.pressed.connect(_skip_research)
 	research_strip.add_child(skip_time)
+	activity_watch_button = Button.new()
+	activity_watch_button.position = Vector2(112, 3)
+	activity_watch_button.size = Vector2(34, 20)
+	activity_watch_button.text = "Watch"
+	activity_watch_button.add_theme_font_size_override("font_size", 6)
+	activity_watch_button.pressed.connect(func(): GameState.personal_playback_rate = 1.0)
+	activity_watch_button.hide()
+	research_strip.add_child(activity_watch_button)
 
 
 func _build_system_notice() -> void:

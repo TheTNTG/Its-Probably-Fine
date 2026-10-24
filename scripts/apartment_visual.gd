@@ -19,6 +19,7 @@ const ROOM_EDGE := [Vector2(42, 42), Vector2(184, 42), Vector2(184, 24), Vector2
 var floor_boards: Array[PackedVector2Array] = []
 var chore_active := false
 var chore_phase := 0.0
+var mosquito_positions: Dictionary = {}
 
 
 func _ready() -> void:
@@ -60,6 +61,22 @@ func _process(delta: float) -> void:
 		var playback: float = GameState.research_playback_rate if GameState.research_active else (GameState.personal_playback_rate if not GameState.personal_activity.is_empty() else 1.0)
 		chore_phase += delta * minf(playback, 3.0)
 		queue_redraw()
+	if fixture == "floor":
+		for id in mosquito_positions.keys():
+			if not GameState.mosquitoes.has(id):
+				mosquito_positions.erase(id)
+		for id in GameState.mosquitoes:
+			var current: Vector2 = GameState.mosquitoes[id]["position"]
+			var prior: Vector2 = GameState.mosquitoes[id]["previous"]
+			# Render between clock samples, rather than stopping at each tick.
+			var point := prior.lerp(current, clampf(GameState.world_accumulator / GameState.WORLD_STEP, 0, 1))
+			var previous: Vector2 = mosquito_positions.get(id, point)
+			mosquito_positions[id] = previous.lerp(point, 1.0 - exp(-14 * delta))
+
+
+func reset_mosquito_visuals() -> void:
+	mosquito_positions.clear()
+	queue_redraw()
 
 
 func _box(x: int, y: int, w: int, h: int, color: Color) -> void:
@@ -311,9 +328,8 @@ func _draw() -> void:
 			_box(-6, -15, 12, 1, EDGE)
 	_draw_chore_details()
 	if fixture == "floor" and GameState.mosquito_level > 0:
-		for fly in range(GameState.mosquito_level * 2):
-			var anchor: Vector2 = get_node("../Sink").position if fly % 2 else get_node("../PlantPot").position
-			var point := anchor + Vector2(sin(chore_phase * 2 + fly * 3) * 12, 3 + cos(chore_phase * 3 + fly) * 5)
+		for fly in GameState.mosquitoes:
+			var point: Vector2 = mosquito_positions.get(fly, GameState.mosquitoes[fly]["position"])
 			_box(int(point.x), int(point.y), 1, 2, INK)
 			_box(int(point.x) - 1, int(point.y) + int(chore_phase * 12) % 2, 3, 1, Color("b9af99"))
 
