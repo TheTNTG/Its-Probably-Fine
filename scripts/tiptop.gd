@@ -12,6 +12,7 @@ var mapped := false
 var last_day := 1
 var destination := Vector2.ZERO
 var bookshelf_approach := Vector2.ZERO
+var leaving_bookshelf := false
 var has_destination := false
 var action_left := 0.0
 var near_judy := false
@@ -19,6 +20,9 @@ var repath_cooldown := 0.0
 var action_label: Label
 var monologue_label: Label
 var monologue_left := 0.0
+var thought_layer: CanvasLayer
+const THOUGHT_SIZE := Vector2(92, 24)
+const THOUGHT_LIMIT := 56
 const CHORES := ["plant", "sink", "bookshelf", "bed"]
 enum BrainState { IDLE, SELECT_TASK, MOVING_TO_TASK, PERFORMING_TASK, REACTING, COOLDOWN, RECOVERING }
 var brain_state := BrainState.IDLE
@@ -80,7 +84,11 @@ func _ready() -> void:
 	action_label.add_theme_constant_override("shadow_offset_y", 1)
 	action_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	action_label.hide()
-	add_child(action_label)
+	# One screen-space bubble: the status is only a fallback, never a second line.
+	thought_layer = CanvasLayer.new()
+	thought_layer.layer = 1
+	add_child(thought_layer)
+	thought_layer.add_child(action_label)
 	monologue_label = Label.new()
 	monologue_label.position = Vector2(-38, -43)
 	monologue_label.size = Vector2(76, 24)
@@ -91,12 +99,33 @@ func _ready() -> void:
 	monologue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	monologue_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	monologue_label.hide()
-	add_child(monologue_label)
+	thought_layer.add_child(monologue_label)
+	var bubble := StyleBoxFlat.new()
+	bubble.bg_color = Color(0.10, 0.14, 0.17, 0.94)
+	bubble.set_corner_radius_all(3)
+	bubble.content_margin_left = 4
+	bubble.content_margin_right = 4
+	bubble.content_margin_top = 3
+	bubble.content_margin_bottom = 3
+	for label in [action_label, monologue_label]:
+		label.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.max_lines_visible = 2
+		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		label.clip_text = true
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.add_theme_stylebox_override("normal", bubble)
+		label.add_theme_constant_override("outline_size", 0)
+		label.size = THOUGHT_SIZE
 	reset_physics_interpolation()
 	_state_changed()
 
 
 func show_monologue(message: String, during_sleep: bool = false) -> void:
+	if message.length() > THOUGHT_LIMIT:
+		# Long conversations use the existing safe comic queue, never a tall bubble.
+		get_node("../HUD")._show_feedback("TipTop: " + message)
+		return
 	var farewell: bool = during_sleep and get_node("../HUD").transitioning and GameState.day_ended
 	if not farewell and not get_node("../HUD").overhead_thoughts_allowed():
 		clear_monologue()
@@ -105,6 +134,7 @@ func show_monologue(message: String, during_sleep: bool = false) -> void:
 	monologue_left = clampf(message.length() * 0.06, 2.0, 5.0)
 	monologue_label.show()
 	action_label.hide()
+	_position_thought()
 
 
 func clear_monologue() -> void:
@@ -120,12 +150,31 @@ func _process(delta: float) -> void:
 		action_label.hide()
 		return
 	if monologue_left > 0:
-		monologue_label.position.y = maxf(-43.0, 33.0 - global_position.y)
 		monologue_left -= delta
 		monologue_label.show()
 		if monologue_left <= 0:
 			clear_monologue()
 	action_label.visible = action_left > 0 and task_outcome == "working" and monologue_left <= 0
+	_position_thought()
+
+
+func _position_thought() -> void:
+	var hud: CanvasLayer = get_node("../HUD")
+	thought_layer.transform = hud.transform
+	var to_ui := hud.transform.affine_inverse()
+	var feet := to_ui * get_global_transform_with_canvas().origin
+	var pos := feet + Vector2(-THOUGHT_SIZE.x * 0.5, -46)
+	# At the shelf, put the bubble on its open right side instead of over the books.
+	if global_position.distance_to(_bookshelf_front()) < 28.0:
+		pos = feet + Vector2(18, -40)
+	var judy_feet := to_ui * judy.get_global_transform_with_canvas().origin
+	if Rect2(pos, THOUGHT_SIZE).intersects(Rect2(judy_feet - Vector2(8, 24), Vector2(16, 28))):
+		pos.x = feet.x - THOUGHT_SIZE.x - 18
+	# HUD reference space is fitted uniformly inside every supported viewport.
+	pos = pos.clamp(Vector2(6, 44), Vector2(378, 238) - THOUGHT_SIZE)
+	for label in [action_label, monologue_label]:
+		label.position = pos.round()
+		label.size = THOUGHT_SIZE
 
 
 func greet_morning() -> bool:
@@ -134,7 +183,7 @@ func greet_morning() -> bool:
 	if GameState.research_active or not get_node("../HUD").overhead_thoughts_allowed():
 		return false
 	morning_day = GameState.day
-	var lines := ["Good morning, Judy! Ready for an extremely productive day?", "Good morning! I have prepared several helpful intentions.", "Morning, Judy! Showcase day. I believe in our combined competence."]
+	var lines := ["Morning, Judy! Productive intentions ready.", "Good morning! Helpful intentions prepared.", "Showcase day, Judy! I believe in us."]
 	show_monologue(lines[(GameState.day - 1) % lines.size()])
 	return true
 
@@ -168,15 +217,15 @@ func _say_chore(phase: String) -> void:
 	var key := "%s:%s:%s" % [chore, phase, GameState.repairs[chore]]
 	var index := int(thought_counts.get(key, 0))
 	thought_counts[key] = index + 1
-	# Keep the previous reaction visible during a very short approach.
-	if phase != "approach" or monologue_left <= 0:
-		show_monologue(pool[index % pool.size()])
+	show_monologue(pool[index % pool.size()])
 
 
 func _clear_task_motion() -> void:
 	velocity = Vector2.ZERO
 	path.clear()
 	has_destination = false
+	leaving_bookshelf = false
+	destination = Vector2.ZERO
 	action_left = 0.0
 	cleanup_target = false
 	_chore_visual().call("set_chore_active", false)
@@ -188,8 +237,7 @@ func _state_changed() -> void:
 	var new_day := GameState.day != last_day
 	if new_day or session_serial != GameState.research_task_serial:
 		var reacting := not new_day and brain_state == BrainState.REACTING and reaction_left > 0
-		if not reacting:
-			clear_monologue()
+		clear_monologue()
 		_clear_task_motion()
 		navigation_attempts = 0
 		travel_elapsed = 0.0
@@ -275,6 +323,13 @@ func _bookshelf_front() -> Vector2:
 	return shelf.to_global(Vector2(0, collision.position.y + footprint.size.y * 0.5)) + Vector2(0, 5)
 
 
+func _bookshelf_exit() -> Vector2:
+	var shelf: Node2D = get_node("../Bookshelf")
+	var collision: CollisionShape2D = shelf.get_node("CollisionShape2D")
+	var footprint := collision.shape as RectangleShape2D
+	return shelf.to_global(collision.position + footprint.size * 0.5) + Vector2(8, 5)
+
+
 func _at_chore() -> bool:
 	if global_position.distance_to(destination) > 2.0:
 		return false
@@ -298,14 +353,13 @@ func _choose_destination() -> void:
 	var bed_shape := bed_collision.shape as RectangleShape2D
 	var bed_corner := bed.to_global(bed_collision.position + bed_shape.size * 0.5)
 	var stops: Array[Vector2] = [get_node("../PlantPot").to_global(Vector2(-16, 0)), sink_front + Vector2(0, 14), _bookshelf_front(), bed_corner + Vector2(7, 7)]
-	var shelf: Node2D = get_node("../Bookshelf")
-	var shelf_collision: CollisionShape2D = shelf.get_node("CollisionShape2D")
-	var shelf_shape := shelf_collision.shape as RectangleShape2D
-	var front := shelf_collision.position.y + shelf_shape.size.y * 0.5
-	var right_edge := shelf_collision.position.x + shelf_shape.size.x * 0.5
-	bookshelf_approach = shelf.to_global(Vector2(right_edge, front)) + Vector2(8, 5)
+	bookshelf_approach = _bookshelf_exit()
 	# Grid cells guide travel, never replace the actual fixture approach point.
 	destination = stops[visit]
+	# The shelf-to-wall strip has no grid row. Use its exact connector in BOTH
+	# directions; snapping the starting point to the grid would cut through books.
+	var front := _bookshelf_front()
+	leaving_bookshelf = visit != 2 and global_position.x < bookshelf_approach.x and absf(global_position.y - front.y) < 3.0 and not _clear_to(destination)
 	has_destination = true
 	task_outcome = "travelling"
 	path.clear()
@@ -377,7 +431,8 @@ func _physics_process(delta: float) -> void:
 			_move_to_task(delta, playback)
 		BrainState.PERFORMING_TASK:
 			velocity = Vector2.ZERO
-			if not _at_chore():
+			travel_elapsed += delta
+			if not _at_chore() or travel_elapsed > 6.0:
 				_finish_presentation("failed")
 				return
 			_chore_visual().call("set_chore_active", not swatting)
@@ -390,6 +445,7 @@ func _begin_action() -> void:
 	velocity = Vector2.ZERO
 	path.clear()
 	brain_state = BrainState.PERFORMING_TASK
+	travel_elapsed = 0.0
 	task_outcome = "working"
 	action_left = 3.0 if visit in [2, 3] or cleanup_target else 2.4
 	action_label.text = ["Drying...", "Mopping...", "Organizing...", "Making bed..."][visit] if cleanup_target else ["Watering...", "Washing...", "Organizing...", "Straightening..."][visit]
@@ -424,7 +480,13 @@ func _move_to_task(delta: float, playback: float) -> void:
 		_finish_presentation("failed")
 		return
 	var route_target := destination
-	if visit == 2 and not _clear_to(destination):
+	if leaving_bookshelf:
+		if global_position.distance_to(bookshelf_approach) < 1.5:
+			leaving_bookshelf = false
+			path.clear()
+		else:
+			route_target = bookshelf_approach
+	elif visit == 2 and not _clear_to(destination):
 		# First clear the shelf's right corner, then float along its front edge.
 		route_target = bookshelf_approach
 	var aim := route_target
@@ -447,9 +509,12 @@ func _move_to_task(delta: float, playback: float) -> void:
 				path.remove_at(0)
 			if global_position.distance_to(aim) < 3.0:
 				path.remove_at(0)
-		elif not path.is_empty():
-			aim = path[0]
-	var desired := global_position.direction_to(aim) * minf(SPEED, maxf(0.0, distance - 0.6) * 2.2) * playback
+		else:
+			# No visible connection to the grid: recover, never steer through a solid.
+			_recover_route()
+			return
+	var aim_distance := global_position.distance_to(aim)
+	var desired := global_position.direction_to(aim) * minf(SPEED, maxf(0.0, aim_distance - 0.6) * 2.2) * playback
 	velocity = velocity.lerp(desired, 1.0 - exp(-7.0 * delta))
 	var before := global_position
 	move_and_slide()

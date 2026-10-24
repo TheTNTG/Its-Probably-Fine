@@ -605,7 +605,12 @@ func _show_feedback(message: String) -> void:
 		dialogue_bounds = previous
 		return
 	if speaker == "TipTop":
-		get_node("../TipTop").show_monologue(message)
+		if message.length() <= get_node("../TipTop").THOUGHT_LIMIT:
+			get_node("../TipTop").show_monologue(message)
+		else:
+			var long_line := [speaker, message, expression]
+			if not pending_feedback.has(long_line):
+				pending_feedback.append(long_line)
 		return
 	if GameState.research_active:
 		# Optional feedback is stale by the time a long session completes.
