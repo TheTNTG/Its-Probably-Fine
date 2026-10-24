@@ -10,6 +10,9 @@ const DAY_START := 540
 const DAY_END := 1080
 const LAST_DAY := 3
 const DAILY_WORK_SESSIONS := 4
+const RESEARCH_MINUTES := 75.0
+const PENALIZED_RESEARCH_MINUTES := 100.0
+const WATCH_REAL_SECONDS := 180.0
 
 var day := 1
 var time_minutes := DAY_START
@@ -62,7 +65,9 @@ func _process(delta: float) -> void:
 	if get_tree().paused or household_busy or ending_day_pending or notification_active or day_ended or game_finished:
 		return
 	if research_active:
-		advance_research(delta * game_seconds_per_real_second * research_playback_rate / 60.0)
+		# Research compresses 75 game minutes into three real minutes. The
+		# same authoritative world stepper owns time and every consequence.
+		advance_research(delta * RESEARCH_MINUTES * research_playback_rate / WATCH_REAL_SECONDS)
 	elif time_minutes < DAY_END:
 		_advance_world(delta * game_seconds_per_real_second / 60.0)
 
@@ -71,7 +76,7 @@ func begin_research() -> bool:
 	if research_active or notification_active or ending_day_pending or day_ended or game_finished or work_sessions_remaining <= 0 or not research_available():
 		return false
 	research_active = true
-	research_duration = minf(40.0 if tap_running else 30.0, DAY_END - time_minutes - clock_fraction)
+	research_duration = minf(PENALIZED_RESEARCH_MINUTES if tap_running else RESEARCH_MINUTES, DAY_END - time_minutes - clock_fraction)
 	research_gain = 5 if tap_running else 10
 	research_elapsed = 0.0
 	research_accumulator = world_accumulator

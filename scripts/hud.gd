@@ -47,6 +47,9 @@ var research_bar: ProgressBar
 var research_speed_button: Button
 var overview_bar: ProgressBar
 var weekday_label: Label
+var time_remaining: Label
+var time_bar: ProgressBar
+var time_bar_fill: StyleBoxFlat
 
 
 func research_choices() -> void:
@@ -105,8 +108,10 @@ func household_choices(location: String) -> void:
 	var options: Array = []
 	var judy = get_node("../Player")
 	if location == "research":
-		options.append(["Watch Research (~3 min for 30 game min)", judy._research_animation.bind(false)])
-		options.append(["Fast-forward (6x playback)", judy._research_animation.bind(true)])
+		var duration := minf(GameState.PENALIZED_RESEARCH_MINUTES if GameState.tap_running else GameState.RESEARCH_MINUTES, GameState.DAY_END - GameState.time_minutes - GameState.clock_fraction)
+		var watch_minutes := duration / GameState.RESEARCH_MINUTES * GameState.WATCH_REAL_SECONDS / 60.0
+		options.append(["Watch Research (%d min; ~%.1f real min)" % [duration, watch_minutes], judy._research_animation.bind(false)])
+		options.append(["Fast-forward (%d min; 6x playback)" % duration, judy._research_animation.bind(true)])
 	elif location == "bookshelf":
 		options.append(["Organize books myself — 20 min", judy.organize_for_research])
 	elif location == "tiptop":
@@ -171,6 +176,9 @@ func _fit_screen_ui() -> void:
 	var factor := minf(screen.x / reference.x, screen.y / reference.y)
 	transform = Transform2D(0.0, Vector2(factor, factor), 0.0, (screen - reference * factor) * 0.5)
 	(transition_cover.get_parent() as CanvasLayer).transform = transform
+	if is_instance_valid(repair_panel):
+		repair_panel.position = -transform.origin / factor
+		repair_panel.size = screen / factor
 	if is_instance_valid(household_panel):
 		# Include any aspect-ratio margins in the dimmer; center its contents
 		# against the visible screen, independently of the camera.
@@ -185,11 +193,23 @@ func _smooth_ui_text(node: Node) -> void:
 		_smooth_ui_text(child)
 
 
+func _update_clock_hud() -> void:
+	var current := clampf(GameState.time_minutes + GameState.clock_fraction + GameState.world_accumulator, GameState.DAY_START, GameState.DAY_END)
+	var whole_minutes := int(floor(current))
+	var hour := int(whole_minutes / 60)
+	time_label.text = "%d:%02d %s" % [posmod(hour - 1, 12) + 1, whole_minutes % 60, "AM" if hour < 12 else "PM"]
+	var left := maxi(0, int(ceil(GameState.DAY_END - current)))
+	time_remaining.text = "%dh %02dm left" % [int(left / 60), left % 60]
+	var fraction := (GameState.DAY_END - current) / float(GameState.DAY_END - GameState.DAY_START)
+	time_bar.value = fraction * 100.0
+	time_bar_fill.bg_color = Color("d87369") if fraction < 0.15 else (Color("df9e48") if fraction < 0.40 else Color("e1bd70"))
+
+
 func _update_hud() -> void:
 	if not GameState.notification_active and fix_button.visible:
 		notification_panel.hide()
 	day_label.text = "Day %d" % GameState.day
-	time_label.text = "%02d" % int(GameState.time_minutes / 60)
+	_update_clock_hud()
 	research_label.text = "Research: %d%%" % GameState.research_progress
 	sessions_label.text = "Work sessions: %d / 4" % GameState.work_sessions_remaining
 	weekday_label.text = ["Monday", "Tuesday", "Wednesday"][clampi(GameState.day - 1, 0, 2)]
@@ -260,7 +280,7 @@ func _hud_text(parent: Node, text: String, point: Vector2, font_size: int) -> La
 
 
 func _build_loop_ui() -> void:
-	var day_card := _hud_card(Rect2(5, 4, 103, 17))
+	var day_card := _hud_card(Rect2(5, 4, 154, 35))
 	var sun := Polygon2D.new()
 	var points := PackedVector2Array()
 	for index in range(12):
@@ -278,15 +298,25 @@ func _build_loop_ui() -> void:
 	day_label.position = Vector2(23, 5)
 	day_label.size = Vector2(32, 9)
 	day_label.add_theme_font_size_override("font_size", 7)
-	weekday_label = _hud_text(self, "Monday", Vector2(23, 13), 5)
+	weekday_label = _hud_text(self, "Monday", Vector2(23, 15), 6)
 	var divider := ColorRect.new()
 	divider.position = Vector2(57, 7)
-	divider.size = Vector2(1, 11)
+	divider.size = Vector2(1, 19)
 	divider.color = Color("98949a")
 	add_child(divider)
 	time_label.position = Vector2(62, 6)
-	time_label.size = Vector2(42, 12)
-	time_label.add_theme_font_size_override("font_size", 10)
+	time_label.size = Vector2(88, 13)
+	time_label.add_theme_font_size_override("font_size", 9)
+	time_remaining = _hud_text(self, "", Vector2(66, 20), 6)
+	time_bar = ProgressBar.new()
+	time_bar.show_percentage = false
+	_style_thin_bar(time_bar)
+	time_bar.position = Vector2(6, 29)
+	time_bar.size = Vector2(142, 3)
+	time_bar_fill = StyleBoxFlat.new()
+	time_bar_fill.bg_color = Color("e1bd70")
+	time_bar.add_theme_stylebox_override("fill", time_bar_fill)
+	day_card.add_child(time_bar)
 	var progress_card := _hud_card(Rect2(314, 4, 65, 16))
 	progress_card.clip_contents = true
 	var flask := Polygon2D.new()
@@ -310,7 +340,7 @@ func _build_loop_ui() -> void:
 	progress_card.add_child(overview_bar)
 	var deadline_card := _hud_card(Rect2(314, 23, 65, 17))
 	_hud_text(deadline_card, "Showcase deadline", Vector2(5, 2), 5)
-	_hud_text(deadline_card, "Day 3, 18:00", Vector2(5, 9), 6)
+	_hud_text(deadline_card, "Day 3, 6:00 PM", Vector2(5, 9), 6)
 	var controls := _hud_card(Rect2(5, 242, 48, 38))
 	var controls_text := _hud_text(controls, "E   Interact\nI    Inventory\nTab Menu", Vector2(4, 3), 6)
 	controls_text.add_theme_constant_override("line_spacing", 0)
@@ -327,7 +357,7 @@ func _build_loop_ui() -> void:
 	loop_message.add_theme_font_size_override("font_size", 8)
 	loop_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	loop_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	loop_message.text = "Day 3 showcase: reach 80% and repair all routines.\nE to interact. Make the bed before resting.\n4 sessions/day: +10%/30 min; tap: +5%/40 min.\nRepair or clean household routines separately."
+	loop_message.text = "Day 3 showcase: reach 80% and repair all routines.\nE to interact. Make the bed before resting.\n4 sessions/day: +10%/75 min; tap: +5%/100 min.\nRepair or clean household routines separately."
 	loop_panel.add_child(loop_message)
 	loop_button = Button.new()
 	loop_button.position = Vector2(100, 80)
@@ -441,28 +471,32 @@ func _build_repair_menu() -> void:
 	repair_panel.color = Color(0.08, 0.08, 0.12, 0.98)
 	repair_panel.hide()
 	add_child(repair_panel)
+	var center := CenterContainer.new()
+	repair_panel.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var options := VBoxContainer.new()
+	options.add_theme_constant_override("separation", 5)
+	center.add_child(options)
 	var title := Label.new()
-	title.text = "TipTop's routines — repair independently"
-	title.position = Vector2(40, 25)
+	title.text = "TipTop's routines - repair independently"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 8)
-	repair_panel.add_child(title)
-	var row := 0
+	options.add_child(title)
 	for chore in GameState.REPAIR_COSTS:
 		var button := Button.new()
-		button.position = Vector2(40, 43 + row * 22)
-		button.size = Vector2(240, 20)
+		button.custom_minimum_size = Vector2(260, 22)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.add_theme_font_size_override("font_size", 8)
+		button.add_theme_color_override("font_disabled_color", Color("9eaaa3"))
 		button.pressed.connect(_select_repair.bind(chore))
-		repair_panel.add_child(button)
+		options.add_child(button)
 		repair_buttons[chore] = button
-		row += 1
 	var cancel := Button.new()
 	cancel.text = "Cancel"
-	cancel.position = Vector2(110, 137)
-	cancel.size = Vector2(100, 20)
+	cancel.custom_minimum_size = Vector2(260, 22)
 	cancel.add_theme_font_size_override("font_size", 8)
 	cancel.pressed.connect(_close_repair_menu)
-	repair_panel.add_child(cancel)
+	options.add_child(cancel)
 	fix_button.text = "Repairs..."
 
 
@@ -517,10 +551,10 @@ func _show_feedback(message: String) -> void:
 
 
 func _process(delta: float) -> void:
+	_update_clock_hud()
 	_sync_overlay_visibility()
 	if GameState.research_active:
 		var shown := minf(GameState.research_duration, GameState.research_elapsed + GameState.research_accumulator)
-		time_label.text = "%02d" % int(GameState.time_minutes / 60)
 		research_bar.max_value = GameState.research_duration
 		research_bar.value = shown
 		research_speed_button.text = "Watch 1x" if GameState.research_playback_rate > 1.0 else "Speed 6x"

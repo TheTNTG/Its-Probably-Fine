@@ -3,10 +3,10 @@ extends Node2D
 # Presentation only. All animation is sampled from the authoritative world clock.
 const ART = preload("res://scripts/apartment_visual.gd")
 const HOURS := [540.0, 720.0, 900.0, 1080.0]
-const AMBIENT := [Color(0.97, 0.97, 1.0), Color(1.0, 1.0, 1.0), Color(1.0, 0.96, 0.92), Color(0.94, 0.88, 0.87)]
-const SUN := [Color("ffe4ad"), Color("fff5dc"), Color("ffda9b"), Color("ffca80")]
+const AMBIENT := [Color(0.94, 0.95, 1.0), Color(1.0, 1.0, 0.99), Color(1.0, 0.93, 0.84), Color(0.93, 0.84, 0.80)]
+const SUN := [Color("ffe3ab"), Color("fff6e0"), Color("ffd398"), Color("ffc27b")]
 const LENGTH := [106.0, 62.0, 116.0, 142.0]
-const STRENGTH := [0.065, 0.04, 0.075, 0.095]
+const STRENGTH := [0.22, 0.15, 0.28, 0.34]
 var ambient: CanvasModulate
 var lamps: Array[PointLight2D] = []
 var sampled_time := -1.0
@@ -68,7 +68,7 @@ func _update_from_clock() -> void:
 	sun_strength = lerpf(STRENGTH[phase], STRENGTH[phase + 1], blend)
 	var evening := smoothstep(720.0, 1080.0, minutes)
 	for lamp in lamps:
-		lamp.energy = lerpf(0.10, 0.26, evening)
+		lamp.energy = lerpf(0.16, 0.62, evening)
 	queue_redraw()
 
 
@@ -82,6 +82,15 @@ func _draw() -> void:
 	for beam in range(3):
 		var entry := Vector2(45, 58 + beam * 20)
 		var tip := entry + direction * sun_length
+		# Soft window-mullion shade between shafts; all shading stays on
+		# the floor layer, so it cannot darken faces, furniture or the UI.
+		var shadow_entry := entry + across * 12.0
+		var shadow_tip := shadow_entry + direction * sun_length * 0.94
+		for feather in range(4):
+			var width := 1.0 + feather * 0.8
+			var shadow := PackedVector2Array([shadow_entry - across * width, shadow_tip - across * width, shadow_tip + across * width, shadow_entry + across * width])
+			for clipped in Geometry2D.intersect_polygons(shadow, room_polygon):
+				draw_colored_polygon(clipped, Color(0.16, 0.20, 0.28, sun_strength * 0.14))
 		# Nested translucent tapered shapes soften both edges and the far end.
 		for feather in range(6):
 			var width := 5.0 + (5 - feather) * 1.4
