@@ -35,7 +35,6 @@ var transition_title: Label
 var transition_events: Array[String] = []
 var repair_panel: ColorRect
 var repair_buttons: Dictionary = {}
-var menu_was_paused := false
 var household_panel: ColorRect
 var system_notice: ColorRect
 var system_text: Label
@@ -50,6 +49,24 @@ var weekday_label: Label
 var time_remaining: Label
 var time_bar: ProgressBar
 var time_bar_fill: StyleBoxFlat
+var deferred_story_events: Array[String] = []
+var dialogue_resume_loop := false
+
+
+func _household_open() -> bool:
+	return is_instance_valid(household_panel) and household_panel.visible
+
+
+func _comic_safe() -> bool:
+	return not GameState.research_active and not get_node("../Player").animation_busy and not transitioning and not repair_panel.visible and not _household_open()
+
+
+func overhead_thoughts_allowed() -> bool:
+	return not dialogue_overlay.visible and not repair_panel.visible and not loop_panel.visible and not notification_panel.visible and not transitioning and not _household_open() and not GameState.day_ended and not GameState.game_finished
+
+
+func _restore_modal_pause() -> void:
+	get_tree().paused = dialogue_overlay.visible or repair_panel.visible or loop_panel.visible or _household_open() or transitioning or GameState.day_ended or GameState.game_finished
 
 
 func research_choices() -> void:
@@ -70,6 +87,8 @@ func research_choices() -> void:
 func set_research_controls(active: bool) -> void:
 	research_strip.visible = active
 	notification_panel.hide()
+	if active:
+		pending_feedback.clear()
 
 
 func _fast_forward_research() -> void:
@@ -90,7 +109,7 @@ func _skip_research() -> void:
 
 
 func household_choices(location: String) -> void:
-	if is_instance_valid(household_panel) or transitioning:
+	if is_instance_valid(household_panel) or transitioning or dialogue_overlay.visible or repair_panel.visible or loop_panel.visible or GameState.research_active:
 		return
 	var prior_pause := get_tree().paused
 	get_tree().paused = true
@@ -236,7 +255,7 @@ func _show_malfunction(message: String) -> void:
 	notification_label.text = "Faulty routines: repair or ignore?" if GameState.ending_day_pending else "Tap running: repair or ignore?"
 	fix_button.visible = true
 	ignore_button.visible = true
-	notification_panel.visible = true
+	notification_panel.visible = not GameState.research_active and not get_node("../Player").animation_busy and not dialogue_overlay.visible
 	get_node("../Player").interaction_prompt.hide()
 
 
@@ -501,9 +520,8 @@ func _build_repair_menu() -> void:
 
 
 func _open_repair_menu() -> void:
-	if transitioning or repair_panel.visible or get_node("../Player").animation_busy:
+	if transitioning or repair_panel.visible or dialogue_overlay.visible or loop_panel.visible or _household_open() or GameState.research_active or get_node("../Player").animation_busy:
 		return
-	menu_was_paused = get_tree().paused
 	for chore in repair_buttons:
 		var button: Button = repair_buttons[chore]
 		var fixed: bool = GameState.repairs[chore]
@@ -515,7 +533,7 @@ func _open_repair_menu() -> void:
 
 func _close_repair_menu() -> void:
 	repair_panel.hide()
-	get_tree().paused = menu_was_paused or dialogue_overlay.visible or loop_panel.visible
+	_restore_modal_pause()
 
 
 func _select_repair(chore: String) -> void:
@@ -543,6 +561,9 @@ func _show_feedback(message: String) -> void:
 	if speaker == "TipTop":
 		get_node("../TipTop").show_monologue(message)
 		return
+	if GameState.research_active:
+		# Optional feedback is stale by the time a long session completes.
+		return
 	elif speaker == "Judy" and "Mosquito" in message:
 		expression = "annoyed"
 	var line := [speaker, message, expression]
@@ -561,6 +582,11 @@ func _process(delta: float) -> void:
 		research_status.text = "Research: %d / %d min%s" % [int(GameState.research_elapsed), GameState.research_duration, "  Swat!" if GameState.research_interruptions > 0 and fmod(GameState.research_elapsed, 5.0) < 0.25 else ""]
 	if transitioning or repair_panel.visible or (is_instance_valid(household_panel) and household_panel.visible):
 		return
+	if _comic_safe() and not dialogue_overlay.visible:
+		if not deferred_story_events.is_empty():
+			_on_story_event(deferred_story_events.pop_front())
+		elif not dialogue_lines.is_empty():
+			_advance_dialogue()
 	if not dialogue_overlay.visible and not loop_panel.visible and not GameState.notification_active and not get_node("../Player").animation_busy:
 		if system_left <= 0 and not system_messages.is_empty():
 			system_text.text = system_messages.pop_front()
@@ -754,6 +780,9 @@ func _input(event: InputEvent) -> void:
 		elif event.is_action_pressed("interact"):
 			get_viewport().set_input_as_handled()
 		return
+	if GameState.research_active:
+		# Research buttons keep mouse input; no hidden comic captures E/Enter.
+		return
 	if not dialogue_overlay.visible:
 		return
 	if event is InputEventKey:
@@ -767,12 +796,20 @@ func _input(event: InputEvent) -> void:
 
 
 func _advance_dialogue() -> void:
+	if not _comic_safe():
+		return
 	if dialogue_lines.is_empty():
 		dialogue_overlay.hide()
+		if dialogue_resume_loop:
+			loop_panel.show()
+			dialogue_resume_loop = false
 		_sync_overlay_visibility()
 		last_portrait = ""
-		get_tree().paused = loop_panel.visible or GameState.day_ended or GameState.game_finished
+		_restore_modal_pause()
 		return
+	if not dialogue_overlay.visible:
+		dialogue_resume_loop = loop_panel.visible
+		loop_panel.hide()
 	var line: Array = dialogue_lines.pop_front()
 	dialogue_speaker.text = line[0]
 	_present_speaker(line[0], line[2] if line.size() > 2 else "neutral")
@@ -783,7 +820,7 @@ func _advance_dialogue() -> void:
 	dialogue_text.size = dialogue_bounds
 	reveal_characters = 0.0
 	dialogue_text.visible_characters = 0
-	get_node("../TipTop").monologue_label.hide()
+	get_node("../TipTop").clear_monologue()
 	get_node("../TipTop").action_label.hide()
 	get_node("../Player").interaction_prompt.hide()
 	notification_panel.hide()
@@ -862,9 +899,12 @@ func _present_speaker(speaker: String, expression: String) -> void:
 
 
 func _on_story_event(event: String) -> void:
-	if GameState.research_active and event.begins_with("ambient_"):
+	var optional := event.begins_with("ambient_") or event == "desk_approach"
+	if optional and not deferred_story_events.is_empty():
 		return
-	if event == "desk_approach" and get_node("../Player").animation_busy:
+	if not _comic_safe():
+		if not optional and not story_seen.has(event) and not deferred_story_events.has(event):
+			deferred_story_events.append(event)
 		return
 	if transitioning:
 		transition_events.append(event)

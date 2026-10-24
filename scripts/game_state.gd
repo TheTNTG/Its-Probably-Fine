@@ -65,7 +65,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if get_tree().paused or household_busy or ending_day_pending or notification_active or day_ended or game_finished:
+	if get_tree().paused or household_busy or ending_day_pending or (notification_active and not research_active) or day_ended or game_finished:
 		return
 	if research_active:
 		# Research compresses 120 game minutes into three real minutes. The

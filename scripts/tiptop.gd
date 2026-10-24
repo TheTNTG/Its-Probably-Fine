@@ -64,18 +64,34 @@ func _ready() -> void:
 
 
 func show_monologue(message: String) -> void:
+	if not get_node("../HUD").overhead_thoughts_allowed():
+		clear_monologue()
+		return
 	monologue_label.text = message
 	monologue_left = clampf(message.length() * 0.06, 2.0, 5.0)
 	monologue_label.show()
+	action_label.hide()
+
+
+func clear_monologue() -> void:
+	monologue_left = 0.0
+	monologue_label.text = ""
+	monologue_label.hide()
 
 
 func _process(delta: float) -> void:
+	var allowed: bool = get_node("../HUD").overhead_thoughts_allowed()
+	if not allowed:
+		clear_monologue()
+		action_label.hide()
+		return
 	if monologue_left > 0:
 		monologue_label.position.y = maxf(-43.0, 33.0 - global_position.y)
 		monologue_left -= delta
-		monologue_label.visible = not get_node("../HUD").dialogue_overlay.visible
+		monologue_label.show()
 		if monologue_left <= 0:
-			monologue_label.hide()
+			clear_monologue()
+	action_label.visible = action_left > 0 and task_outcome == "working" and monologue_left <= 0
 
 
 func _state_changed() -> void:
@@ -83,6 +99,7 @@ func _state_changed() -> void:
 		GameState.action_feedback.emit("TipTop: " + ["Hydration complete.", "Dish cycle successful.", "Book order optimized.", "Sheets aerated."][visit])
 		reaction_day = GameState.day
 	if GameState.repairs.values().count(true) != repair_count or GameState.day != last_day or was_research != GameState.research_active or session_serial != GameState.research_task_serial:
+		clear_monologue()
 		if has_destination or action_left > 0:
 			task_outcome = "cancelled"
 		wait = 0.8
@@ -91,6 +108,7 @@ func _state_changed() -> void:
 		action_left = 0.0
 		_chore_visual().call("set_chore_active", false)
 		action_label.hide()
+		action_label.text = ""
 		velocity = Vector2.ZERO
 		navigation_attempts = 0
 		travel_elapsed = 0.0
@@ -149,6 +167,8 @@ func _clear_to(point: Vector2) -> bool:
 
 
 func _finish_presentation(outcome: String) -> void:
+	if outcome != "completed":
+		clear_monologue()
 	task_outcome = outcome
 	velocity = Vector2.ZERO
 	path.clear()
@@ -157,6 +177,7 @@ func _finish_presentation(outcome: String) -> void:
 	cleanup_target = false
 	_chore_visual().call("set_chore_active", false)
 	action_label.hide()
+	action_label.text = ""
 	finished_chore_serial = GameState.research_task_serial
 	if outcome in ["completed", "failed", "cancelled"]:
 		GameState.resolve_robot_chore(finished_chore_serial, outcome == "completed")
@@ -219,7 +240,7 @@ func _physics_process(delta: float) -> void:
 	# upward task cue show attention toward the shelf without rotating the body.
 	$Visual.skew = lerpf($Visual.skew, -0.08 if visit == 2 and action_left > 0 else 0.0, 1.0 - exp(-8.0 * delta))
 	repath_cooldown = maxf(0.0, repath_cooldown - delta)
-	if GameState.day_ended or GameState.game_finished or GameState.ending_day_pending or GameState.household_busy or GameState.notification_active:
+	if GameState.day_ended or GameState.game_finished or GameState.ending_day_pending or GameState.household_busy or (GameState.notification_active and not GameState.research_active):
 		velocity = Vector2.ZERO
 		_chore_visual().call("set_chore_active", false)
 		action_label.hide()
