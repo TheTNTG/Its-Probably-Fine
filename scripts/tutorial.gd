@@ -73,7 +73,7 @@ func _ready() -> void:
 
 
 func _safe() -> bool:
-	return not get_tree().paused and not GameState.research_active and GameState.personal_activity.is_empty() and not GameState.household_busy and not GameState.repair_in_progress and not GameState.day_ended and not GameState.game_finished and not GameState.notification_active and not hud.get("transitioning") and not hud.get("sleep_dialogue_pending") and not hud.get_node("../Player").get("animation_busy") and not hud.get("dialogue_overlay").visible and not hud.get("repair_panel").visible and not hud.get("loop_panel").visible and not hud.call("_household_open") and not hud.call("_pause_open") and hud.get("dialogue_lines").is_empty() and hud.get("deferred_story_events").is_empty() and hud.get("pending_feedback").is_empty() and int(hud.get("morning_pending_day")) == 0 and float(hud.get("system_left")) <= 0 and hud.get("system_messages").is_empty()
+	return not hud.call("hud_navigation_active") and not get_tree().paused and not GameState.research_active and GameState.personal_activity.is_empty() and not GameState.household_busy and not GameState.repair_in_progress and not GameState.day_ended and not GameState.game_finished and not GameState.notification_active and not hud.get("transitioning") and not hud.get("sleep_dialogue_pending") and not hud.get_node("../Player").get("animation_busy") and not hud.get("dialogue_overlay").visible and not hud.get("repair_panel").visible and not hud.get("loop_panel").visible and not hud.call("_household_open") and not hud.call("_pause_open") and hud.get("dialogue_lines").is_empty() and hud.get("deferred_story_events").is_empty() and hud.get("pending_feedback").is_empty() and int(hud.get("morning_pending_day")) == 0 and float(hud.get("system_left")) <= 0 and hud.get("system_messages").is_empty()
 
 
 func _offer(id: String, text: String, target: String, guided: bool = false) -> void:
@@ -102,9 +102,9 @@ func _detect() -> void:
 	if int(GameState.chore_mess["bed"]) >= 2:
 		_offer("bed_mess", "TipTop has made the bed messier. Make it before resting, or let its repaired routine tidy it.", "Bed")
 	if GameState.mood < 45 and _near("Desk"):
-		_offer("mood", "Research normally needs at least 45 Mood. Coffee-table leisure restores it. Day 3's late push-through exception has reduced efficiency.", "CoffeeTable")
+		_offer("mood", "Research normally needs 45 Mood. Meals and leisure restore it and reset the work streak. Day 3's Mood exception never bypasses the more-than-20 Fullness requirement.", "CoffeeTable")
 	if GameState.hunger < 60:
-		_offer("hunger", "Below 60 fullness, hunger reduces research gains; lower fullness means a larger penalty. Eat at the fridge to restore 40 fullness in 30 minutes.", "Fridge")
+		_offer("hunger", "Below 60 Fullness, research gains fall. At 20 or less, you can't start work. A 30-minute meal restores 40 Fullness and 10 Mood, and counts as a break.", "Fridge")
 	if GameState.repairs.values().has(true):
 		_offer("repair", "A repaired routine stays corrected and earns research progress. Existing mess may still need cleanup. Each routine is repaired independently.", "TipTop")
 	if GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD:
@@ -115,11 +115,11 @@ func _detect() -> void:
 	_offer("guide_move", "Move with WASD or arrows; approach objects for E prompts. TipTop waits until you read all eight tips or choose Skip Tutorial. Essential warnings stay enabled.", "Player", true)
 	_offer("guide_clock", "The clock runs while you explore. Showcase: Day 3, 8 PM. This bar counts 27 playable hours, excluding nights. Hover/focus icons for details; click to pin.", "deadline", true)
 	if anywhere or _near("Desk"):
-		_offer("guide_desk", "Use E at the desk to research, up to four sessions each day. Watch, 6x or Skip process the same world time and household consequences.", "Desk", true)
+		_offer("guide_desk", "Use E at the desk for up to four sessions daily. Starting work needs more than 20 Fullness. Watch, 6x and Skip process the same world time and consequences.", "Desk", true)
 	if anywhere or _near("TipTop"):
 		_offer("guide_robot", "TipTop means well. Faulty chores make real messes. His robot icon shows the repair checklist; E near him opens repairs. Cleaning alone doesn't correct a routine.", "repairs", true)
 	if anywhere or _near("Fridge") or _near("CoffeeTable") or GameState.hunger < 75:
-		_offer("guide_needs", "Fullness shifts from sage to amber, orange, then brick as it falls. Eat at the fridge; coffee-table leisure restores Mood. Hover/focus or click the heart for details.", "needs", true)
+		_offer("guide_needs", "Fullness shifts from sage to brick as it falls. Meals restore Fullness and Mood; meals and leisure reset your work streak. Click the heart, or Tab then arrows, for details.", "needs", true)
 	if anywhere or _near("Desk"):
 		_offer("guide_target", "Aim for 75% research. On %s, a standard session costs %d game minutes. A running tap adds time and cuts gains; repairs can also earn progress." % [GameState.profile()["name"], GameState.profile()["research_minutes"]], "research", true)
 	if anywhere or _near("Bed"):

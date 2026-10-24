@@ -13,6 +13,7 @@ var leave_time := 0.0
 var reference_height := 288.0
 var caption: Label
 var gutter: Control
+var keyboard_navigation := false
 const NAMES := {"research": "Research", "repairs": "TipTop", "time": "Time Usage", "needs": "Needs"}
 
 
@@ -34,7 +35,9 @@ func setup(owner_hud: CanvasLayer, targets: Dictionary, pages: Dictionary, popup
 	for button in buttons.values():
 		var category: String = button.get_meta("details_category")
 		button.toggle_mode = true
+		button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(_toggle.bind(category))
+	exit_navigation()
 	panel.hide()
 
 
@@ -53,13 +56,39 @@ func _toggle(category: String) -> void:
 
 
 func _allowed() -> bool:
-	return not get_tree().paused and not GameState.game_finished and not GameState.day_ended and not GameState.notification_active and not hud.get("transitioning") and not hud.get("dialogue_overlay").visible and not hud.get("loop_panel").visible and not hud.get("repair_panel").visible and not hud.call("_household_open")
+	return not get_tree().paused and not GameState.game_finished and not GameState.day_ended and not GameState.notification_active and not GameState.research_active and GameState.personal_activity.is_empty() and not GameState.household_busy and not GameState.repair_in_progress and not hud.get_node("../Player").get("animation_busy") and not hud.get("transitioning") and not hud.get("dialogue_overlay").visible and not hud.get("loop_panel").visible and not hud.get("repair_panel").visible and not hud.call("_household_open") and not hud.call("_eject_open")
+
+
+func toggle_navigation() -> void:
+	if keyboard_navigation:
+		exit_navigation()
+	elif _allowed():
+		keyboard_navigation = true
+		for button in buttons.values():
+			button.focus_mode = Control.FOCUS_ALL
+		panel.get_child(0).focus_mode = Control.FOCUS_ALL
+		buttons["research"].grab_focus()
+
+
+func exit_navigation() -> void:
+	keyboard_navigation = false
+	var focused: Control = hud.get_viewport().gui_get_focus_owner()
+	if is_instance_valid(focused) and (focused in buttons.values() or panel.is_ancestor_of(focused)):
+		hud.get_viewport().gui_release_focus()
+	for button in buttons.values():
+		button.focus_mode = Control.FOCUS_NONE
+	panel.get_child(0).focus_mode = Control.FOCUS_NONE
 
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(panel):
 		return
-	if not _allowed():
+	var allowed := _allowed()
+	for button in buttons.values():
+		button.disabled = not allowed
+		button.modulate = Color.WHITE if allowed else Color(1, 1, 1, 0.45)
+	if not allowed:
+		exit_navigation()
 		panel.hide()
 		caption.hide()
 		return

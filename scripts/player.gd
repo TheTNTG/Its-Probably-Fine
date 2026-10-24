@@ -57,7 +57,7 @@ func _update_interaction_prompt(target: Node2D) -> void:
 		interaction_prompt.text = "Too exhausted to work" if exhausted else "E - Research"
 		interaction_prompt.modulate = Color.RED if exhausted else Color.GREEN
 		if not GameState.research_available() and not exhausted:
-			interaction_prompt.text = "E - Take a break first" if not GameState.mood_allows_research() else ("E - Research blocked (bookshelf)" if GameState.has_research_time() else "E - Not enough research time")
+			interaction_prompt.text = "E - Eat something first" if not GameState.fullness_allows_research() else ("E - Take a break first" if not GameState.mood_allows_research() else ("E - Research blocked (bookshelf)" if GameState.has_research_time() else "E - Not enough research time"))
 			interaction_prompt.modulate = Color.RED
 		interaction_prompt.text += " · %d/%d left" % [GameState.work_sessions_remaining, GameState.DAILY_WORK_SESSIONS]
 	elif target == tiptop:
@@ -186,6 +186,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	if get_node("../HUD").hud_navigation_active():
+		velocity = Vector2.ZERO
+		visual.pause()
+		return
 	if animation_busy:
 		interaction_prompt.hide()
 		return
@@ -213,7 +217,7 @@ func _physics_process(_delta: float) -> void:
 func _process(_delta: float) -> void:
 	var hud: CanvasLayer = get_node("../HUD")
 	prompt_layer.transform = hud.transform
-	if animation_busy or get_tree().paused:
+	if animation_busy or get_tree().paused or bool(hud.call("hud_navigation_active")):
 		interaction_prompt.hide()
 		return
 	_update_interaction_prompt(_nearest_interaction())
@@ -378,7 +382,7 @@ func _research_animation(fast_forward := false) -> void:
 	if animation_busy or GameState.work_sessions_remaining <= 0 or GameState.day_ended or GameState.game_finished:
 		return
 	if not GameState.research_available():
-		if GameState.has_research_time() and GameState.mood_allows_research() and int(GameState.chore_mess["bookshelf"]) >= 2:
+		if GameState.fullness_allows_research() and GameState.has_research_time() and GameState.mood_allows_research() and int(GameState.chore_mess["bookshelf"]) >= 2:
 			get_node("../HUD").household_choices("bookshelf")
 			return
 		GameState.action_feedback.emit(GameState.research_block_reason())

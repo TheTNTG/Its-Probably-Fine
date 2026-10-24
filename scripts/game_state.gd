@@ -5,6 +5,7 @@ signal malfunction_triggered(message: String)
 signal story_event(event: String)
 signal repair_menu_requested
 signal action_feedback(message: String)
+signal meaningful_break_taken
 
 const DAY_START := 660
 const DAY_END := 1200
@@ -241,10 +242,12 @@ func apply_overnight_needs() -> void:
 	overnight_day = day
 	var overnight_loss := 10.0 if mood >= 45 else 15.0
 	# Mood is based on bedtime fullness BEFORE the overnight deduction.
-	mood = 90.0 if hunger >= 70 else (80.0 if hunger >= 40 else (65.0 if hunger >= 20 else 40.0))
+	# Even a hungry night's sleep clears the 45-Mood research block.
+	mood = 90.0 if hunger >= 70 else (80.0 if hunger >= 40 else (65.0 if hunger >= 20 else 50.0))
 	hunger = maxf(0, hunger - overnight_loss)
 	work_streak = 0
 	break_reminded = false
+	meaningful_break_taken.emit()
 
 
 func hunger_efficiency() -> float:
@@ -329,11 +332,13 @@ func advance_personal_activity(minutes: float) -> void:
 	personal_playback_rate = 1.0
 	if activity == "eat":
 		hunger = clampf(hunger + 40, 0, 100)
+		mood = clampf(mood + 10, 0, 100)
 	else:
 		mood = clampf(mood + float(PERSONAL_ACTIVITIES[activity][1]), 0, 100)
-		work_streak = 0
-		break_reminded = false
-	action_feedback.emit("Meal finished: +40 Hunger." if activity == "eat" else "Break finished. Feeling more like myself.")
+	work_streak = 0
+	break_reminded = false
+	meaningful_break_taken.emit()
+	action_feedback.emit("Meal finished: +40 Fullness, +10 Mood. Work streak reset." if activity == "eat" else "Break finished. Feeling more like myself.")
 	state_changed.emit()
 
 
@@ -537,7 +542,11 @@ func needs_cleanup(chore: String) -> bool:
 
 
 func research_available() -> bool:
-	return int(chore_mess["bookshelf"]) < 2 and has_research_time() and mood_allows_research()
+	return work_sessions_remaining > 0 and fullness_allows_research() and int(chore_mess["bookshelf"]) < 2 and has_research_time() and mood_allows_research()
+
+
+func fullness_allows_research() -> bool:
+	return hunger > 20
 
 
 func research_session_minutes() -> float:
@@ -549,6 +558,10 @@ func has_research_time() -> bool:
 
 
 func research_block_reason() -> String:
+	if work_sessions_remaining <= 0:
+		return "Too exhausted to work. Rest until tomorrow."
+	if not fullness_allows_research():
+		return "Judy is too hungry to work. Eat something first."
 	if not mood_allows_research():
 		return "Judy needs a break. Restore Mood to at least 45% before researching."
 	if not has_research_time():

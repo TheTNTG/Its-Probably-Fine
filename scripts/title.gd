@@ -242,10 +242,10 @@ func _show_help() -> void:
 	cards.add_theme_constant_override("separation", 5)
 	scroll.add_child(cards)
 	var sections := [
-		["judy", "Judy · Move & interact", "WASD / arrows to move. E interacts; E / Enter advances dialogue."],
-		["desk", "Research", "Use the desk: four sessions a day. Work costs time and Mood."],
+		["judy", "Judy · Move & interact", "WASD / arrows move. E interacts; E / Enter advances dialogue. Tab inspects the HUD; Tab returns to movement."],
+		["desk", "Research", "Four sessions a day. Starting needs more than 20 Fullness, even with the final-day Mood exception."],
 		["tiptop", "TipTop", "Faulty chores make messes. Repair each routine; cleaning alone doesn't fix it."],
-		["fridge", "Fullness & Mood", "Eat at the fridge. Coffee-table leisure restores Mood. Low needs reduce research efficiency."],
+		["fridge", "Fullness & Mood", "Meals give +40 Fullness and +10 Mood. Meals and leisure reset work streaks, not the daily session limit."],
 		["clock", "Time & deadline", "Reach 75% research by Day 3, 8 PM. Sleep at the bed to advance days."],
 		["activity", "Activity controls", "Watch 1x, Fast 6x or Skip to finish. Eject cancels without a completion reward."]]
 	for section in sections:

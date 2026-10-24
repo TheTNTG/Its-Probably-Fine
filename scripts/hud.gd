@@ -42,6 +42,9 @@ var system_messages: Array[String] = []
 var system_left := 0.0
 var research_strip: ColorRect
 var research_status: Label
+var research_help: Label
+var activity_buttons: Array[Button] = []
+var active_dialogue_event := ""
 var research_bar: ProgressBar
 var research_speed_button: Button
 var overview_bar: ProgressBar
@@ -127,7 +130,7 @@ func research_choices() -> void:
 		_show_feedback("Too exhausted to work. Rest until tomorrow.")
 		return
 	if not GameState.research_available():
-		if GameState.has_research_time() and GameState.mood_allows_research() and int(GameState.chore_mess["bookshelf"]) >= 2:
+		if GameState.fullness_allows_research() and GameState.has_research_time() and GameState.mood_allows_research() and int(GameState.chore_mess["bookshelf"]) >= 2:
 			household_choices("bookshelf")
 		else:
 			_show_feedback(GameState.research_block_reason())
@@ -239,7 +242,7 @@ func household_choices(location: String) -> void:
 		options.append(["Play phone games — 30 min, +30 Mood", judy.personal_activity.bind("games")])
 		options.append(["Solve Rubik's cube — 20 min, +25 Mood", judy.personal_activity.bind("cube")])
 	elif location == "fridge":
-		options.append(["Eat at the coffee table — 30 min, +40 Hunger", judy.personal_activity.bind("eat")])
+		options.append(["Eat at the coffee table — 30 min, +40 Fullness, +10 Mood", judy.personal_activity.bind("eat")])
 	elif location == "bookshelf":
 		options.append(["Organize books myself — 20 min", judy.organize_for_research])
 	elif location == "tiptop":
@@ -301,6 +304,7 @@ func _ready() -> void:
 	GameState.story_event.connect(_on_story_event)
 	GameState.repair_menu_requested.connect(_open_repair_menu)
 	GameState.action_feedback.connect(_show_feedback)
+	GameState.meaningful_break_taken.connect(_clear_stale_break_reminders)
 	_update_hud()
 	tutorial = Control.new()
 	tutorial.set_script(preload("res://scripts/tutorial.gd"))
@@ -771,6 +775,7 @@ func _build_right_sidebar() -> void:
 	needs_values["food"] = _detail_row(needs, "food", "Fullness", "")
 	needs_values["mood"] = _detail_row(needs, "needs", "Mood", "")
 	detail_needs = _detail_text(needs, "", 6)
+	_detail_text(needs, "Meal: 30 min, +40 food, +10 Mood. Counts as a break.", 6)
 	_detail_divider(needs)
 	for key in ["food", "mood"]:
 		needs_modifiers[key] = _detail_notice(needs, "warning", "")
@@ -794,7 +799,7 @@ func _update_sidebar() -> void:
 	var blocked := not GameState.research_available() or GameState.work_sessions_remaining <= 0
 	detail_research.text = "Research underway" if GameState.research_active else ("Research blocked" if blocked else "Ready to research")
 	var food_loss := int(round((1.0 - GameState.hunger_efficiency()) * 100))
-	_set_notice(research_modifiers["food"], "Food: -%d%% yield" % food_loss if food_loss > 0 else "")
+	_set_notice(research_modifiers["food"], "Fullness must exceed 20" if not GameState.fullness_allows_research() else ("Food: -%d%% yield" % food_loss if food_loss > 0 else ""))
 	_set_notice(research_modifiers["tap"], "Tap: half reward" if GameState.tap_running else "")
 	_set_notice(research_modifiers["books"], "Books scattered" if int(GameState.chore_mess["bookshelf"]) >= 2 else "")
 	_set_notice(research_modifiers["mood"], "Mood below 45" if not GameState.mood_allows_research() else "")
@@ -802,6 +807,8 @@ func _update_sidebar() -> void:
 	var recommendation := "Your desk is ready."
 	if GameState.work_sessions_remaining <= 0:
 		recommendation = "Rest for more sessions."
+	elif not GameState.fullness_allows_research():
+		recommendation = "Eat before researching."
 	elif int(GameState.chore_mess["bookshelf"]) >= 2:
 		recommendation = "Clear the bookshelf."
 	elif not GameState.mood_allows_research():
@@ -814,7 +821,9 @@ func _update_sidebar() -> void:
 		recommendation = "Turn off the tap."
 	research_next.text = recommendation
 	var warning := ""
-	if int(GameState.chore_mess["bookshelf"]) >= 2:
+	if not GameState.fullness_allows_research():
+		warning = "! Too hungry to work"
+	elif int(GameState.chore_mess["bookshelf"]) >= 2:
 		warning = "! Books block research"
 	elif not GameState.mood_allows_research():
 		warning = "! Mood blocks research"
@@ -861,7 +870,7 @@ func _update_needs_ui() -> void:
 	needs_values["mood"].text = "%d%%" % int(GameState.mood)
 	detail_needs.text = GameState.hunger_status() + (" / Low Mood" if GameState.mood < 45 else " / Mood steady")
 	var loss := int(round((1.0 - GameState.hunger_efficiency()) * 100))
-	_set_notice(needs_modifiers["food"], "Food: -%d%% yield. Eat at the fridge." % loss if loss > 0 else "")
+	_set_notice(needs_modifiers["food"], "Too hungry to start research. Eat: +40 food, +10 Mood." if not GameState.fullness_allows_research() else ("Food: -%d%% yield. Meals: +40 food, +10 Mood." % loss if loss > 0 else ""))
 	_set_notice(needs_modifiers["mood"], "Push-through: -20% yield." if GameState.pushing_through() else ("Mood below 45. Take a leisure break." if GameState.mood < 45 else ""))
 
 
@@ -1247,6 +1256,11 @@ func _build_research_controls() -> void:
 	research_strip.hide()
 	add_child(research_strip)
 	research_status = _hud_text(research_strip, "", Vector2(6, 1), 7)
+	research_help = _hud_text(research_strip, "", Vector2(6, 1), 6)
+	research_help.size = Vector2(236, 12)
+	research_help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	research_help.clip_text = true
+	research_help.hide()
 	research_bar = ProgressBar.new()
 	research_bar.position = Vector2(6, 14)
 	research_bar.show_percentage = false
@@ -1266,6 +1280,11 @@ func _build_research_controls() -> void:
 		button.add_theme_font_size_override("font_size", 7)
 		button.pressed.connect(spec[1])
 		row.add_child(button)
+		activity_buttons.append(button)
+		button.accessibility_name = spec[0]
+		var help_text: String = {"Watch 1x": "Play at normal speed.", "Fast 6x": "Play at 6x speed.", "Skip": "Finish now. Full time cost applies.", "Eject...": "Cancel without a completion reward."}[spec[0]]
+		button.accessibility_description = help_text
+		button.set_meta("help_text", help_text)
 		if spec[0] == "Watch 1x":
 			activity_watch_button = button
 			button.toggle_mode = true
@@ -1275,15 +1294,21 @@ func _build_research_controls() -> void:
 		elif spec[0] == "Eject...":
 			eject_button = button
 			button.add_theme_color_override("font_color", Color("dca69a"))
-			button.tooltip_text = "Cancel unfinished task. No completion reward."
-		else:
-			button.tooltip_text = "Complete all remaining time and earn the usual reward."
 
 
 func _update_activity_controls() -> void:
 	var active := GameState.research_active or not GameState.personal_activity.is_empty()
 	eject_button.disabled = not GameState.can_eject_task() or get_tree().paused
-	eject_button.tooltip_text = "Eject: elapsed time stays spent; no reward or session refund." if not eject_button.disabled else "Unavailable: no unfinished task, finishing a pose, or paused."
+	eject_button.set_meta("help_text", "Cancel without a completion reward." if not eject_button.disabled else "Unavailable while paused or finishing.")
+	var help_text := ""
+	if research_strip.visible and not get_tree().paused:
+		var focused: Control = get_viewport().gui_get_focus_owner()
+		for button in activity_buttons:
+			if button == focused or button.get_global_rect().has_point(button.get_global_mouse_position()):
+				help_text = button.get_meta("help_text")
+	research_help.text = help_text
+	research_help.visible = not help_text.is_empty()
+	research_status.visible = help_text.is_empty()
 	if not active:
 		return
 	var speed: float = GameState.research_playback_rate if GameState.research_active else GameState.personal_playback_rate
@@ -1508,6 +1533,7 @@ func _build_pause_menu() -> void:
 
 
 func _open_pause() -> void:
+	detail_controller.call("exit_navigation")
 	if transitioning or loop_panel.visible:
 		return
 	pause_panel.show()
@@ -1552,6 +1578,10 @@ func _restart_from_pause(play_now: bool) -> void:
 		get_tree().change_scene_to_file("res://scenes/title.tscn")
 
 
+func hud_navigation_active() -> bool:
+	return is_instance_valid(detail_controller) and bool(detail_controller.get("keyboard_navigation")) and bool(detail_controller.call("_allowed"))
+
+
 func _input(event: InputEvent) -> void:
 	if _eject_open():
 		if event.is_action_pressed("ui_cancel"):
@@ -1565,6 +1595,14 @@ func _input(event: InputEvent) -> void:
 		return
 	if is_instance_valid(showcase) and event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_TAB and detail_controller.call("_allowed"):
+		detail_controller.call("toggle_navigation")
+		get_viewport().set_input_as_handled()
+		return
+	if hud_navigation_active() and not event.is_action("ui_cancel"):
+		if event.is_action("interact"):
+			get_viewport().set_input_as_handled()
 		return
 	if is_instance_valid(tutorial) and tutorial.call("handle_input", event):
 		get_viewport().set_input_as_handled()
@@ -1598,6 +1636,12 @@ func _input(event: InputEvent) -> void:
 		elif event.is_action_pressed("interact"):
 			get_viewport().set_input_as_handled()
 		return
+	if event is InputEventKey and not get_tree().paused and not get_node("../Player").animation_busy:
+		for action in ["move_up", "move_down", "move_left", "move_right"]:
+			if event.is_action(action):
+				# Polling Input still moves Judy; GUI focus navigation gets no arrow.
+				get_viewport().set_input_as_handled()
+				return
 	if GameState.research_active:
 		# Research buttons keep mouse input; no hidden comic captures E/Enter.
 		return
@@ -1618,6 +1662,7 @@ func _advance_dialogue() -> void:
 		return
 	if dialogue_lines.is_empty():
 		dialogue_overlay.hide()
+		active_dialogue_event = ""
 		if is_instance_valid(showcase):
 			showcase.call("finish_dialogue")
 		if dialogue_resume_loop:
@@ -1634,14 +1679,15 @@ func _advance_dialogue() -> void:
 		dialogue_resume_loop = loop_panel.visible
 		loop_panel.hide()
 	var line: Array = dialogue_lines.pop_front()
-	if line[0] == "Judy" and line.size() > 3:
+	active_dialogue_event = str(line[4]) if line.size() > 4 else ""
+	if line[0] == "Judy" and line.size() > 3 and not str(line[3]).is_empty():
 		line[1] = GameState.judy_response(line[3])
 		line[2] = "happy" if GameState.mood >= 70 else ("neutral" if GameState.mood >= 45 else "annoyed")
 	dialogue_speaker.text = line[0]
 	_present_speaker(line[0], line[2] if line.size() > 2 else "neutral")
 	var pages := _dialogue_pages(line[1])
 	for index in range(pages.size() - 1, 0, -1):
-		dialogue_lines.push_front([line[0], pages[index], line[2] if line.size() > 2 else "neutral"])
+		dialogue_lines.push_front([line[0], pages[index], line[2] if line.size() > 2 else "neutral", "", active_dialogue_event])
 	dialogue_text.text = _dialogue_line_breaks(pages[0])
 	dialogue_text.size = dialogue_bounds
 	reveal_characters = 0.0
@@ -1776,7 +1822,21 @@ func _present_speaker(speaker: String, expression: String) -> void:
 	portrait_tween.tween_property(dialogue_portrait, "modulate:a", 1.0, 0.13)
 
 
+func _clear_stale_break_reminders() -> void:
+	for events in [deferred_story_events, transition_events]:
+		for index in range(events.size() - 1, -1, -1):
+			if str(events[index]).begins_with("break_reminder_"):
+				events.remove_at(index)
+	for index in range(dialogue_lines.size() - 1, -1, -1):
+		var line: Array = dialogue_lines[index]
+		var event_id: String = str(line[4]) if line.size() > 4 else ""
+		if event_id.begins_with("break_reminder_") and not (dialogue_overlay.visible and active_dialogue_event == event_id):
+			dialogue_lines.remove_at(index)
+
+
 func _on_story_event(event: String) -> void:
+	if event.begins_with("break_reminder_") and GameState.work_streak < 2:
+		return
 	if event in ["day_2", "day_3"]:
 		morning_pending_day = GameState.day
 	var optional := event.begins_with("ambient_") or event == "desk_approach"
@@ -1847,6 +1907,11 @@ func _on_story_event(event: String) -> void:
 	for index in range(mini(lines.size(), selected.size())):
 		if lines[index].size() == 2:
 			lines[index].append(selected[index])
+	if event.begins_with("break_reminder_"):
+		for line in lines:
+			while line.size() < 4:
+				line.append("")
+			line.append(event)
 	var already_open := dialogue_overlay.visible
 	dialogue_lines.append_array(lines)
 	if not already_open and not dialogue_lines.is_empty():
