@@ -276,6 +276,9 @@ func _ready() -> void:
 	_update_hud()
 	if get_tree().has_meta("restart_playing"):
 		get_tree().remove_meta("restart_playing")
+		loop_panel.hide()
+		difficulty_controls.hide()
+		difficulty_description.hide()
 		_on_loop_pressed.call_deferred()
 	if get_tree().has_meta("new_game_slide"):
 		get_tree().remove_meta("new_game_slide")
@@ -357,7 +360,7 @@ func _update_hud() -> void:
 		get_tree().paused = true
 		loop_panel.show()
 		if GameState.game_finished:
-			loop_button.text = "Restart"
+			loop_button.text = "Main Menu"
 			if GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD and GameState.tiptop_fixed:
 				loop_message.text = "Good ending — It's probably fine!\nResearch: %.1f%%\nAll routines repaired." % GameState.research_progress
 			elif GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD:
@@ -729,9 +732,8 @@ func _play_day_transition(restarting := false) -> void:
 	await wipe.finished
 	get_node("../TipTop").clear_monologue()
 	if restarting:
-		get_tree().set_meta("new_game_slide", true)
 		GameState.restart()
-		get_tree().reload_current_scene()
+		get_tree().change_scene_to_file("res://scenes/title.tscn")
 		return
 	loop_panel.hide()
 	# Advance once, under full black; story dialogue is deferred until reveal.
@@ -1162,8 +1164,12 @@ func _restart_from_pause(play_now: bool) -> void:
 	if play_now:
 		GameState.select_difficulty(selected)
 		get_tree().set_meta("restart_playing", true)
-	get_tree().paused = false
-	get_tree().reload_current_scene()
+	# Keep the autoload clock stopped until the destination is ready.
+	get_tree().paused = true
+	if play_now:
+		get_tree().reload_current_scene()
+	else:
+		get_tree().change_scene_to_file("res://scenes/title.tscn")
 
 
 func _input(event: InputEvent) -> void:
