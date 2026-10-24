@@ -1,7 +1,7 @@
 extends Node2D
 
 # Decorative drawing only; physics and interactions remain in the scenes.
-@export_enum("floor", "walls", "desk", "sink", "plant", "bed", "bookshelf", "fridge", "chair") var fixture := "floor"
+@export_enum("floor", "walls", "desk", "sink", "plant", "bed", "bookshelf", "fridge", "chair", "coffee_table", "counter", "lamp") var fixture := "floor"
 
 const INK := Color("493b35")
 const WOOD := Color("805638")
@@ -18,6 +18,7 @@ var chore_phase := 0.0
 
 
 func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if fixture in ["plant", "sink", "bookshelf", "bed", "floor"]:
 		GameState.state_changed.connect(queue_redraw)
 
@@ -80,13 +81,31 @@ func _draw() -> void:
 						_box(left, 40 + row * 12, right - left, 11, boards[posmod(row + col, 3)])
 						if right - left > 20:
 							_box(left + 4, 43 + row * 12, 12, 1, WOOD)
+						# Sparse, deterministic grain stays still during chore redraws.
+						if right - left > 30:
+							_box(right - 18, 47 + row * 12, 9, 1, Color("735037"))
+							_box(right - 15, 48 + row * 12, 3, 1, Color("916745"))
 			# Woven rug: low contrast, safely underneath all sortable objects.
-			_box(128, 94, 64, 38, SHADE)
-			_box(130, 96, 60, 34, GREEN)
-			_box(133, 99, 54, 28, Color("91977a"))
-			for x in range(134, 188, 6):
-				_box(x, 96, 2, 2, CREAM)
-				_box(x, 128, 2, 2, CREAM)
+			_box(118, 101, 88, 49, Color("60442f"))
+			_box(119, 100, 86, 48, Color("40563f"))
+			_box(121, 102, 82, 44, GREEN)
+			_box(125, 106, 74, 36, Color("788363"))
+			for x in range(123, 201, 6):
+				_box(x, 103, 2, 2, Color("b3af7e"))
+				_box(x, 143, 2, 2, Color("b3af7e"))
+			for y in range(109, 141, 6):
+				_box(122, y, 2, 2, Color("b3af7e"))
+				_box(200, y, 2, 2, Color("b3af7e"))
+			for y in range(109, 140, 4):
+				for x in range(128, 198, 9):
+					_box(x + (y % 3), y, 3, 1, Color("72805d"))
+			# Small kitchen mat and a clear entrance runner.
+			_box(206, 88, 23, 7, Color("526348"))
+			for x in range(208, 228, 3):
+				_box(x, 89, 1, 4, GREEN)
+			_box(149, 160, 22, 10, SHADE)
+			_box(151, 161, 18, 8, Color("a77b4d"))
+			_box(153, 163, 14, 4, Color("b58c59"))
 		"walls":
 			_box(44, 32, 232, 8, INK)
 			_box(46, 33, 228, 4, CREAM)
@@ -96,11 +115,35 @@ func _draw() -> void:
 			_box(46, 40, 4, 132, CREAM)
 			_box(268, 40, 8, 140, SHADE)
 			_box(270, 40, 4, 132, CREAM)
-			_box(44, 172, 232, 8, SHADE)
-			_box(48, 172, 224, 2, EDGE)
+			# Recessed entrance; the existing boundary still closes the room.
+			_box(44, 172, 100, 8, SHADE)
+			_box(176, 172, 100, 8, SHADE)
+			_box(48, 172, 96, 2, EDGE)
+			_box(176, 172, 96, 2, EDGE)
+			_box(144, 173, 32, 7, Color("6a4d36"))
+			_box(146, 174, 28, 2, EDGE)
+			_box(143, 171, 2, 9, INK)
+			_box(175, 171, 2, 9, INK)
 			# Contact shade along the inside corners and rear skirting.
 			_box(52, 41, 216, 2, Color("46372d"))
 			_box(52, 43, 2, 129, Color("60422f"))
+			_box(54, 41, 212, 8, Color("d7c4a3"))
+			_box(54, 48, 212, 2, Color("9d7752"))
+			_box(54, 50, 212, 2, SHADE)
+			_box(54, 52, 212, 2, Color("694a33"))
+			for x in [94, 128, 188, 234]:
+				_box(x, 41, 1, 7, Color("c6b392"))
+			# Pinboard, landscape print, and notes over the sleeping/work area.
+			_box(65, 42, 22, 9, INK)
+			_box(66, 43, 20, 7, BLUE)
+			_box(67, 47, 18, 3, GREEN)
+			_box(80, 44, 3, 2, PAPER)
+			_box(100, 41, 24, 11, SHADE)
+			_box(101, 42, 22, 9, Color("a7794d"))
+			_box(103, 43, 6, 6, PAPER)
+			_box(112, 44, 8, 5, CREAM)
+			_box(104, 45, 3, 1, RUST)
+			_box(114, 46, 4, 1, BLUE)
 		"desk":
 			_box(-17, 0, 34, 2, SHADE)
 			_box(-16, -16, 32, 16, INK)
@@ -119,6 +162,14 @@ func _draw() -> void:
 			_box(-14, -12, 6, 7, PAPER)
 			_box(-13, -10, 4, 1, BLUE)
 			_box(-13, -8, 3, 1, SHADE)
+			# Drawer faces and layered paper edges add depth without moving the seat.
+			_box(8, -6, 6, 5, Color("69452f"))
+			_box(9, -5, 4, 1, EDGE)
+			_box(-14, -5, 5, 1, Color("d5c49e"))
+			_box(-12, -13, 4, 1, CREAM)
+			_box(12, -22, 1, 6, EDGE)
+			_box(9, -25, 7, 4, Color("d5b879"))
+			_box(10, -25, 5, 1, PAPER)
 		"sink":
 			_box(-13, 0, 26, 2, SHADE)
 			_box(-12, -16, 24, 16, INK)
@@ -133,6 +184,18 @@ func _draw() -> void:
 			_box(-2, -20, 6, 2, CREAM)
 			_box(7, -17, 3, 6, GREEN)
 			_box(7, -19, 2, 2, PAPER)
+			# Shallow wall cabinet, tiled backsplash, and hanging towel.
+			_box(-13, -39, 26, 12, INK)
+			_box(-12, -38, 24, 10, WOOD)
+			_box(-11, -37, 10, 7, EDGE)
+			_box(1, -37, 10, 7, EDGE)
+			_box(-3, -33, 1, 2, INK)
+			_box(2, -33, 1, 2, INK)
+			_box(-12, -26, 24, 5, Color("d9cdb0"))
+			for x in range(-11, 12, 5):
+				_box(x, -25, 1, 3, Color("b2aa92"))
+			_box(7, -5, 4, 7, PAPER)
+			_box(8, -4, 1, 5, Color("c4ba9b"))
 		"plant":
 			_box(-6, 0, 12, 2, SHADE)
 			_box(-5, -9, 10, 9, INK)
@@ -162,6 +225,12 @@ func _draw() -> void:
 			_box(8, -23, 2, 17, Color("54664a"))
 			_box(-15, -4, 30, 4, WOOD)
 			_box(-15, -4, 30, 1, EDGE)
+			_box(-14, -38, 1, 32, Color("c4b596"))
+			_box(-9, -36, 18, 1, Color("fff5dc"))
+			for y in range(-22, -5, 5):
+				_box(-10, y, 13, 1, Color("70855b"))
+			_box(-16, -2, 3, 4, INK)
+			_box(13, -2, 3, 4, INK)
 		"bookshelf":
 			_box(-18, 0, 36, 2, SHADE)
 			_box(-17, -29, 34, 29, INK)
@@ -174,6 +243,59 @@ func _draw() -> void:
 					_box(-12 + book * 4, y + 9 - height, 3, height, colors[book % 4])
 					_box(-12 + book * 4, y + 7, 3, 1, EDGE)
 				_box(-15, y + 9, 30, 2, EDGE)
+			_box(-17, -31, 34, 3, EDGE)
+			_box(-13, -34, 10, 3, RUST)
+			_box(-12, -33, 8, 1, PAPER)
+			_box(5, -34, 5, 3, CREAM)
+			_box(7, -39, 1, 5, GREEN)
+			_box(4, -38, 4, 2, LEAF)
+			_box(8, -40, 3, 3, GREEN)
+		"coffee_table":
+			# Chamfered tabletop and short legs, sorted at their ground contact.
+			_box(-12, 0, 26, 3, Color("55432e"))
+			_box(-10, -4, 3, 6, INK)
+			_box(8, -4, 3, 6, INK)
+			draw_colored_polygon(PackedVector2Array([Vector2(-14, -9), Vector2(-9, -15), Vector2(8, -15), Vector2(14, -9), Vector2(14, -4), Vector2(8, 0), Vector2(-9, 0), Vector2(-14, -4)]), INK)
+			draw_colored_polygon(PackedVector2Array([Vector2(-13, -10), Vector2(-8, -15), Vector2(7, -15), Vector2(13, -10), Vector2(13, -6), Vector2(7, -2), Vector2(-8, -2), Vector2(-13, -6)]), WOOD)
+			_box(-8, -14, 15, 1, EDGE)
+			_box(-7, -6, 6, 3, RUST)
+			_box(-6, -6, 4, 1, PAPER)
+			_box(-9, -11, 4, 4, CREAM)
+			_box(-8, -11, 2, 1, SHADE)
+			_box(-5, -10, 1, 2, CREAM)
+			_box(4, -10, 5, 4, RUST)
+			_box(6, -16, 1, 6, GREEN)
+			_box(2, -15, 5, 3, LEAF)
+			_box(7, -18, 4, 4, GREEN)
+		"counter":
+			_box(-17, 0, 35, 2, SHADE)
+			_box(-16, -18, 32, 18, INK)
+			_box(-15, -10, 30, 9, WOOD)
+			_box(-14, -8, 12, 6, Color("90603b"))
+			_box(1, -8, 13, 6, Color("90603b"))
+			_box(-12, -7, 8, 1, EDGE)
+			_box(4, -7, 7, 1, EDGE)
+			_box(-16, -19, 31, 9, Color("ad8053"))
+			_box(-15, -19, 29, 1, Color("d0aa71"))
+			_box(14, -18, 2, 16, SHADE)
+			# Coffee maker, chopping board, jar, and a folded tea towel.
+			_box(-12, -28, 7, 12, INK)
+			_box(-11, -27, 5, 3, BLUE)
+			_box(-10, -23, 3, 5, CREAM)
+			_box(-11, -17, 5, 1, EDGE)
+			_box(-1, -18, 10, 5, Color("d2af77"))
+			_box(2, -17, 4, 2, RUST)
+			_box(10, -23, 3, 7, Color("b78c59"))
+			_box(10, -24, 3, 2, CREAM)
+			_box(-3, -13, 5, 7, PAPER)
+			_box(-2, -12, 1, 5, BLUE)
+		"lamp":
+			_box(-5, 0, 10, 2, SHADE)
+			_box(-4, -2, 8, 2, WOOD)
+			_box(-1, -16, 2, 14, EDGE)
+			draw_colored_polygon(PackedVector2Array([Vector2(-3, -22), Vector2(3, -22), Vector2(6, -15), Vector2(-6, -15)]), Color("d9b876"))
+			_box(-3, -21, 5, 6, PAPER)
+			_box(-6, -15, 12, 1, EDGE)
 	_draw_chore_details()
 	if fixture == "floor" and GameState.mosquito_level > 0:
 		for fly in range(GameState.mosquito_level * 2):

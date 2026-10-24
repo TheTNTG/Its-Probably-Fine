@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/desk.tscn" id="2_desk"]
@@ -24,6 +24,12 @@ size = Vector2(20, 6)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_chair"]
 size = Vector2(10, 4)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_coffee"]
+size = Vector2(24, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_counter"]
+size = Vector2(30, 12)
 
 [node name="Room" type="Node2D"]
 physics_interpolation_mode = 2
@@ -182,3 +188,32 @@ position = Vector2(110, 69)
 [node name="Visual" type="Node2D" parent="DeskPlant"]
 script = ExtResource("6_art")
 fixture = "plant"
+
+[node name="CoffeeTable" type="StaticBody2D" parent="."]
+position = Vector2(190, 144)
+
+[node name="Visual" type="Node2D" parent="CoffeeTable"]
+script = ExtResource("6_art")
+fixture = "coffee_table"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CoffeeTable"]
+position = Vector2(0, -5)
+shape = SubResource("RectangleShape2D_coffee")
+
+[node name="KitchenCounter" type="StaticBody2D" parent="."]
+position = Vector2(244, 128)
+
+[node name="Visual" type="Node2D" parent="KitchenCounter"]
+script = ExtResource("6_art")
+fixture = "counter"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="KitchenCounter"]
+position = Vector2(0, -6)
+shape = SubResource("RectangleShape2D_counter")
+
+[node name="BedsideLamp" type="Node2D" parent="."]
+position = Vector2(58, 111)
+
+[node name="Visual" type="Node2D" parent="BedsideLamp"]
+script = ExtResource("6_art")
+fixture = "lamp"
