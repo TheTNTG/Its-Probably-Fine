@@ -68,6 +68,8 @@ func _update_interaction_prompt(target: Node2D) -> void:
 		interaction_prompt.text = GameText.get_text("interactions.e_take_a_break")
 	elif target == sink:
 		interaction_prompt.text = GameText.get_text("interactions.e_tap_off") if GameState.tap_running else GameText.get_text("interactions.e_mop_clean_15_min")
+		if not GameState.tap_running and GameState.sink_dirty_dishes and GameState.sink_water_elapsed < 8.0 and int(GameState.chore_mess["sink"]) == 0:
+			interaction_prompt.text = GameText.format_text("interactions.wash_dishes", GameState.CLEAN_COSTS["sink"])
 		if not GameState.tap_running and GameState.mosquito_level > 0:
 			interaction_prompt.text = GameText.get_text("interactions.e_cleanup_mosquitoes")
 	elif target == plant:
@@ -76,6 +78,8 @@ func _update_interaction_prompt(target: Node2D) -> void:
 			interaction_prompt.text = GameText.get_text("interactions.e_cleanup_mosquitoes")
 	elif target == bookshelf:
 		interaction_prompt.text = GameText.get_text("interactions.e_organize_books_20_min")
+		if GameState.bookshelf_minor_clutter and int(GameState.chore_mess["bookshelf"]) == 0:
+			interaction_prompt.text = GameText.format_text("interactions.tidy_references", GameState.CLEAN_COSTS["bookshelf"])
 	else:
 		interaction_prompt.text = GameText.get_text("interactions.e_make_bed_5_min") if GameState.needs_cleanup("bed") else GameText.get_text("interactions.e_rest")
 	interaction_prompt.size = interaction_prompt.get_combined_minimum_size()

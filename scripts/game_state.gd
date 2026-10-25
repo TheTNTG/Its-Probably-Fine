@@ -84,6 +84,9 @@ const CLEAN_COSTS := {"sink": 15, "plant": 10, "bookshelf": 20, "bed": 5}
 var repairs := {"sink": false, "bookshelf": false, "plant": false, "bed": false}
 var chore_repetitions := {"plant": 0, "sink": 0, "bookshelf": 0, "bed": 0}
 var chore_mess := {"plant": 0, "sink": 0, "bookshelf": 0, "bed": 1}
+# Ordinary Judy-made clutter is independent of malfunction severity/blockers.
+var sink_dirty_dishes := false
+var bookshelf_minor_clutter := false
 var sink_water_elapsed := 0.0
 var household_busy := false
 var water_exposure := 0.0
@@ -336,6 +339,7 @@ func advance_personal_activity(minutes: float) -> void:
 	if activity == "eat":
 		hunger = clampf(hunger + 40, 0, 100)
 		mood = clampf(mood + 10, 0, 100)
+		sink_dirty_dishes = true
 	else:
 		mood = clampf(mood + float(PERSONAL_ACTIVITIES[activity][1]), 0, 100)
 	work_streak = 0
@@ -398,6 +402,7 @@ func _select_research_chore() -> void:
 		if repairs[chore] and needs_cleanup(chore) and world_elapsed >= float(chore_ready_at.get(chore, 0.0)):
 			selected = chore
 			break
+	var cleanup_selected := not selected.is_empty()
 	# Repair changes the outcome, never eligibility. Rotate all four routines
 	# and avoid immediate repeats while another fixture is ready.
 	if selected.is_empty():
@@ -412,7 +417,9 @@ func _select_research_chore() -> void:
 				break
 			if not selected.is_empty():
 				break
-	research_swat = not mosquitoes.is_empty() and (mosquito_task or not last_robot_swat) and world_elapsed >= float(chore_ready_at.get("swat", 0.0))
+	# Explicit swatter requests remain available. Automatic hunts require a
+	# repaired water-related routine, wait for cleanup, and alternate with chores.
+	research_swat = not mosquitoes.is_empty() and (mosquito_task or (can_hunt_mosquitoes() and not last_robot_swat and not cleanup_selected)) and world_elapsed >= float(chore_ready_at.get("swat", 0.0))
 	if research_swat:
 		selected = "sink" # Existing task slot; destination is the actual insect.
 		mosquito_batch = mosquitoes.keys().slice(0, 3)
@@ -437,8 +444,12 @@ func resolve_robot_chore(serial: int, succeeded: bool) -> void:
 	if succeeded and not day_ended and not game_finished:
 		if research_swat:
 			mosquito_task = false # The robot already confirmed a nearby removal.
+			SaveStore.request_autosave("robot_mosquito_batch")
 		else:
+			var cleaning: bool = repairs[research_task] and needs_cleanup(research_task)
 			finish_household_chore(research_task, true)
+			if cleaning:
+				SaveStore.request_autosave("robot_cleanup_completed")
 	state_changed.emit()
 
 
@@ -515,6 +526,7 @@ func complete_research() -> void:
 	research_active = false
 	research_playback_rate = 1.0
 	research_progress = minf(100, research_progress + research_gain)
+	bookshelf_minor_clutter = true
 	mood = clampf(mood - float(profile()["work_mood"]), 0, 100)
 	work_streak += 1
 	if work_streak >= 2 and not break_reminded:
@@ -552,7 +564,11 @@ var bed_mischief_day := 0
 
 
 func needs_cleanup(chore: String) -> bool:
-	return int(chore_mess[chore]) > 0 or (chore == "sink" and (sink_water_elapsed >= 8.0 or tap_running))
+	return int(chore_mess[chore]) > 0 or (chore == "sink" and (sink_dirty_dishes or sink_water_elapsed >= 8.0 or tap_running)) or (chore == "bookshelf" and bookshelf_minor_clutter)
+
+
+func can_hunt_mosquitoes() -> bool:
+	return repairs["sink"] or repairs["plant"]
 
 
 func research_available() -> bool:
@@ -588,6 +604,9 @@ func clear_mess(chore: String) -> void:
 	chore_repetitions[chore] = 0
 	if chore == "sink":
 		sink_water_elapsed = 0.0
+		sink_dirty_dishes = false
+	if chore == "bookshelf":
+		bookshelf_minor_clutter = false
 	if chore == "bed":
 		bed_protected_until = (day - 1) * DAY_LENGTH + time_minutes + 90
 	state_changed.emit()
@@ -681,7 +700,7 @@ func continue_day() -> void:
 		day_ended = false
 		end_day_reminded = false
 		ending_day_pending = false
-		chore_mess["bed"] = 1
+		chore_mess["bed"] = 1 # Existing authoritative wake-up mess, once per day.
 		if not repairs["sink"]:
 			first_work_done = false
 		_select_research_chore()
@@ -839,6 +858,8 @@ func restart() -> void:
 	bed_protected_until = 0
 	bed_mischief_day = 0
 	sink_water_elapsed = 0.0
+	sink_dirty_dishes = false
+	bookshelf_minor_clutter = false
 	chore_repetitions = {"plant": 0, "sink": 0, "bookshelf": 0, "bed": 0}
 	chore_mess = {"plant": 0, "sink": 0, "bookshelf": 0, "bed": 1}
 	day = 1

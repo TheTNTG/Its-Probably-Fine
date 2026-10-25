@@ -74,6 +74,8 @@ Activity buttons use stable action IDs and callbacks. Their behavior no longer d
 
 ## Wrapping, dialogue and visual limits
 
+Step 49 household copy is also centralized: `tiptop.dishes_working`, `tiptop.dishes_reaction`, `tiptop.references_working`, `tiptop.references_reaction`, `tiptop.washing_dishes`; `hud.pending_dishes`, `hud.pending_references`; `interactions.wash_dishes`, `interactions.tidy_references`; and `activities.clean_dishes`, `activities.tidy_references`. Duration-bearing labels use `{duration}` from the existing cleanup costs. Changing these words does not change routine identity, cleanup eligibility or research blocking.
+
 Existing fonts, panel bounds, button dimensions, colors and sentence-aware pagination remain in use. Longer text still needs manual visual review; centralization is not an automatic UI redesign. Keep short prompts/checklist labels compact. Comic lines can use punctuation and `\n`; the existing pager wraps with actual font metrics. Keep TipTop's overhead thoughts short enough for his existing compact thought limit.
 
 Checklist templates use BBCode (`[color]`, `[s]` and closing tags). Keep tags balanced unless intentionally removing that styling. Plain Labels do not interpret BBCode.

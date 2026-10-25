@@ -256,6 +256,13 @@ func _say_chore(phase: String) -> void:
 			show_monologue(GameText.get_text("tiptop.one_less_mosquito_you_re_welcome_judy") if GameState.batch_removed == 1 else GameText.format_text("tiptop.i_removed_d_airborne_intruders", GameState.batch_removed))
 		return
 	var chore: String = CHORES[visit]
+	if GameState.repairs[chore]:
+		if chore == "sink" and GameState.sink_dirty_dishes and phase in ["working", "reaction"]:
+			show_monologue(GameText.get_text("tiptop.dishes_" + phase))
+			return
+		if chore == "bookshelf" and GameState.bookshelf_minor_clutter and int(GameState.chore_mess["bookshelf"]) == 0 and phase in ["working", "reaction"]:
+			show_monologue(GameText.get_text("tiptop.references_" + phase))
+			return
 	var pool: Array = APPROACH_THOUGHTS[chore]
 	if phase == "working":
 		pool = REPAIRED_WORK_THOUGHTS[chore] if GameState.repairs[chore] else FAULTY_WORK_THOUGHTS[chore]
@@ -568,6 +575,8 @@ func _begin_action() -> void:
 	task_outcome = "working"
 	action_left = 3.0 if visit in [2, 3] or cleanup_target else 2.4
 	action_label.text = [GameText.get_text("tiptop.drying"), GameText.get_text("tiptop.mopping"), GameText.get_text("tiptop.organizing"), GameText.get_text("tiptop.making_bed")][visit] if cleanup_target else [GameText.get_text("tiptop.watering"), GameText.get_text("tiptop.washing"), GameText.get_text("tiptop.organizing"), GameText.get_text("tiptop.straightening")][visit]
+	if not swatting and visit == 1 and GameState.repairs["sink"] and GameState.sink_dirty_dishes:
+		action_label.text = GameText.get_text("tiptop.washing_dishes")
 	if swatting:
 		action_label.text = GameText.get_text("tiptop.swatting")
 		action_left = 0.4

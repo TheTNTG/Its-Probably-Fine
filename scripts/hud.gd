@@ -257,13 +257,15 @@ func household_choices(location: String) -> void:
 	elif location == "fridge":
 		options.append([GameText.get_text("activities.eat_at_the_coffee_table_30_min_40_fullness_10_mood"), judy.personal_activity.bind("eat")])
 	elif location == "bookshelf":
-		options.append([GameText.get_text("activities.organize_books_myself_20_min"), judy.organize_for_research])
+		var minor_only: bool = GameState.bookshelf_minor_clutter and int(GameState.chore_mess["bookshelf"]) == 0
+		options.append([GameText.format_text("activities.tidy_references", GameState.CLEAN_COSTS["bookshelf"]) if minor_only else GameText.get_text("activities.organize_books_myself_20_min"), judy.organize_for_research])
 	elif location == "tiptop":
 		options.append([GameText.get_text("activities.talk_to_tiptop"), talk_to_tiptop])
 		if not GameState.tiptop_fixed:
 			options.append([GameText.get_text("activities.repair_tiptop"), GameState.fix_tap])
 	elif GameState.needs_cleanup(location):
-		options.append([GameText.format_text("activities.clean_s_myself_d_min", [GameText.get_text("tiptop.routine_lower." + location), GameState.CLEAN_COSTS[location]]), judy._clean_animation.bind(location)])
+		var clean_caption := GameText.format_text("activities.clean_dishes", GameState.CLEAN_COSTS[location]) if location == "sink" and GameState.sink_dirty_dishes else GameText.format_text("activities.clean_s_myself_d_min", [GameText.get_text("tiptop.routine_lower." + location), GameState.CLEAN_COSTS[location]])
+		options.append([clean_caption, judy._clean_animation.bind(location)])
 	if GameState.mosquito_level > 0 and location not in ["research", "break", "fridge"]:
 		options.append([GameText.get_text("activities.swat_mosquitoes_myself_5_min"), judy.swat_animation])
 		options.append([GameText.get_text("activities.ask_tiptop_to_swat_mosquitoes_free"), _request_swatter])
@@ -825,6 +827,10 @@ func _update_sidebar() -> void:
 		var fixed: bool = GameState.repairs[chore]
 		var text: String = row.get_meta("routine_name")
 		var content := GameText.format_text("hud.color_9dceac_s_s_s_color", text) if fixed else GameText.format_text("hud.checklist_pending", text)
+		if chore == "sink" and GameState.sink_dirty_dishes:
+			content += "\n" + GameText.get_text("hud.pending_dishes")
+		elif chore == "bookshelf" and GameState.bookshelf_minor_clutter:
+			content += "\n" + GameText.get_text("hud.pending_references")
 		if row.text != content:
 			row.text = content
 		fixed_count += int(fixed)

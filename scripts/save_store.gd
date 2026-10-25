@@ -22,6 +22,8 @@ const NUMBERS := {
 }
 const INTEGERS := ["day", "time_minutes", "difficulty", "work_sessions_remaining", "work_streak", "unresolved_problem_count", "mosquito_level", "chore_cursor", "research_task_serial", "overnight_day", "next_mosquito_id", "break_reminder_count", "bed_protected_until", "bed_mischief_day", "mosquito_target_id", "batch_removed"]
 const BOOLEANS := ["difficulty_locked", "first_work_done", "end_day_reminded", "proactive_fix_eligible", "tap_running", "break_reminded", "tutorial_skipped", "tutorial_finished", "robot_chore_resolved", "last_robot_swat", "mosquito_task", "research_swat"]
+# Additive schema-1 fields: old checkpoints default to a clean normal household.
+const OPTIONAL_BOOLEANS := ["sink_dirty_dishes", "bookshelf_minor_clutter"]
 const MAPS := ["repairs", "chore_mess", "chore_repetitions", "chore_ready_at", "daily_time", "daily_time_history", "tutorial_seen", "response_counts"]
 var player_profile := {"version": VERSION, "kind": "profile", "tutorial_completed": false, "tutorial_skipped": false, "completed_campaigns": [], "endings": [], "achievements": [], "milestones": {}, "audio": {}}
 var profile_read_only := false
@@ -118,6 +120,9 @@ func _validate(data: Dictionary, kind: String) -> bool:
 			return false
 	for field in BOOLEANS:
 		if not state.get(field) is bool:
+			return false
+	for field in OPTIONAL_BOOLEANS:
+		if state.has(field) and not state[field] is bool:
 			return false
 	if float(state["time_minutes"]) + float(state["clock_fraction"]) + float(state["world_accumulator"]) > GameState.DAY_END + 0.00001 or float(state["clock_fraction"]) >= 1.0:
 		return false
@@ -311,7 +316,7 @@ func save_campaign(manual: bool = false) -> bool:
 		return false
 	var scene: Node = get_tree().current_scene
 	var state := {}
-	for field in NUMBERS.keys() + BOOLEANS + MAPS + ["research_task", "last_robot_chore"]:
+	for field in NUMBERS.keys() + BOOLEANS + OPTIONAL_BOOLEANS + MAPS + ["research_task", "last_robot_chore"]:
 		state[field] = GameState.get(field)
 	var judy: Node2D = scene.get_node("Player")
 	var robot: Node2D = scene.get_node("TipTop")
@@ -398,6 +403,16 @@ func restore_room() -> void:
 		GameState.set(field, int(state[field]) if field in INTEGERS else float(state[field]))
 	for field in BOOLEANS + MAPS + ["research_task", "last_robot_chore"]:
 		GameState.set(field, state[field])
+	for field in OPTIONAL_BOOLEANS:
+		GameState.set(field, state.get(field, false))
+	# Older saves could contain an automatic hunt with no qualifying repair.
+	# Keep the insects and explicit requests, but retire an ineligible old job.
+	if GameState.research_swat and not GameState.can_hunt_mosquitoes() and not GameState.mosquito_task:
+		GameState.research_swat = false
+		GameState.robot_chore_resolved = true
+		GameState.research_task = ""
+		GameState.mosquito_target_id = -1
+		GameState.research_next_chore = GameState.world_elapsed + 0.5
 	GameState.tiptop_fixed = not GameState.repairs.values().has(false)
 	GameState.daily_time_history = {}
 	for key in state["daily_time_history"]:

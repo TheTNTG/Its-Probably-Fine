@@ -619,5 +619,45 @@
     "where": [
       "scripts/tiptop.gd:570 _begin_action"
     ]
+  },
+  "tiptop.dishes_working": {
+    "text": "Used dishes detected. I shall handle the aftermath.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:_say_chore dynamic phase"
+    ]
+  },
+  "tiptop.dishes_reaction": {
+    "text": "Dishes clean. Another successful meal concluded.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:_say_chore dynamic phase"
+    ]
+  },
+  "tiptop.references_working": {
+    "text": "I shall return these references to their shelf.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:_say_chore dynamic phase"
+    ]
+  },
+  "tiptop.references_reaction": {
+    "text": "References restored. Science may continue.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:_say_chore dynamic phase"
+    ]
+  },
+  "tiptop.washing_dishes": {
+    "text": "Washing dishes...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "Step 49 live household feedback"
+    ]
   }
 }

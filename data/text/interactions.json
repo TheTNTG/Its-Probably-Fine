@@ -234,5 +234,29 @@
       "scripts/desk.gd:17 _update_prompt",
       "scripts/player.gd:57 _update_interaction_prompt"
     ]
+  },
+  "interactions.wash_dishes": {
+    "text": "E - Wash dishes ({duration} min)",
+    "variables": {
+      "duration": "%d"
+    },
+    "order": [
+      "duration"
+    ],
+    "where": [
+      "Step 49 live household feedback"
+    ]
+  },
+  "interactions.tidy_references": {
+    "text": "E - Tidy references ({duration} min)",
+    "variables": {
+      "duration": "%d"
+    },
+    "order": [
+      "duration"
+    ],
+    "where": [
+      "Step 49 live household feedback"
+    ]
   }
 }

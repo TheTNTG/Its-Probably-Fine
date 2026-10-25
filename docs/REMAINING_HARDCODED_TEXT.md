@@ -1,6 +1,6 @@
 # Remaining hardcoded text — Step 48.1 static audit
 
-**No known game-authored UI sentences, dialogue lines, thought lines, warning wording or label words remain hardcoded in the active first-party source reviewed in this pass.** The catalog contains 446 entries across 13 JSON files, including six scene-default bindings. This is a source audit, not a claim that every runtime screen or image has been visually verified.
+**No known game-authored UI sentences, dialogue lines, thought lines, warning wording or label words remain hardcoded in the active first-party source reviewed in this pass.** After Step 49, the catalog contains 457 entries across 13 JSON files, including six scene-default bindings. This is a source audit, not a claim that every runtime screen or image has been visually verified.
 
 Searched first-party `.gd`, `.tscn`, `.tres`, project configuration and UI data. All authored text fields found in `scenes/hud.tscn` and `scenes/desk.tscn` now use `@ID`; runtime values use GameText. Existing dialogue is in first-party GDScript arrays, now populated from JSON; no active standalone `.dialogue`/CSV story database was found. `themes/cozy.tres` contains styling, not prose. Procedural apartment/lighting drawing scripts contain no language-rendering calls. Text inside reference images or source/credit documentation is not runtime UI copy.
 

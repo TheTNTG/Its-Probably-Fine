@@ -133,6 +133,8 @@ var reel_index := -1
 var reel_next := ""
 var robot_wait := 0.0
 var robot_was_working := false
+var dish_audio_step := 0
+var mosquito_buzz_phase := 0.0
 var typing_cycle_left := 0.0
 var alternate_typing := false
 var repair_sound_left := 0.0
@@ -281,6 +283,8 @@ func _attach_room(scene: Node) -> void:
 	walking = false
 	last_task_serial = -1
 	robot_was_working = false
+	dish_audio_step = 0
+	mosquito_buzz_phase = 0.0
 	mess_snapshot = GameState.chore_mess.duplicate()
 	water_stage = int(GameState.sink_water_elapsed / 8.0)
 	tap_was_running = GameState.tap_running
@@ -329,7 +333,8 @@ func _process(delta: float) -> void:
 	layers["fridge"].global_position = room.get_node("Fridge").global_position
 	layers["fridge"].call("set_level", -29.0, active)
 	layers["tap"].global_position = sink.global_position
-	layers["tap"].call("set_level", -13.0, active and GameState.tap_running)
+	var washing_dishes: bool = str(robot.get("task_outcome")) == "working" and not bool(robot.get("swatting")) and GameState.research_task == "sink" and GameState.repairs["sink"] and GameState.sink_dirty_dishes
+	layers["tap"].call("set_level", -13.0, active and (GameState.tap_running or washing_dishes))
 	layers["servo"].global_position = robot.global_position
 	# Physics velocity persists between render frames, including at 120 Hz.
 	var robot_moving := robot.velocity.length() > 2.0
@@ -343,7 +348,16 @@ func _process(delta: float) -> void:
 			nearest = distance
 			fly_position = point
 	layers["mosquito"].global_position = fly_position
-	layers["mosquito"].call("set_level", -28.0, active and nearest < 45.0)
+	# One spatial recording, not a full-volume loop per insect. More insects
+	# lengthen each buzzing visit; silence between visits avoids a steady whine.
+	if GameState.mosquitoes.is_empty():
+		mosquito_buzz_phase = 0.0
+		layers["mosquito"].call("stop_now")
+	else:
+		if active:
+			mosquito_buzz_phase = fposmod(mosquito_buzz_phase + delta, 6.0)
+		var buzz_window := 2.2 + minf(2.0, (GameState.mosquitoes.size() - 1) * 0.4)
+		layers["mosquito"].call("set_level", -16.0, active and mosquito_buzz_phase < buzz_window)
 	layers["typing"].global_position = room.get_node("Desk").global_position
 	if not active:
 		previous_feet = judy.global_position
@@ -451,7 +465,8 @@ func _update_robot(delta: float) -> void:
 				voice.stop()
 		robot_wait = 0.0
 		if robot_was_working and str(robot.get("task_outcome")) == "completed":
-			play_world("book_stack" if GameState.research_task == "bookshelf" else "robot_done", robot.global_position)
+			# The scheduler may already have selected the next job at 6x.
+			play_world("book_stack" if int(robot.get("visit")) == 2 else "robot_done", robot.global_position)
 		robot_was_working = false
 		return
 	robot_was_working = true
@@ -459,12 +474,16 @@ func _update_robot(delta: float) -> void:
 	if serial != last_task_serial:
 		last_task_serial = serial
 		robot_wait = 0.0
+		dish_audio_step = 0
 	robot_wait -= delta
 	if robot_wait > 0.0:
 		return
 	var cue: String = {"sink": "meal", "plant": "watering", "bookshelf": "books", "bed": "bedding"}.get(GameState.research_task, "clean")
 	if bool(robot.get("cleanup_target")):
 		cue = "books" if GameState.research_task == "bookshelf" else ("bedding" if GameState.research_task == "bed" else "clean")
+	if GameState.research_task == "sink" and GameState.repairs["sink"] and GameState.sink_dirty_dishes:
+		cue = "meal" if dish_audio_step % 2 == 0 else "clean"
+		dish_audio_step += 1
 	if cue == "books":
 		cue = ["books", "books_alt", "books_third"][rng.randi_range(0, 2)]
 	play_world(cue, robot.global_position, false, "robot_task")

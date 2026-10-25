@@ -826,5 +826,21 @@
     "where": [
       "scripts/hud.gd:841 _update_sidebar"
     ]
+  },
+  "hud.pending_dishes": {
+    "text": "Dirty dishes",
+    "variables": {},
+    "order": [],
+    "where": [
+      "Step 49 live household feedback"
+    ]
+  },
+  "hud.pending_references": {
+    "text": "Reference clutter",
+    "variables": {},
+    "order": [],
+    "where": [
+      "Step 49 live household feedback"
+    ]
   }
 }

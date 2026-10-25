@@ -368,13 +368,15 @@ func _draw_chore_details() -> void:
 					_box(-5 + drop * 2, -19 + fall, 1, 2, PAPER if drop == 1 else BLUE)
 				_box(-4 + beat * 3, -10, 2, 1, PAPER)
 		"sink":
-			if GameState.tap_running:
+			# A repaired wash is a local visual action, never the faulty tap flag.
+			var washing_dishes: bool = chore_active and GameState.repairs["sink"] and GameState.sink_dirty_dishes
+			if GameState.tap_running or washing_dishes:
 				_box(1, -18, 2, 8, BLUE)
 				_box(1, -18 + beat * 2, 1, 2, PAPER)
 				_box(-3 + beat, -10, 3, 1, PAPER)
 				_box(4, -12 - beat, 1, 2, BLUE)
 				_box(-4, -13 + beat, 1, 1, PAPER)
-				if GameState.sink_water_elapsed >= 8.0:
+				if GameState.tap_running and GameState.sink_water_elapsed >= 8.0:
 					_box(-8, -9, 13, 2, BLUE)
 					_box(-7, -7, 2, 7 + beat, BLUE)
 					_box(-7, -5 + beat, 1, 2, PAPER)
@@ -391,13 +393,31 @@ func _draw_chore_details() -> void:
 				for plate in range(mess + 1):
 					_box(4, -11 - plate * 2, 7, 1, PAPER)
 				_box(6, -9 - mess * 2, 3, 1, SHADE)
-			if chore_active and GameState.repairs["sink"] and not GameState.tap_running and (mess > 0 or GameState.sink_water_elapsed >= 8.0):
+			if GameState.sink_dirty_dishes:
+				# Two used plates, a food mark and a fork; no extra floor water.
+				_box(-10, -9, 7, 2, SHADE)
+				_box(-10, -10, 7, 1, PAPER)
+				_box(-9, -12, 6, 1, CREAM)
+				_box(-7, -12, 2, 1, RUST)
+				_box(3, -13, 1, 5, INK)
+				_box(2, -14, 3, 1, INK)
+			if washing_dishes:
+				_box(-8 + beat * 3, -12, 4, 2, PAPER)
+				_box(-6 + beat * 2, -10, 2, 1, BLUE)
+			elif chore_active and GameState.repairs["sink"] and not GameState.tap_running and (mess > 0 or GameState.sink_water_elapsed >= 8.0):
 				_box(-9 + beat * 4, -8, 1, 13, EDGE)
 				_box(-13 + beat * 4, 4, 9, 2, PAPER)
 			elif chore_active:
 				for bubble in range(3):
 					_box(-6 + bubble * 4, -13 - (beat + bubble) % 3, 2, 2, PAPER)
 		"bookshelf":
+			if GameState.bookshelf_minor_clutter:
+				# A consulted reference left horizontally on the lower shelf.
+				# Malfunction scattering below remains a separate, larger state.
+				_box(-10, -6, 11, 3, BLUE)
+				_box(-9, -5, 9, 1, PAPER)
+				_box(-8, -9, 9, 2, RUST)
+				_box(4, -12, 5, 2, PAPER)
 			if mess > 0:
 				_box(-13, -25, 26, 9, SHADE)
 				for book in range(5):

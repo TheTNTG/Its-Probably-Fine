@@ -221,5 +221,29 @@
     "where": [
       "scripts/hud.gd:254 household_choices"
     ]
+  },
+  "activities.clean_dishes": {
+    "text": "Wash dishes / clean sink — {duration} min",
+    "variables": {
+      "duration": "%d"
+    },
+    "order": [
+      "duration"
+    ],
+    "where": [
+      "Step 49 live household feedback"
+    ]
+  },
+  "activities.tidy_references": {
+    "text": "Put references back — {duration} min",
+    "variables": {
+      "duration": "%d"
+    },
+    "order": [
+      "duration"
+    ],
+    "where": [
+      "Step 49 live household feedback"
+    ]
   }
 }
