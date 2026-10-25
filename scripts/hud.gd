@@ -1584,7 +1584,7 @@ func request_rest() -> void:
 
 
 func _resume_pause() -> void:
-	ApartmentAudio.play_ui("menu")
+	ApartmentAudio.play_ui("resume")
 	pause_panel.hide()
 	_restore_modal_pause()
 	get_viewport().gui_release_focus()

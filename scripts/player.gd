@@ -484,6 +484,7 @@ func _clean_animation(chore: String) -> void:
 	velocity = Vector2.ZERO
 	interaction_prompt.hide()
 	GameState.action_feedback.emit("Judy: Right. Let's sort this out.")
+	ApartmentAudio.play_world("books" if chore == "bookshelf" else ("bedding" if chore == "bed" else "clean"), global_position, true)
 	var tidy := _pose_tween()
 	tidy.tween_property(visual, "rotation", -0.08, 0.15)
 	tidy.tween_property(visual, "rotation", 0.08, 0.15)

@@ -24,7 +24,11 @@ func setup(stream: AudioStream, bus: String, spatial: bool, begin: float = 0.0, 
 	length = minf(duration, stream.get_length() - start)
 	overlap = minf(0.65, length * 0.2)
 	for index in range(2):
-		var voice: Node = AudioStreamPlayer2D.new() if spatial else AudioStreamPlayer.new()
+		var voice: Node
+		if spatial:
+			voice = AudioStreamPlayer2D.new()
+		else:
+			voice = AudioStreamPlayer.new()
 		voice.set("stream", source)
 		voice.set("bus", bus)
 		voice.set("volume_db", -80.0)

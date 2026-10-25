@@ -15,39 +15,102 @@ const EATING_DB := -9.0
 const MUSIC_GAME_DB := -8.0
 const MUSIC_MENU_DB := -9.0
 const FILES := {
-	"room": "ambience/room_tone.mp3", "fridge": "ambience/fridge_hum.wav",
-	"tap": "ambience/tap.mp3", "servo": "ambience/servo.mp3", "mosquito": "ambience/mosquito.mp3",
-	"typing": "foley/keyboard_mechanical.mp3", "paper": "foley/paper.mp3", "desk": "foley/desk.ogg",
-	"fridge_open": "foley/fridge_open.mp3", "fridge_close": "foley/fridge_close.mp3",
-	"cutlery": "foley/cutlery.mp3", "eating": "foley/eating.mp3", "click": "foley/click.mp3", "cube": "foley/cube.mp3",
-	"cloth": "foley/cloth.mp3", "tools": "foley/tools.mp3", "wipe": "foley/wipe.mp3",
-	"book_fall": "foley/book_fall.mp3", "water_plant": "foley/water_plant.mp3",
-	"drip": "foley/drip.mp3", "swat": "expressive/mosquito_zap.wav",
-	"books": "foley/book_handling.mp3", "clank": "foley/metal_clank.ogg",
-	"reel_giggle": "foley/reel_giggle.mp3", "reel_dog": "foley/reel_dog.mp3",
-	"laser_0": "expressive/laser_0.wav", "laser_1": "expressive/laser_1.wav",
-	"explosion": "expressive/arcade_explosion.wav", "swipe": "expressive/phone_swipe.wav",
-	"reel_boing": "expressive/reel_boing.wav", "fault": "expressive/malfunction.wav",
-	"ui_hover": "expressive/ui_hover.wav", "ui_click": "expressive/ui_click.wav",
-	"step_0": "foley/step_wood_0.ogg", "step_1": "foley/step_wood_1.ogg", "step_2": "foley/step_wood_2.ogg"
+	"typing": "sfx/research/typing.wav",
+	"key_clack": "sfx/research/key_clack.wav",
+	"cube": "sfx/leisure/cube.wav",
+	"cube_click": "sfx/leisure/cube_click.wav",
+	"eating": "sfx/eating/eating.wav",
+	"cutlery": "sfx/eating/cutlery.wav",
+	"fridge_open": "sfx/eating/fridge_open.wav",
+	"fridge_close": "sfx/eating/fridge_close.wav",
+	"reel_giggle": "sfx/leisure/reel_giggle.wav",
+	"reel_dog": "sfx/leisure/reel_dog.wav",
+	"books": "sfx/environment/books.wav",
+	"books_alt": "sfx/environment/books_alt.wav",
+	"books_third": "sfx/environment/books_third.wav",
+	"book_fall": "sfx/environment/book_fall.wav",
+	"ratchet": "sfx/repair/ratchet.wav",
+	"clank": "sfx/repair/clank.wav",
+	"paper": "sfx/ui/paper.wav",
+	"desk": "sfx/research/desk.wav",
+	"cloth": "sfx/environment/cloth.wav",
+	"water_plant": "sfx/environment/water_plant.wav",
+	"wipe": "sfx/environment/wipe.wav",
+	"drip": "sfx/environment/drip.wav",
+	"room": "sfx/environment/room.wav",
+	"fridge": "sfx/environment/fridge.wav",
+	"tap": "sfx/environment/tap.wav",
+	"servo": "sfx/tiptop/servo.wav",
+	"mosquito": "sfx/mosquito/mosquito.wav",
+	"step_0": "sfx/environment/step_0.wav",
+	"step_1": "sfx/environment/step_1.wav",
+	"step_2": "sfx/environment/step_2.wav",
+	"screwdriver": "sfx/repair/screwdriver.wav",
+	"chewing": "sfx/eating/chewing.wav",
+	"typing_alt": "sfx/research/typing_alt.wav",
+	"cup": "sfx/eating/cup.wav",
+	"book_stack": "sfx/environment/book_stack.wav",
+	"laser_0": "sfx/leisure/laser_0.wav",
+	"laser_1": "sfx/leisure/laser_1.wav",
+	"explosion": "sfx/leisure/explosion.wav",
+	"score": "sfx/leisure/score.wav",
+	"reel_boing": "sfx/leisure/reel_boing.wav",
+	"fault": "sfx/tiptop/fault.wav",
+	"ui_hover": "sfx/ui/ui_hover.wav",
+	"ui_click": "sfx/ui/ui_click.wav",
+	"confirm": "sfx/ui/confirm.wav",
+	"cancel": "sfx/ui/cancel.wav",
+	"menu": "sfx/ui/menu.wav",
+	"resume": "sfx/ui/resume.wav",
+	"swipe": "sfx/leisure/swipe.wav",
+	"swat": "sfx/mosquito/swat.wav",
+	"swat_alt": "sfx/mosquito/swat_alt.wav",
 }
-# Source, gain, excerpt duration, offset. Cadence uses real time, never game time.
+# Prepared complete clips; native AudioStreamPlayers own their end times.
 const CUES := {
-	"paper": ["paper", -14.0, 1.3, 0.0], "desk": ["desk", -10.0, 0.35, 0.0],
-	"fridge_open": ["fridge_open", -11.0, 3.0, 0.0], "fridge_close": ["fridge_close", -10.0, 1.2, 0.0],
-	"meal": ["cutlery", -7.0, 1.7, 0.0], "eating": ["eating", -9.0, 3.8, 0.0],
-	"cube": ["cube", -6.0, 1.35, 0.0], "bedding": ["cloth", -11.0, 1.7, 0.0],
-	"repair": ["tools", -6.0, 3.0, 0.99], "clank": ["clank", -7.0, 0.65, 0.0], "clean": ["wipe", -9.0, 2.0, 0.5],
-	"books": ["books", -7.0, 2.3, 1.05], "book_fall": ["book_fall", -5.0, 3.8, 0.0],
-	"watering": ["water_plant", -9.0, 2.8, 0.0], "drip": ["drip", -12.0, 1.4, 0.0],
-	"swat": ["swat", -4.0, 0.68, 0.0], "fault": ["fault", -6.0, 0.78, 0.0],
-	"laser_0": ["laser_0", -8.0, 0.34, 0.0], "laser_1": ["laser_1", -8.0, 0.34, 0.0],
-	"explosion": ["explosion", -8.0, 0.85, 0.0], "swipe": ["swipe", -11.0, 0.26, 0.0],
-	"reel_giggle": ["reel_giggle", -7.0, 0.52, 0.0], "reel_dog": ["reel_dog", -9.0, 0.42, 0.0],
-	"reel_boing": ["reel_boing", -10.0, 0.82, 0.0],
-	"click": ["ui_click", -9.0, 0.16, 0.0], "hover": ["ui_hover", -18.0, 0.08, 0.0],
-	"complete": ["ui_click", -6.0, 0.16, 0.0],
-	"menu": ["paper", -19.0, 0.3, 0.0], "page": ["paper", -20.0, 0.3, 0.0]
+	"paper": ["paper", -14, 0.44, 0.0],
+	"desk": ["desk", -10, 0.1944, 0.0],
+	"fridge_open": ["fridge_open", -11, 2.04, 0.0],
+	"fridge_close": ["fridge_close", -10, 1.0213, 0.0],
+	"meal": ["cutlery", -7, 1.1172, 0.0],
+	"eating": ["eating", -9, 5.0955, 0.0],
+	"chewing": ["chewing", -7, 3.0303, 0.0],
+	"cup": ["cup", -10, 0.3062, 0.0],
+	"cube": ["cube_click", -10, 0.44, 0.0],
+	"bedding": ["cloth", -11, 1.76, 0.0],
+	"repair": ["ratchet", -6, 3.04, 0.0],
+	"ratchet": ["ratchet", -6, 3.04, 0.0],
+	"screwdriver": ["screwdriver", -7, 2.1356, 0.0],
+	"clank": ["clank", -7, 0.3175, 0.0],
+	"clean": ["wipe", -9, 2.04, 0.0],
+	"books": ["books", -7, 2.34, 0.0],
+	"books_alt": ["books_alt", -7, 2.34, 0.0],
+	"books_third": ["books_third", -7, 2.34, 0.0],
+	"book_stack": ["book_stack", -8, 0.4268, 0.0],
+	"book_fall": ["book_fall", -5, 3.4415, 0.0],
+	"watering": ["water_plant", -9, 3.04, 0.0],
+	"drip": ["drip", -12, 1.24, 0.0],
+	"swat": ["swat", -4, 0.956, 0.0],
+	"swat_alt": ["swat_alt", -4, 1.2028, 0.0],
+	"fault": ["fault", -6, 1.54, 0.0],
+	"laser_0": ["laser_0", -8, 0.2754, 0.0],
+	"laser_1": ["laser_1", -8, 0.2951, 0.0],
+	"explosion": ["explosion", -8, 0.8175, 0.0],
+	"score": ["score", -11, 1.0522, 0.0],
+	"swipe": ["swipe", -14, 1.04, 0.0],
+	"reel_giggle": ["reel_giggle", -7, 0.5393, 0.0],
+	"reel_dog": ["reel_dog", -9, 0.2863, 0.0],
+	"reel_boing": ["reel_boing", -10, 0.4254, 0.0],
+	"click": ["ui_click", -9, 0.05, 0.0],
+	"hover": ["ui_hover", -18, 0.0632, 0.0],
+	"confirm": ["confirm", -12, 0.3298, 0.0],
+	"cancel": ["cancel", -13, 0.1039, 0.0],
+	"complete": ["confirm", -10, 0.3298, 0.0],
+	"menu": ["menu", -14, 0.1878, 0.0],
+	"resume": ["resume", -14, 0.1878, 0.0],
+	"page": ["paper", -20, 0.44, 0.0],
+	"key_clack": ["key_clack", -7, 0.2, 0.0],
+	"robot_done": ["confirm", -15, 0.3298, 0.0],
 }
 var streams: Dictionary = {}
 var layers: Dictionary = {}
@@ -69,6 +132,12 @@ var arcade_count := 0
 var reel_index := -1
 var reel_next := ""
 var robot_wait := 0.0
+var robot_was_working := false
+var typing_cycle_left := 0.0
+var alternate_typing := false
+var repair_sound_left := 0.0
+var repair_sound_wait := 0.0
+var repair_sound_step := 0
 var last_task_serial := -1
 var suppress_depth := 0
 var ui_wait := 0.0
@@ -83,15 +152,37 @@ var music_gain := 0.0
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	rng.randomize()
+	_initialise_music()
 	for key in FILES:
 		streams[key] = _load_sfx(ROOT + FILES[key])
 		if streams[key] == null:
-			push_warning("Missing SFX: " + ROOT + FILES[key])
+			push_error("Missing or undecodable SFX: " + ROOT + FILES[key])
 	for index in range(3):
 		var voice := AudioStreamPlayer.new()
 		voice.bus = "SFX"
 		add_child(voice)
 		ui_voices.append(voice)
+	get_tree().node_added.connect(_watch_control)
+	for node in get_tree().root.find_children("*", "BaseButton", true, false):
+		_watch_control(node)
+	GameState.state_changed.connect(_activity_state_changed)
+
+
+func _initialise_music() -> void:
+	if is_instance_valid(music):
+		return
+	if AudioServer.get_bus_index("Music") < 0:
+		AudioServer.add_bus()
+		var bus := AudioServer.bus_count - 1
+		AudioServer.set_bus_name(bus, "Music")
+		AudioServer.set_bus_send(bus, "Master")
+		AudioServer.set_bus_volume_db(bus, -6.0)
+		# Recover routing without overwriting the player's persisted preference.
+		var preferences: Dictionary = SaveStore.player_profile.get("audio", {})
+		if preferences.has("Music"):
+			var value: float = preferences["Music"]
+			AudioServer.set_bus_mute(bus, value <= 0.0)
+			AudioServer.set_bus_volume_db(bus, linear_to_db(maxf(value, 0.0001)))
 	music = AudioStreamPlayer.new()
 	music.name = "ApartmentTheme"
 	music.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -99,29 +190,26 @@ func _ready() -> void:
 	music.volume_db = MUSIC_MENU_DB
 	music_gain = db_to_linear(MUSIC_MENU_DB)
 	add_child(music)
-	# Read the source directly when available, even before editor import finishes.
-	# Exported builds can instead use the imported/remapped resource.
+	# Prefer the editor/export import, preserving Godot's normal stream setup.
+	# An unimported source still has a native OGG fallback, never a fatal preload.
 	var theme_stream: AudioStreamOggVorbis
-	if FileAccess.file_exists(APARTMENT_THEME_PATH):
-		theme_stream = AudioStreamOggVorbis.load_from_file(APARTMENT_THEME_PATH)
-	elif ResourceLoader.exists(APARTMENT_THEME_PATH):
+	if ResourceLoader.exists(APARTMENT_THEME_PATH, "AudioStreamOggVorbis"):
 		theme_stream = load(APARTMENT_THEME_PATH) as AudioStreamOggVorbis
-	if theme_stream != null:
+	if theme_stream == null and FileAccess.file_exists(APARTMENT_THEME_PATH):
+		theme_stream = AudioStreamOggVorbis.load_from_buffer(FileAccess.get_file_as_bytes(APARTMENT_THEME_PATH))
+	if theme_stream != null and theme_stream.get_length() > 0.0:
 		theme_stream.loop = true
 		theme_stream.loop_offset = 0.0
-		play_music(theme_stream)
+		# Start after scene/autoload initialization, including the paused title.
+		play_music.call_deferred(theme_stream)
 	else:
-		push_warning("Apartment music could not be loaded; other audio remains available.")
-	get_tree().node_added.connect(_watch_control)
-	for node in get_tree().root.find_children("*", "BaseButton", true, false):
-		_watch_control(node)
-	GameState.state_changed.connect(_activity_state_changed)
+		push_error("BGM unavailable or undecodable: " + APARTMENT_THEME_PATH + ". Reimport this original OGG; no replacement track was used.")
 
 
 func _watch_control(node: Node) -> void:
 	if node is BaseButton and not node.has_meta("cozy_audio"):
 		node.set_meta("cozy_audio", true)
-		node.pressed.connect(play_ui.bind("click"))
+		node.pressed.connect(_button_pressed.bind(node))
 		node.mouse_entered.connect(_hover_control.bind(node))
 		node.focus_entered.connect(_hover_control.bind(node))
 
@@ -131,8 +219,29 @@ func _hover_control(button: BaseButton) -> void:
 		play_ui("hover")
 
 
+func _button_pressed(button: BaseButton) -> void:
+	if not is_instance_valid(button):
+		return
+	var caption := ""
+	if button is Button:
+		caption = (button as Button).text.to_lower()
+	if "cancel" in caption or "back" in caption or "main menu" in caption or "return" in caption:
+		play_ui("cancel")
+	elif "resume" in caption:
+		play_ui("resume")
+	elif "begin" in caption or "continue" in caption or "watch research" in caption or "new game" in caption:
+		play_ui("confirm")
+	else:
+		play_ui("click")
+
+
 func _load_sfx(path: String) -> AudioStream:
-	# Newly added audio also works before an editor-generated import cache exists.
+	# Use Godot's cached imported resource first, including remapped exports.
+	if ResourceLoader.exists(path, "AudioStreamWAV"):
+		var imported: AudioStream = load(path) as AudioStream
+		if imported != null and imported.get_length() > 0.0:
+			return imported
+	# All active SFX now have verified PCM files; an unimported checkout works too.
 	if FileAccess.file_exists(path):
 		match path.get_extension():
 			"mp3":
@@ -141,7 +250,7 @@ func _load_sfx(path: String) -> AudioStream:
 				return AudioStreamOggVorbis.load_from_file(path)
 			"wav":
 				return AudioStreamWAV.load_from_file(path)
-	return load(path) as AudioStream if ResourceLoader.exists(path) else null
+	return null
 
 
 func _attach_room(scene: Node) -> void:
@@ -164,14 +273,14 @@ func _attach_room(scene: Node) -> void:
 		voice.panning_strength = 0.5
 		world_audio.add_child(voice)
 		world_voices.append(voice)
-	for key in ["room", "fridge", "tap", "servo", "mosquito", "typing", "cube", "eating"]:
+	for key in ["room", "fridge", "tap", "servo", "mosquito", "typing", "typing_alt", "cube", "eating"]:
 		var layer := Node2D.new()
 		layer.set_script(LAYER)
 		world_audio.add_child(layer)
 		var bus := "Ambience" if key in ["room", "fridge"] else ("RobotMovement" if key == "servo" else "SFX")
-		var personal: bool = key in ["typing", "cube", "eating"]
-		var start := 3.6 if key == "eating" else (2.0 if key in ["room", "tap"] else 0.0)
-		layer.call("setup", streams[key], bus, key != "room" and not personal, start, 18.0 if key == "room" else 8.0)
+		var personal: bool = key in ["typing", "typing_alt", "cube", "eating"]
+		# Prepared files already contain the audible excerpt, starting at zero.
+		layer.call("setup", streams[key], bus, key != "room" and not personal, 0.0, 18.0 if key == "room" else 8.0)
 		if personal:
 			layer.set("overlap", 0.045)
 			layer.set("fade_in", 0.04)
@@ -180,6 +289,7 @@ func _attach_room(scene: Node) -> void:
 	step_distance = 0.0
 	walking = false
 	last_task_serial = -1
+	robot_was_working = false
 	mess_snapshot = GameState.chore_mess.duplicate()
 	water_stage = int(GameState.sink_water_elapsed / 8.0)
 	tap_was_running = GameState.tap_running
@@ -195,9 +305,9 @@ func _process(delta: float) -> void:
 	ui_wait = maxf(0.0, ui_wait - delta)
 	for key in cooldowns:
 		cooldowns[key] = maxf(0.0, float(cooldowns[key]) - delta)
-	_tick_voices(ui_voices, delta)
 	var scene: Node = get_tree().current_scene
 	if scene != room or not is_instance_valid(room):
+		repair_sound_left = 0.0
 		for voice in ui_voices:
 			if bool(voice.get_meta("activity", false)):
 				voice.stop()
@@ -212,15 +322,16 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(room):
 		return
 	if SaveStore.loading or bool(hud.get("transitioning")) or bool(hud.call("_pause_open")):
+		repair_sound_left = 0.0
 		for voice in ui_voices:
 			if bool(voice.get_meta("activity", false)):
 				voice.stop()
-	_tick_voices(world_voices, delta)
+	_update_repair_audio(delta)
 	var active := _world_allowed()
 	if not active:
 		for voice in world_voices:
 			voice.stop()
-		for key in ["typing", "cube", "eating"]:
+		for key in ["typing", "typing_alt", "cube", "eating"]:
 			layers[key].call("stop_now")
 	var sink: Node2D = room.get_node("Sink")
 	layers["room"].call("set_level", -29.0, active)
@@ -281,17 +392,25 @@ func _update_activity(delta: float) -> void:
 	var researching: bool = GameState.research_active and GameState.research_elapsed < GameState.research_duration
 	var current := "research" if researching else GameState.personal_activity
 	if current != activity:
-		stop_activity()
+		stop_activity(false)
 		activity = current
 		activity_wait = 0.0
 		arcade_count = 0
+		typing_cycle_left = rng.randf_range(8.0, 12.0)
+		alternate_typing = false
 		reel_index = -1
 		reel_next = ""
 		if current == "research":
 			play_world("desk", judy.global_position, true)
 	# Recorded key/cube/food loops continue for the entire actual activity.
 	# Their source recordings supply natural internal variation and short pauses.
-	layers["typing"].call("set_level", TYPING_DB, activity == "research")
+	if activity == "research":
+		typing_cycle_left -= delta
+		if typing_cycle_left <= 0.0:
+			alternate_typing = not alternate_typing
+			typing_cycle_left = rng.randf_range(8.0, 12.0)
+	layers["typing"].call("set_level", TYPING_DB, activity == "research" and not alternate_typing)
+	layers["typing_alt"].call("set_level", TYPING_DB, activity == "research" and alternate_typing)
 	layers["cube"].call("set_level", CUBE_DB, activity == "cube")
 	layers["eating"].call("set_level", EATING_DB, activity == "eat")
 	if activity.is_empty():
@@ -302,14 +421,22 @@ func _update_activity(delta: float) -> void:
 	# Cadence stays in real seconds at 1x and 6x; pitch never follows playback.
 	match activity:
 		"research":
-			play_world("paper", judy.global_position, true)
-			activity_wait = rng.randf_range(6.0, 10.0)
+			play_world("key_clack" if rng.randf() < 0.7 else "paper", judy.global_position, true)
+			activity_wait = rng.randf_range(2.0, 4.0)
 		"eat":
-			play_world("meal", judy.global_position, true)
+			var food_cue: String = ["meal", "chewing", "cup"][arcade_count % 3]
+			arcade_count += 1
+			play_world(food_cue, judy.global_position, true)
 			activity_wait = rng.randf_range(2.0, 3.2)
+		"cube":
+			play_world("cube", judy.global_position, true)
+			activity_wait = rng.randf_range(3.0, 5.0)
 		"games":
 			arcade_count += 1
-			play_world("explosion" if arcade_count % 7 == 0 else "laser_%d" % rng.randi_range(0, 1), judy.global_position, true)
+			var game_cue := "explosion" if arcade_count % 7 == 0 else "laser_%d" % rng.randi_range(0, 1)
+			if arcade_count % 23 == 0:
+				game_cue = "score"
+			play_world(game_cue, judy.global_position, true)
 			activity_wait = rng.randf_range(0.24, 0.48)
 		"reels":
 			if reel_next.is_empty():
@@ -332,7 +459,11 @@ func _update_robot(delta: float) -> void:
 			if str(voice.get_meta("owner", "")) == "robot_task":
 				voice.stop()
 		robot_wait = 0.0
+		if robot_was_working and str(robot.get("task_outcome")) == "completed":
+			play_world("book_stack" if GameState.research_task == "bookshelf" else "robot_done", robot.global_position)
+		robot_was_working = false
 		return
+	robot_was_working = true
 	var serial: int = robot.get("session_serial")
 	if serial != last_task_serial:
 		last_task_serial = serial
@@ -343,14 +474,16 @@ func _update_robot(delta: float) -> void:
 	var cue: String = {"sink": "meal", "plant": "watering", "bookshelf": "books", "bed": "bedding"}.get(GameState.research_task, "clean")
 	if bool(robot.get("cleanup_target")):
 		cue = "books" if GameState.research_task == "bookshelf" else ("bedding" if GameState.research_task == "bed" else "clean")
+	if cue == "books":
+		cue = ["books", "books_alt", "books_third"][rng.randi_range(0, 2)]
 	play_world(cue, robot.global_position, false, "robot_task")
-	robot_wait = 1.4 if cue == "books" else 1.8
+	robot_wait = 1.4 if cue.begins_with("books") else 1.8
 
 
 func _activity_state_changed() -> void:
 	if not GameState.research_active and GameState.personal_activity.is_empty():
 		var finished_work := activity == "research"
-		stop_activity()
+		stop_activity(false)
 		if finished_work and is_instance_valid(judy):
 			play_world("desk", judy.global_position)
 	if not is_instance_valid(room):
@@ -378,8 +511,8 @@ func fridge_access() -> void:
 	fridge_close_after = 3.0
 
 
-func stop_activity() -> void:
-	for key in ["typing", "cube", "eating"]:
+func stop_activity(cancel_repair_feedback: bool = true) -> void:
+	for key in ["typing", "typing_alt", "cube", "eating"]:
 		if layers.has(key) and is_instance_valid(layers[key]):
 			layers[key].call("stop_now")
 	for voice in world_voices:
@@ -388,6 +521,11 @@ func stop_activity() -> void:
 	activity = ""
 	activity_wait = 0.0
 	reel_next = ""
+	if cancel_repair_feedback:
+		repair_sound_left = 0.0
+		for voice in ui_voices:
+			if bool(voice.get_meta("activity", false)):
+				voice.stop()
 
 
 func begin_instant() -> void:
@@ -407,6 +545,7 @@ func end_instant() -> void:
 	mess_snapshot = GameState.chore_mess.duplicate()
 	water_stage = int(GameState.sink_water_elapsed / 8.0)
 	tap_was_running = GameState.tap_running
+	robot_was_working = false
 
 
 func play_world(cue: String, point: Vector2, for_activity: bool = false, owner: String = "") -> void:
@@ -414,14 +553,13 @@ func play_world(cue: String, point: Vector2, for_activity: bool = false, owner: 
 	if not _world_allowed() or GameState.time_category != "misc" or float(cooldowns.get(cooldown_key, 0.0)) > 0:
 		return
 	var spec: Array = CUES.get(cue, [])
+	if cue == "swat" and rng.randf() < 0.5:
+		spec = CUES["swat_alt"]
 	if cue == "step":
-		spec = ["step_%d" % rng.randi_range(0, 2), -15.0, 0.6, 0.0]
+		spec = ["step_%d" % rng.randi_range(0, 2), -15.0, 1.0, 0.0]
 	if spec.is_empty():
 		return
 	spec = spec.duplicate()
-	# Active areas selected from publisher waveforms, avoiding silent excerpts.
-	if cue == "books":
-		spec[3] = [1.05, 35.46, 73.68, 87.6][rng.randi_range(0, 3)]
 	var category := "activity" if for_activity else owner
 	var voices_in_category := 0
 	for voice in world_voices:
@@ -450,16 +588,30 @@ func play_world(cue: String, point: Vector2, for_activity: bool = false, owner: 
 func play_ui(cue: String = "click", completion: bool = false) -> void:
 	if (ui_wait > 0 and cue == "hover" and not completion) or not CUES.has(cue) or suppress_depth > 0 or GameState.activity_skip_busy or SaveStore.loading:
 		return
+	if cue == "repair":
+		# Current gameplay repairs are atomic; present a short physical tool
+		# sequence without changing their cost, rewards or simulation timing.
+		repair_sound_left = 4.2
+		repair_sound_wait = 0.8
+		repair_sound_step = 1
+		cue = "clank"
 	for voice in ui_voices:
 		if not voice.playing:
 			var spec: Array = CUES[cue].duplicate()
-			if cue == "repair":
-				spec[3] = [0.99, 3.5, 6.01, 9.55][rng.randi_range(0, 3)]
-			_start_voice(voice, spec, cue in ["repair", "clank"])
+			_start_voice(voice, spec, cue in ["ratchet", "screwdriver", "clank"])
 			ui_wait = 0.09 if cue == "hover" else 0.14
-			if cue == "repair":
-				play_ui("clank", true)
 			return
+
+
+func _update_repair_audio(delta: float) -> void:
+	if repair_sound_left <= 0.0:
+		return
+	repair_sound_left = maxf(0.0, repair_sound_left - delta)
+	repair_sound_wait -= delta
+	if repair_sound_wait <= 0.0 and repair_sound_left > 0.0:
+		play_ui("screwdriver" if repair_sound_step % 2 else "ratchet", true)
+		repair_sound_step += 1
+		repair_sound_wait = 1.6
 
 
 func _start_voice(voice: Node, spec: Array, for_activity: bool) -> void:
@@ -469,27 +621,11 @@ func _start_voice(voice: Node, spec: Array, for_activity: bool) -> void:
 	voice.set("stream", source)
 	voice.set("pitch_scale", rng.randf_range(0.98, 1.02))
 	voice.set_meta("gain", float(spec[1]) + rng.randf_range(-1.0, 1.0))
-	voice.set_meta("age", 0.0)
-	voice.set_meta("duration", minf(float(spec[2]), source.get_length() - float(spec[3])) / float(voice.get("pitch_scale")))
 	voice.set_meta("activity", for_activity)
-	# Preserve the recorded attack; starting muted loses very short clicks
-	# before the next render-frame envelope update.
+	# Preserve the recorded attack. Prepared files end on the audio thread;
+	# a render-frame timer could stop a short click before its first mix buffer.
 	voice.set("volume_db", float(voice.get_meta("gain")))
 	voice.call("play", float(spec[3]))
-
-
-func _tick_voices(voices: Array, delta: float) -> void:
-	for voice in voices:
-		if not is_instance_valid(voice) or not bool(voice.get("playing")):
-			continue
-		var age: float = float(voice.get_meta("age", 0.0)) + delta
-		var duration: float = voice.get_meta("duration", 0.5)
-		voice.set_meta("age", age)
-		if age >= duration:
-			voice.call("stop")
-		else:
-			var envelope := minf(1.0, (duration - age) / minf(0.04, duration * 0.2))
-			voice.set("volume_db", float(voice.get_meta("gain")) + linear_to_db(maxf(0.0001, envelope)))
 
 
 func play_music(stream: AudioStream) -> void:
@@ -515,11 +651,12 @@ func _update_music(delta: float) -> void:
 	if not music.playing:
 		music.play()
 	var target_db := MUSIC_MENU_DB
-	var silent: bool = SaveStore.loading
+	# A pending/failed campaign restore must never silence the main menu.
+	var silent := false
 	var scene: Node = get_tree().current_scene
 	if is_instance_valid(scene) and scene.has_node("HUD"):
 		var current_hud: Node = scene.get_node("HUD")
-		silent = silent or bool(current_hud.get("transitioning"))
+		silent = SaveStore.loading or bool(current_hud.get("transitioning"))
 		var evening := clampf((GameState.time_minutes + GameState.clock_fraction + GameState.world_accumulator - 1020.0) / 180.0, 0, 1)
 		target_db = MUSIC_GAME_DB - evening * 2.0
 		if GameState.game_finished:

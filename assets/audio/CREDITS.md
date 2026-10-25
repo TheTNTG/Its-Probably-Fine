@@ -1,6 +1,6 @@
 # Audio sources and licenses
 
-Signature apartment music has its own [credits and source/license details](music/CREDITS.md). The 24 recordings below are the original SFX/ambience library from Step 42A. [Step 42A.1 additions and current playback usage](CREDITS_42A1.md) supersede the old quiet-mix/proxy notes below. Original source files are retained.
+Signature apartment music has its own [credits and source/license details](music/CREDITS.md). The [current asset manifest](AUDIO_ASSET_MANIFEST.md) documents Step 42A.2's decoded PCM files and their gameplay connections. The 24 recordings below and [Step 42A.1 additions](CREDITS_42A1.md) are retained as source/history; their old mix and proxy notes are superseded by the current manifest.
 
 Verified from publisher/source pages on 2026-10-25. All 24 integrated recordings are CC0 1.0. No mandatory attribution or share-alike requirement; credits below are retained voluntarily. No noncommercial-only sounds were included.
 

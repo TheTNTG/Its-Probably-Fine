@@ -533,13 +533,14 @@ func complete_research() -> void:
 
 
 func swat_mosquitoes(manual: bool) -> void:
-	if manual and not mosquitoes.is_empty():
-		ApartmentAudio.play_world("swat", get_tree().current_scene.get_node("Player").global_position)
 	water_exposure = maxf(0.0, water_exposure - 60.0)
 	mosquito_level = mini(3, int(water_exposure / 60.0))
 	mosquito_task = false
-	for index in range(mini(2, mosquitoes.size())):
+	var removed := mini(2, mosquitoes.size())
+	for index in range(removed):
 		mosquitoes.erase(mosquitoes.keys()[0])
+	if manual and removed > 0:
+		ApartmentAudio.play_world("swat", get_tree().current_scene.get_node("Player").global_position)
 	mosquito_spawn_after = world_elapsed + 10.0
 	_update_mosquito_population()
 	if manual:
@@ -601,7 +602,7 @@ func manual_clean(chore: String) -> bool:
 	_advance_time(CLEAN_COSTS[chore], "cleanup")
 	clear_mess(chore)
 	var fixture: String = {"sink": "Sink", "plant": "PlantPot", "bookshelf": "Bookshelf", "bed": "Bed"}[chore]
-	ApartmentAudio.play_world("books" if chore == "bookshelf" else ("bedding" if chore == "bed" else "clean"), get_tree().current_scene.get_node(fixture).global_position)
+	ApartmentAudio.play_world("book_stack" if chore == "bookshelf" else ("bedding" if chore == "bed" else "clean"), get_tree().current_scene.get_node(fixture).global_position)
 	SaveStore.request_autosave("cleanup_completed")
 	action_feedback.emit("%s tidied. Routine unchanged. (-%d min)" % [chore.capitalize(), CLEAN_COSTS[chore]])
 	return true
