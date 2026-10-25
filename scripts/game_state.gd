@@ -342,6 +342,7 @@ func advance_personal_activity(minutes: float) -> void:
 	break_reminded = false
 	meaningful_break_taken.emit()
 	SaveStore.request_autosave("personal_activity_completed")
+	ApartmentAudio.play_ui("complete", true)
 	action_feedback.emit("Meal finished: +40 Fullness, +10 Mood. Work streak reset." if activity == "eat" else "Break finished. Feeling more like myself.")
 	state_changed.emit()
 
@@ -522,6 +523,7 @@ func complete_research() -> void:
 		story_event.emit("break_reminder_%d_%d" % [day, break_reminder_count])
 	state_changed.emit()
 	SaveStore.request_autosave("research_completed")
+	ApartmentAudio.play_ui("complete", true)
 	if research_progress >= GOOD_ENDING_RESEARCH_THRESHOLD:
 		SaveStore.milestone("research_target")
 	action_feedback.emit("Research complete: +%.1f%%, %d min, %d session(s) left." % [research_gain, research_duration, work_sessions_remaining])

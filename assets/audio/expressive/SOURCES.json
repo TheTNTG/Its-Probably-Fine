@@ -1,0 +1,103 @@
+{
+  "assets": [
+    {
+      "file": "assets/audio/expressive/laser_0.wav",
+      "title": "laser_0",
+      "author": "Original project SFX authored with Codex",
+      "source": "tools/build_42a1_sfx.py",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "method": "Descending FM/harmonic arcade laser with noisy attack.",
+      "duration_seconds": 0.34,
+      "sha256": "17840560acad5793d53918bc61f15ed65c71dbdf5d1e3404c2c912f0678de87e"
+    },
+    {
+      "file": "assets/audio/expressive/laser_1.wav",
+      "title": "laser_1",
+      "author": "Original project SFX authored with Codex",
+      "source": "tools/build_42a1_sfx.py",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "method": "Descending FM/harmonic arcade laser with noisy attack.",
+      "duration_seconds": 0.34,
+      "sha256": "417985ab8e5a976bb4df3073aa3851ffc9f9d9e83091b211280927adc1182a79"
+    },
+    {
+      "file": "assets/audio/expressive/arcade_explosion.wav",
+      "title": "arcade_explosion",
+      "author": "Original project SFX authored with Codex",
+      "source": "tools/build_42a1_sfx.py",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "method": "Filtered noise, falling bass and crackly attack; no music sample.",
+      "duration_seconds": 0.85,
+      "sha256": "a1dd8c2d4cf84eddbd8a99375d260996a395175d98dd92ee2aac3f892a66ef8e"
+    },
+    {
+      "file": "assets/audio/expressive/mosquito_zap.wav",
+      "title": "mosquito_zap",
+      "author": "Original project SFX authored with Codex",
+      "source": "tools/build_42a1_sfx.py",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "method": "Irregular electric buzz/crackle with punchy transient and falling tail.",
+      "duration_seconds": 0.68,
+      "sha256": "31677660aa6b5f1f96a625cfcfca4624b3881b0383697d3377531a8f3b1913cf"
+    },
+    {
+      "file": "assets/audio/expressive/malfunction.wav",
+      "title": "malfunction",
+      "author": "Original project SFX authored with Codex",
+      "source": "tools/build_42a1_sfx.py",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "method": "Short sputtering electrical/mechanical fault, deliberately distinct from the zap.",
+      "duration_seconds": 0.78,
+      "sha256": "2b33b29415ae9ca86f1e80243ed7d4f162d6a3b601c996053d07fec1f0c043c1"
+    },
+    {
+      "file": "assets/audio/expressive/ui_hover.wav",
+      "title": "ui_hover",
+      "author": "Original project SFX authored with Codex",
+      "source": "tools/build_42a1_sfx.py",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "method": "Short dry tick, with filtered noise and damped resonance.",
+      "duration_seconds": 0.08,
+      "sha256": "3826399518c4ace23a968779418253e109ab47fb3e29316a2cec08e87b63877c"
+    },
+    {
+      "file": "assets/audio/expressive/ui_click.wav",
+      "title": "ui_click",
+      "author": "Original project SFX authored with Codex",
+      "source": "tools/build_42a1_sfx.py",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "method": "Percussive click/thock; no pitched reward melody.",
+      "duration_seconds": 0.16,
+      "sha256": "6e7ad0e00bfba797d90c953e0a6d800572ad7f1b4df4f3a50eabac7505e9a40e"
+    },
+    {
+      "file": "assets/audio/expressive/phone_swipe.wav",
+      "title": "phone_swipe",
+      "author": "Original project SFX authored with Codex",
+      "source": "tools/build_42a1_sfx.py",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "method": "Short filtered-noise swipe/swish between video snippets.",
+      "duration_seconds": 0.26,
+      "sha256": "037cf3b4c8b2829c920203fbf72d17b6c168ba5751741bbe24af260ea43aa832"
+    },
+    {
+      "file": "assets/audio/expressive/reel_boing.wav",
+      "title": "reel_boing",
+      "author": "Original project SFX authored with Codex",
+      "source": "tools/build_42a1_sfx.py",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "method": "Goofy spring/boing cartoon clip; original synthesized sound, no sampled video.",
+      "duration_seconds": 0.82,
+      "sha256": "14933d60e356d47bcdb22825ab37f6aca806fb93b789a3beae2d40ca7a7b9a33"
+    }
+  ]
+}

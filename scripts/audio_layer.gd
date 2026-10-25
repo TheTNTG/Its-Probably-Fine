@@ -13,10 +13,13 @@ var current := 0
 var age := 0.0
 var mixing := false
 var mix_age := 0.0
+var fade_in := 0.8
 
 
 func setup(stream: AudioStream, bus: String, spatial: bool, begin: float = 0.0, duration: float = 16.0) -> void:
 	source = stream
+	if stream == null:
+		return
 	start = minf(begin, maxf(0.0, stream.get_length() - 1.0))
 	length = minf(duration, stream.get_length() - start)
 	overlap = minf(0.65, length * 0.2)
@@ -50,7 +53,7 @@ func stop_now() -> void:
 func _process(delta: float) -> void:
 	if voices.is_empty():
 		return
-	gain = move_toward(gain, 1.0 if enabled else 0.0, delta / (0.8 if enabled else 0.15))
+	gain = move_toward(gain, 1.0 if enabled else 0.0, delta / (fade_in if enabled else 0.15))
 	if gain <= 0.0001:
 		for voice in voices:
 			voice.call("stop")

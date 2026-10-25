@@ -160,6 +160,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if target == null:
 		return
 	get_viewport().set_input_as_handled()
+	ApartmentAudio.play_ui("click")
 	if target == desk:
 		get_node("../HUD").research_choices()
 	elif target == tiptop:

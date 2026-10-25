@@ -122,7 +122,7 @@ func _detect() -> void:
 	if anywhere or _near("Fridge") or _near("CoffeeTable") or GameState.hunger < 75:
 		_offer("guide_needs", "Fullness shifts from sage to brick as it falls. Meals restore Fullness and Mood; meals and leisure reset your work streak. Click the heart, or Tab then arrows, for details.", "needs", true)
 	if anywhere or _near("Desk"):
-		_offer("guide_target", "Aim for 75% research. On %s, a standard session costs %d game minutes. A running tap adds time and cuts gains; repairs can also earn progress." % [GameState.profile()["name"], GameState.profile()["research_minutes"]], "research", true)
+		_offer("guide_target", "Aim for 75%% research. On %s, a standard session costs %d game minutes. A running tap adds time and cuts gains; repairs can also earn progress." % [GameState.profile()["name"], GameState.profile()["research_minutes"]], "research", true)
 	if anywhere or _near("Bed"):
 		_offer("guide_sleep", "Make the bed, then E to rest and end the day. Sleeping starts the next day; bedtime fullness affects tomorrow's Mood. Meals and breaks need planning too.", "Bed", true)
 	if anywhere or GameState.tutorial_seen.has("guide_target"):

@@ -1,6 +1,6 @@
 # Audio sources and licenses
 
-Signature apartment music has its own [credits and source/license details](music/CREDITS.md). The 24 recordings below are the SFX/ambience library from Step 42A.
+Signature apartment music has its own [credits and source/license details](music/CREDITS.md). The 24 recordings below are the original SFX/ambience library from Step 42A. [Step 42A.1 additions and current playback usage](CREDITS_42A1.md) supersede the old quiet-mix/proxy notes below. Original source files are retained.
 
 Verified from publisher/source pages on 2026-10-25. All 24 integrated recordings are CC0 1.0. No mandatory attribution or share-alike requirement; credits below are retained voluntarily. No noncommercial-only sounds were included.
 
@@ -45,6 +45,6 @@ Freesound files are the publicly offered HQ MP3 previews of the specified record
 - Refrigerator recording: only the CC0 free sample from OpenGameArt, not LEGIT Audio's separately licensed paid library.
 - Gain and slight one-shot pitch variation are applied at playback. Loops use two overlapping players and real-time crossfades; recording excerpts are bounded in the audio scripts.
 
-## Not included
+## Original Step 42A limitations (superseded where noted in Step 42A.1)
 
 No signature music, voice acting, synthesized reward/alert sounds, dedicated electronic robot acknowledgment, bespoke robot hover recording or dedicated phone touchscreen recording. Existing recordings provide restrained foley substitutes where described above; Music routing is prepared for Step 42D.
