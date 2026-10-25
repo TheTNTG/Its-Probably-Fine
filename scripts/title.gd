@@ -27,6 +27,9 @@ func _ready() -> void:
 	# The autoload clock stays paused; this scene contains decorative art only.
 	get_tree().paused = true
 	GameState.restart()
+	SaveStore.tutorial_sandbox = false
+	SaveStore.pending_autosave = false
+	SaveStore.campaign_id = ""
 	for key in ["restart_playing", "new_game_slide", "tutorial_entry"]:
 		if get_tree().has_meta(key):
 			get_tree().remove_meta(key)
@@ -69,7 +72,7 @@ func _ready() -> void:
 	if SaveStore.can_continue():
 		_button(choices, "Continue", _continue_game)
 	new_game_button = _button(choices, "New Game", _show_difficulty)
-	_button(choices, "How to Play", _show_help)
+	_button(choices, "Tutorial / How to Play", _show_help)
 	_button(choices, "Settings", _show_settings)
 	_button(choices, "Quit Game", func(): get_tree().quit())
 	persistence_notice = _label(canvas, "", 7)
@@ -216,8 +219,8 @@ func _close_panel(restore_focus: bool = true) -> void:
 func _show_difficulty(tutorial_entry: bool = false) -> void:
 	tutorial_start = tutorial_entry
 	_open_panel("Play Tutorial" if tutorial_entry else "A fresh start")
-	_paragraph("Start a fresh guided Day 1. Skip anytime; Esc opens Pause." if tutorial_entry else "Choose your pace. Medium is the default.")
-	if SaveStore.can_continue():
+	_paragraph("Practice in a separate apartment. Your campaign save and campaign time stay untouched. Esc → Exit Tutorial returns here." if tutorial_entry else "Choose your pace. Medium is the default.")
+	if not tutorial_entry and SaveStore.can_continue():
 		_paragraph("Beginning replaces the active slot. Previous checkpoints remain recoverable; your profile stays.", 8)
 	selected_difficulty = 1
 	difficulty_buttons.clear()
@@ -231,7 +234,7 @@ func _show_difficulty(tutorial_entry: bool = false) -> void:
 	difficulty_description = _paragraph("")
 	difficulty_description.custom_minimum_size.y = 54
 	_select_difficulty(1)
-	_button(modal_body, "Replace Save & Begin" if SaveStore.can_continue() else ("Play Tutorial" if tutorial_entry else "Begin Day 1"), _begin_game)
+	_button(modal_body, "Play Tutorial" if tutorial_entry else ("Replace Save & Begin" if SaveStore.can_continue() else "Begin Day 1"), _begin_game)
 	_button(modal_body, "Back", _close_panel)
 	difficulty_buttons[1].grab_focus.call_deferred()
 
@@ -270,7 +273,7 @@ func _show_help() -> void:
 	modal_body.add_child(footer)
 	var tutorial_button := _button(footer, "Play Tutorial", _show_difficulty.bind(true))
 	_button(footer, "Back", _close_panel)
-	_paragraph("Fresh guided game. Skip anytime; Esc → Main Menu exits.", 8)
+	_paragraph("Optional practice; campaign saves stay untouched. Esc → Exit Tutorial returns here.", 8)
 	tutorial_button.grab_focus.call_deferred()
 
 

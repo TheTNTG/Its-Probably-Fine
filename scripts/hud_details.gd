@@ -7,7 +7,7 @@ var groups: Dictionary
 var panel: PanelContainer
 var sidebar: Control
 var active := ""
-var pinned := ""
+var pinned := "repairs"
 var dismissed := ""
 var leave_time := 0.0
 var reference_height := 288.0
@@ -52,6 +52,14 @@ func _toggle(category: String) -> void:
 		pinned = category
 		active = category
 		dismissed = ""
+	leave_time = 0.0
+	SaveStore.request_autosave("hud_pin")
+
+
+func restore_pin(category: String) -> void:
+	pinned = category if category in groups or category.is_empty() else "repairs"
+	active = pinned
+	dismissed = ""
 	leave_time = 0.0
 
 
@@ -112,17 +120,15 @@ func _process(delta: float) -> void:
 	if hover != dismissed and focus != dismissed:
 		dismissed = ""
 	var requested := hover if not hover.is_empty() else (active if inside or panel_focus else focus)
-	# A preview must never replace a deliberately pinned selection.
-	if not pinned.is_empty():
-		active = pinned
-	elif not requested.is_empty() and requested != dismissed:
+	# Hover/focus previews are temporary; leaving restores the pinned checklist.
+	if not requested.is_empty() and requested != dismissed:
 		active = requested
 		leave_time = 0.0
 	elif requested.is_empty() or requested == dismissed:
 		leave_time += delta
 		# A small crossing grace period bridges the gap from icon to panel.
 		if leave_time >= 0.18:
-			active = ""
+			active = pinned
 	var label_category := hover if not hover.is_empty() else (focus if not focus.is_empty() else pinned)
 	caption.visible = not label_category.is_empty()
 	if caption.visible:

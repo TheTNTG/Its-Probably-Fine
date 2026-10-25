@@ -34,6 +34,7 @@ var pending_autosave := false
 var debounce := 0.0
 var retry_after := 0.0
 var profile_dirty := false
+var tutorial_sandbox := false
 
 
 func _ready() -> void:
@@ -266,22 +267,27 @@ func _exit_tree() -> void:
 
 
 func new_campaign(force_tutorial: bool = false) -> void:
-	campaign_id = Crypto.new().generate_random_bytes(16).hex_encode()
+	tutorial_sandbox = force_tutorial
+	# Tutorial owns only disposable runtime state, never the campaign slot.
+	campaign_id = "" if tutorial_sandbox else Crypto.new().generate_random_bytes(16).hex_encode()
 	pending_autosave = false
 	loading = false
-	if not force_tutorial and (player_profile["tutorial_completed"] or player_profile["tutorial_skipped"]):
+	pending_load.clear()
+	if not tutorial_sandbox:
 		GameState.tutorial_finished = true
 		GameState.tutorial_skipped = true
 	request_autosave("new_campaign")
 
 
 func request_autosave(_event: String) -> void:
-	if not loading and not campaign_id.is_empty() and not GameState.game_finished:
+	if not tutorial_sandbox and not loading and not campaign_id.is_empty() and not GameState.game_finished:
 		pending_autosave = true
 		debounce = 0.75
 
 
 func safe_reason(manual: bool = false) -> String:
+	if tutorial_sandbox:
+		return "Tutorial practice is not saved. Your campaign checkpoint is untouched."
 	var scene: Node = get_tree().current_scene
 	if loading or not is_instance_valid(scene) or not scene.has_node("HUD") or campaign_id.is_empty():
 		return "Saving is available during a campaign."
@@ -290,7 +296,7 @@ func safe_reason(manual: bool = false) -> String:
 	var hud: Node = scene.get_node("HUD")
 	if GameState.day_ended or GameState.game_finished or GameState.ending_day_pending or hud.transitioning:
 		return "Wait for the next playable day before saving."
-	if GameState.notification_active or hud.dialogue_overlay.visible or hud.repair_panel.visible or hud.loop_panel.visible or hud._household_open() or hud._eject_open() or hud.sleep_dialogue_pending:
+	if GameState.notification_active or hud.dialogue_overlay.visible or hud.repair_panel.visible or hud.loop_panel.visible or hud._rules_open() or hud._household_open() or hud._eject_open() or hud.sleep_dialogue_pending:
 		return "Close the conversation or activity menu before saving."
 	if not hud.dialogue_lines.is_empty() or not hud.deferred_story_events.is_empty() or not hud.pending_feedback.is_empty() or hud.morning_pending_day != 0:
 		return "Resume and finish the pending conversation before saving."
@@ -316,6 +322,7 @@ func save_campaign(manual: bool = false) -> bool:
 		var point: Vector2 = fly["position"]
 		flies.append({"id": int(id), "position": [point.x, point.y], "count": fly["count"]})
 	var data := {"version": VERSION, "kind": "campaign", "id": campaign_id, "finished": false, "state": state, "actors": {"judy": [judy.global_position.x, judy.global_position.y], "tiptop": [robot.global_position.x, robot.global_position.y]}, "mosquitoes": flies, "story": {"seen": hud.story_seen, "talk_count": hud.tiptop_talk_count}, "robot": {"morning_day": robot.morning_day, "goodnight_day": robot.goodnight_day, "thought_counts": robot.thought_counts}}
+	data["ui"] = {"pinned_details": str(hud.detail_controller.get("pinned"))}
 	if not _write(CAMPAIGN, data, "campaign"):
 		return false
 	pending_autosave = false
@@ -340,6 +347,7 @@ func prepare_continue() -> bool:
 		last_error = "No compatible active save could be read. Existing files were preserved."
 		return false
 	loading = true
+	tutorial_sandbox = false
 	pending_autosave = false
 	get_tree().paused = true
 	return true
@@ -429,12 +437,21 @@ func restore_room() -> void:
 		else:
 			GameState.robot_chore_resolved = true
 			GameState.research_next_chore = GameState.world_elapsed + 0.5
-	if player_profile["tutorial_completed"] or player_profile["tutorial_skipped"]:
-		GameState.tutorial_finished = true
-		GameState.tutorial_skipped = true
+	# Older checkpoints may still contain an unfinished guided introduction.
+	# Continue never automatically starts lessons; contextual warnings stay live.
+	GameState.tutorial_finished = true
+	GameState.tutorial_skipped = true
+	var saved_ui: Variant = pending_load.get("ui", {})
+	var pinned := "repairs"
+	if saved_ui is Dictionary:
+		var selection: Variant = saved_ui.get("pinned_details", "repairs")
+		if selection is String and selection in ["", "research", "repairs", "time", "needs"]:
+			pinned = selection
+	hud.detail_controller.call("restore_pin", pinned)
 	hud.story_seen = pending_load["story"].get("seen", {})
 	hud.tiptop_talk_count = int(pending_load["story"].get("talk_count", 0))
 	hud.morning_pending_day = 0
+	hud.rules_acknowledged = true
 	hud.loop_panel.hide()
 	hud.difficulty_controls.hide()
 	hud.difficulty_description.hide()

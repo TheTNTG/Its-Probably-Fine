@@ -84,6 +84,9 @@ var eject_confirm: ColorRect
 var mood_hint: Label
 var tutorial: Control
 var tutorial_entry := false
+var rules_intro: ColorRect
+var rules_review := false
+var rules_acknowledged := false
 var showcase: Control
 var ending_kind := ""
 var deadline_label: Label
@@ -113,16 +116,20 @@ func _pause_open() -> bool:
 	return is_instance_valid(pause_panel) and pause_panel.visible
 
 
+func _rules_open() -> bool:
+	return is_instance_valid(rules_intro) and rules_intro.visible
+
+
 func _comic_safe() -> bool:
-	return not _pause_open() and not _eject_open() and not GameState.research_active and not get_node("../Player").animation_busy and not transitioning and not repair_panel.visible and not _household_open()
+	return not _rules_open() and not _pause_open() and not _eject_open() and not GameState.research_active and not get_node("../Player").animation_busy and not transitioning and not repair_panel.visible and not _household_open()
 
 
 func overhead_thoughts_allowed() -> bool:
-	return not _pause_open() and not _eject_open() and not dialogue_overlay.visible and not repair_panel.visible and not loop_panel.visible and not notification_panel.visible and not transitioning and not _household_open() and not GameState.day_ended and not GameState.game_finished
+	return not _rules_open() and not _pause_open() and not _eject_open() and not dialogue_overlay.visible and not repair_panel.visible and not loop_panel.visible and not notification_panel.visible and not transitioning and not _household_open() and not GameState.day_ended and not GameState.game_finished
 
 
 func _restore_modal_pause() -> void:
-	get_tree().paused = _pause_open() or _eject_open() or dialogue_overlay.visible or repair_panel.visible or loop_panel.visible or _household_open() or transitioning or GameState.day_ended or GameState.game_finished
+	get_tree().paused = _rules_open() or _pause_open() or _eject_open() or dialogue_overlay.visible or repair_panel.visible or loop_panel.visible or _household_open() or transitioning or GameState.day_ended or GameState.game_finished
 
 
 func research_choices() -> void:
@@ -300,6 +307,10 @@ func _ready() -> void:
 	_build_needs_ui()
 	_build_pause_menu()
 	_build_eject_confirmation()
+	rules_intro = ColorRect.new()
+	rules_intro.set_script(preload("res://scripts/rules_intro.gd"))
+	add_child(rules_intro)
+	rules_intro.connect("dismissed", _rules_dismissed)
 	_fit_screen_ui()
 	get_viewport().size_changed.connect(_fit_screen_ui)
 	_smooth_ui_text(self)
@@ -328,7 +339,10 @@ func _ready() -> void:
 		loop_panel.hide()
 		difficulty_controls.hide()
 		difficulty_description.hide()
-		_on_loop_pressed.call_deferred()
+		if tutorial_entry:
+			_on_loop_pressed.call_deferred()
+		else:
+			_show_campaign_rules.call_deferred()
 	if get_tree().has_meta("new_game_slide"):
 		get_tree().remove_meta("new_game_slide")
 		_reveal_new_game()
@@ -375,6 +389,9 @@ func _fit_screen_ui() -> void:
 	if is_instance_valid(pause_panel):
 		pause_panel.position = -transform.origin / factor
 		pause_panel.size = screen / factor
+	if is_instance_valid(rules_intro):
+		rules_intro.position = -transform.origin / factor
+		rules_intro.size = screen / factor
 
 
 func _smooth_ui_text(node: Node) -> void:
@@ -594,6 +611,7 @@ func _detail_text(parent: Node, text: String, font_size: int = 7) -> Label:
 	var label := _hud_text(parent, text, Vector2.ZERO, font_size)
 	label.custom_minimum_size.x = 72
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_constant_override("line_spacing", 1)
 	return label
 
 
@@ -1011,6 +1029,10 @@ func _on_loop_pressed() -> void:
 	if GameState.day_ended:
 		_play_day_transition()
 		return
+	# The legacy Start button also enters through the same rules gate.
+	if not tutorial_entry and not rules_acknowledged:
+		_show_campaign_rules()
+		return
 	loop_panel.hide()
 	if SaveStore.campaign_id.is_empty():
 		SaveStore.new_campaign(tutorial_entry)
@@ -1021,6 +1043,22 @@ func _on_loop_pressed() -> void:
 	if not story_seen.has("opening"):
 		morning_pending_day = GameState.day
 		_on_story_event("opening")
+
+
+func _show_campaign_rules() -> void:
+	rules_review = false
+	loop_panel.hide()
+	detail_controller.call("exit_navigation")
+	rules_intro.call("open")
+
+
+func _rules_dismissed() -> void:
+	if rules_review:
+		rules_review = false
+		_restore_modal_pause()
+	else:
+		rules_acknowledged = true
+		_on_loop_pressed()
 
 
 func _build_transition_ui() -> void:
@@ -1222,6 +1260,8 @@ func _process(delta: float) -> void:
 	_update_needs_ui()
 	_update_sidebar()
 	_sync_overlay_visibility()
+	if _rules_open():
+		return
 	if _pause_open():
 		return
 	_update_activity_controls()
@@ -1424,11 +1464,11 @@ func _build_system_notice() -> void:
 
 func _sync_overlay_visibility() -> void:
 	get_node("../Desk/PromptLabel").hide()
-	if dialogue_overlay.visible:
+	if dialogue_overlay.visible or _rules_open():
 		get_node("../Player").interaction_prompt.hide()
 		get_node("../TipTop").monologue_label.hide()
 		get_node("../TipTop").action_label.hide()
-	var blocked: bool = _pause_open() or _eject_open() or dialogue_overlay.visible or repair_panel.visible or transitioning or loop_panel.visible or GameState.research_active or get_node("../Player").animation_busy or (is_instance_valid(household_panel) and household_panel.visible)
+	var blocked: bool = _rules_open() or _pause_open() or _eject_open() or dialogue_overlay.visible or repair_panel.visible or transitioning or loop_panel.visible or GameState.research_active or get_node("../Player").animation_busy or (is_instance_valid(household_panel) and household_panel.visible)
 	notification_panel.visible = GameState.notification_active and not blocked and not GameState.day_ended and not GameState.game_finished
 	if blocked or GameState.notification_active or get_node("../Player").animation_busy:
 		system_notice.hide()
@@ -1538,7 +1578,7 @@ func _build_pause_menu() -> void:
 	choices.add_theme_constant_override("separation", 5)
 	panel.add_child(choices)
 	_hud_text(choices, "Paused", Vector2.ZERO, 12)
-	var items := [["Resume", _resume_pause], ["Save Game", _manual_save], ["Review Tutorial", _review_tutorial], ["Restart (replaces save)", _restart_from_pause.bind(true)], ["Exit Tutorial" if tutorial_entry else "Return to Main Menu", _restart_from_pause.bind(false)], ["Quit Game", func(): get_tree().quit()]]
+	var items := [["Resume", _resume_pause], ["Save Game", _manual_save], ["How to Play", _review_tutorial], ["Restart Tutorial" if tutorial_entry else "Restart (replaces save)", _restart_from_pause.bind(true)], ["Exit Tutorial" if tutorial_entry else "Return to Main Menu", _restart_from_pause.bind(false)], ["Quit Game", func(): get_tree().quit()]]
 	for index in range(items.size()):
 		var button := Button.new()
 		button.text = items[index][0]
@@ -1573,8 +1613,11 @@ func _open_pause() -> void:
 
 
 func _review_tutorial() -> void:
-	_resume_pause()
-	tutorial.call("review")
+	# Replayable interactive lessons are main-menu-only. In-game help reviews
+	# rules without clearing campaign tutorial flags or starting spotlights.
+	pause_panel.hide()
+	rules_review = true
+	rules_intro.call("open", true)
 
 
 func request_rest() -> void:
@@ -1616,6 +1659,17 @@ func hud_navigation_active() -> bool:
 func _input(event: InputEvent) -> void:
 	if SaveStore.loading:
 		get_viewport().set_input_as_handled()
+		return
+	if _rules_open():
+		if event is InputEventKey and (event.is_action("interact") or event.keycode in [KEY_ENTER, KEY_KP_ENTER]):
+			# Enter on Back should activate Back; E always advances the page.
+			var focused: Control = get_viewport().gui_get_focus_owner()
+			if event.is_action("interact") or focused != rules_intro.get("back"):
+				if event.pressed and not event.echo:
+					rules_intro.call("advance")
+				get_viewport().set_input_as_handled()
+		elif event.is_action("ui_cancel"):
+			get_viewport().set_input_as_handled()
 		return
 	if _eject_open():
 		if event.is_action_pressed("ui_cancel"):

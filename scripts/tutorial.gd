@@ -110,7 +110,8 @@ func _detect() -> void:
 		_offer("repair", "A repaired routine stays corrected and earns research progress. Existing mess may still need cleanup. Each routine is repaired independently.", "TipTop")
 	if GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD:
 		_offer("target", "You've reached the 75% showcase research requirement! Other choices and TipTop's repair state still matter. The showcase is Day 3 at 8 PM.", "research")
-	if GameState.tutorial_skipped and not reviewing:
+	# Guided spotlights are exclusive to optional main-menu tutorial practice.
+	if not hud.get("tutorial_entry") or (GameState.tutorial_skipped and not reviewing):
 		return
 	var anywhere := reviewing
 	_offer("guide_move", "Move with WASD or arrows; approach objects for E prompts. TipTop waits until you read all eight tips or choose Skip Tutorial. Essential warnings stay enabled.", "Player", true)
@@ -126,7 +127,7 @@ func _detect() -> void:
 	if anywhere or _near("Bed"):
 		_offer("guide_sleep", "Make the bed, then E to rest and end the day. Sleeping starts the next day; bedtime fullness affects tomorrow's Mood. Meals and breaks need planning too.", "Bed", true)
 	if anywhere or GameState.tutorial_seen.has("guide_target"):
-		_offer("guide_pause", "Esc opens Pause: save when free, or review the guide. Active tasks have Watch, 6x, Skip and Eject. Eject keeps spent time and gives no reward.", "controls", true)
+		_offer("guide_pause", "Esc opens Pause. Exit Tutorial returns to the menu; your campaign save stays untouched. In a campaign, save when free or review the rules. Tasks offer Watch, 6x, Skip and Eject; ejecting keeps spent time without a reward.", "controls", true)
 
 
 func _feedback(message: String) -> void:
