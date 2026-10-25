@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://d0n42ney0yk3x"]
+
+[ext_resource type="Script" uid="uid://cqjsjxol2oeus" path="res://scripts/mobile_joystick.gd" id="1_k8ypl"]
+[ext_resource type="Script" uid="uid://b1ijars65y56m" path="res://scripts/mobile_controls.gd" id="1_l7u83"]
+[ext_resource type="Texture2D" uid="uid://c3buott73jyxf" path="res://assets/tiles/floor_01.png" id="2_5yoks"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5yoks"]
+size = Vector2(30, 30)
+
+[node name="MobileControls" type="CanvasLayer" unique_id=1897441266]
+layer = 10
+script = ExtResource("1_l7u83")
+
+[node name="InterractButton" type="TouchScreenButton" parent="." unique_id=1751960961]
+position = Vector2(300, 200)
+texture_normal = ExtResource("2_5yoks")
+shape = SubResource("RectangleShape2D_5yoks")
+action = "interact"
+
+[node name="PauseButton" type="TouchScreenButton" parent="." unique_id=1508969389]
+action = "pause"
+
+[node name="TouchOverlay" type="Control" parent="." unique_id=1771992283]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Joystick" type="Control" parent="TouchOverlay" unique_id=638140819]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -120.0
+offset_right = 66.0
+offset_bottom = -70.0
+grow_vertical = 0
+script = ExtResource("1_k8ypl")
