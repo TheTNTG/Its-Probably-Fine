@@ -55,11 +55,11 @@ func _ready() -> void:
 	backdrop.size = REFERENCE
 	canvas.add_child(backdrop)
 	_build_apartment()
-	var title := _label(canvas, "IT'S PROBABLY FINE", 23)
+	var title := _label(canvas, GameText.get_text("main_menu.it_s_probably_fine"), 23)
 	preload("res://scripts/typography.gd").accent(title)
 	title.position = Vector2(18, 13)
 	title.add_theme_color_override("font_color", AMBER)
-	var subtitle := _label(canvas, "Three days. One robot. What could go wrong?", 10)
+	var subtitle := _label(canvas, GameText.get_text("main_menu.three_days_one_robot_what_could_go_wrong"), 10)
 	subtitle.position = Vector2(20, 46)
 	main_menu = PanelContainer.new()
 	main_menu.position = Vector2(268, 85)
@@ -70,11 +70,11 @@ func _ready() -> void:
 	choices.add_theme_constant_override("separation", 6)
 	main_menu.add_child(choices)
 	if SaveStore.can_continue():
-		_button(choices, "Continue", _continue_game)
-	new_game_button = _button(choices, "New Game", _show_difficulty)
-	_button(choices, "Tutorial / How to Play", _show_help)
-	_button(choices, "Settings", _show_settings)
-	_button(choices, "Quit Game", func(): get_tree().quit())
+		_button(choices, GameText.get_text("main_menu.continue"), _continue_game)
+	new_game_button = _button(choices, GameText.get_text("main_menu.new_game"), _show_difficulty)
+	_button(choices, GameText.get_text("main_menu.tutorial_how_to_play"), _show_help)
+	_button(choices, GameText.get_text("main_menu.settings"), _show_settings)
+	_button(choices, GameText.get_text("main_menu.quit_game"), func(): get_tree().quit())
 	persistence_notice = _label(canvas, "", 7)
 	persistence_notice.position = Vector2(18, 257)
 	persistence_notice.size = Vector2(235, 26)
@@ -169,7 +169,7 @@ func _fit_viewport() -> void:
 
 func _process(delta: float) -> void:
 	idle_time += delta
-	persistence_notice.text = "Profile unreadable: history/settings cannot be saved. Original files preserved." if SaveStore.profile_read_only else SaveStore.last_error
+	persistence_notice.text = GameText.get_text("main_menu.profile_unreadable_history_settings_cannot_be_saved_original_f") if SaveStore.profile_read_only else SaveStore.last_error
 	tiptop_sprite.frame = int(idle_time * 5.0) % 4
 	tiptop_sprite.position.y = 119.0 + sin(idle_time * 2.0) * 0.6
 
@@ -218,10 +218,10 @@ func _close_panel(restore_focus: bool = true) -> void:
 
 func _show_difficulty(tutorial_entry: bool = false) -> void:
 	tutorial_start = tutorial_entry
-	_open_panel("Play Tutorial" if tutorial_entry else "A fresh start")
-	_paragraph("Practice in a separate apartment. Your campaign save and campaign time stay untouched. Esc → Exit Tutorial returns here." if tutorial_entry else "Choose your pace. Medium is the default.")
+	_open_panel(GameText.get_text("main_menu.play_tutorial") if tutorial_entry else GameText.get_text("main_menu.a_fresh_start"))
+	_paragraph(GameText.get_text("main_menu.practice_in_a_separate_apartment_your_campaign_save_and_campai") if tutorial_entry else GameText.get_text("main_menu.choose_your_pace_medium_is_the_default"))
 	if not tutorial_entry and SaveStore.can_continue():
-		_paragraph("Beginning replaces the active slot. Previous checkpoints remain recoverable; your profile stays.", 8)
+		_paragraph(GameText.get_text("main_menu.beginning_replaces_the_active_slot_previous_checkpoints_remain"), 8)
 	selected_difficulty = 1
 	difficulty_buttons.clear()
 	var row := HBoxContainer.new()
@@ -234,8 +234,8 @@ func _show_difficulty(tutorial_entry: bool = false) -> void:
 	difficulty_description = _paragraph("")
 	difficulty_description.custom_minimum_size.y = 54
 	_select_difficulty(1)
-	_button(modal_body, "Play Tutorial" if tutorial_entry else ("Replace Save & Begin" if SaveStore.can_continue() else "Begin Day 1"), _begin_game)
-	_button(modal_body, "Back", _close_panel)
+	_button(modal_body, GameText.get_text("main_menu.play_tutorial") if tutorial_entry else (GameText.get_text("main_menu.replace_save_begin") if SaveStore.can_continue() else GameText.get_text("main_menu.begin_day_1")), _begin_game)
+	_button(modal_body, GameText.get_text("main_menu.back"), _close_panel)
 	difficulty_buttons[1].grab_focus.call_deferred()
 
 
@@ -244,11 +244,11 @@ func _select_difficulty(index: int) -> void:
 	for item in range(difficulty_buttons.size()):
 		difficulty_buttons[item].set_pressed_no_signal(item == index)
 	var profile: Dictionary = GameState.DIFFICULTIES[index]
-	difficulty_description.text = "%s\nResearch: +%d%% base / %d min. Routine repair: %d min." % [profile["description"], profile["research"], profile["research_minutes"], profile["repair_minutes"]]
+	difficulty_description.text = GameText.format_text("main_menu.s_research_d_base_d_min_routine_repair_d_min", [profile["description"], profile["research"], profile["research_minutes"], profile["repair_minutes"]])
 
 
 func _show_help() -> void:
-	_open_panel("How to Play", 360)
+	_open_panel(GameText.get_text("main_menu.how_to_play"), 360)
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size.y = 168
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -260,20 +260,20 @@ func _show_help() -> void:
 	cards.add_theme_constant_override("separation", 5)
 	scroll.add_child(cards)
 	var sections := [
-		["judy", "Judy · Move & interact", "WASD / arrows move. E interacts; E / Enter advances dialogue. Tab inspects the HUD; Tab returns to movement."],
-		["desk", "Research", "Four sessions a day. Starting needs more than 20 Fullness, even with the final-day Mood exception."],
-		["tiptop", "TipTop", "Faulty chores make messes. Repair each routine; cleaning alone doesn't fix it."],
-		["fridge", "Fullness & Mood", "Meals give +40 Fullness and +10 Mood. Meals and leisure reset work streaks, not the daily session limit."],
-		["clock", "Time & deadline", "Reach 75% research by Day 3, 8 PM. Sleep at the bed to advance days."],
-		["activity", "Activity controls", "Watch 1x, Fast 6x or Skip to finish. Eject cancels without a completion reward."]]
+		["judy", GameText.get_text("main_menu.judy_move_interact"), GameText.get_text("main_menu.wasd_arrows_move_e_interacts_e_enter_advances_dialogue_tab_ins")],
+		["desk", GameText.get_text("hud.research_heading"), GameText.get_text("main_menu.four_sessions_a_day_starting_needs_more_than_20_fullness_even")],
+		["tiptop", GameText.get_text("dialogue.speaker_tiptop"), GameText.get_text("main_menu.faulty_chores_make_messes_repair_each_routine_cleaning_alone_d")],
+		["fridge", GameText.get_text("main_menu.fullness_mood"), GameText.get_text("main_menu.meals_give_40_fullness_and_10_mood_meals_and_leisure_reset_wor")],
+		["clock", GameText.get_text("main_menu.time_deadline"), GameText.get_text("main_menu.reach_75_research_by_day_3_8_pm_sleep_at_the_bed_to_advance_da")],
+		["activity", GameText.get_text("main_menu.activity_controls"), GameText.get_text("main_menu.watch_1x_fast_6x_or_skip_to_finish_eject_cancels_without_a_com")]]
 	for section in sections:
 		_help_card(cards, section[0], section[1], section[2])
 	var footer := HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 6)
 	modal_body.add_child(footer)
-	var tutorial_button := _button(footer, "Play Tutorial", _show_difficulty.bind(true))
-	_button(footer, "Back", _close_panel)
-	_paragraph("Optional practice; campaign saves stay untouched. Esc → Exit Tutorial returns here.", 8)
+	var tutorial_button := _button(footer, GameText.get_text("main_menu.play_tutorial"), _show_difficulty.bind(true))
+	_button(footer, GameText.get_text("main_menu.back"), _close_panel)
+	_paragraph(GameText.get_text("main_menu.optional_practice_campaign_saves_stay_untouched_esc_exit_tutor"), 8)
 	tutorial_button.grab_focus.call_deferred()
 
 
@@ -342,12 +342,12 @@ func _help_visual(parent: Control, kind: String) -> void:
 			arrow.polygon = PackedVector2Array([Vector2(x, 9), Vector2(x + 7, 15), Vector2(x, 21)])
 			arrow.color = AMBER
 			parent.add_child(arrow)
-		var legend := _label(parent, "1x   6x", 7)
+		var legend := _label(parent, GameText.get_text("main_menu.1x_6x"), 7)
 		legend.position = Vector2(6, 24)
 
 
 func _show_settings() -> void:
-	_open_panel("Settings")
+	_open_panel(GameText.get_text("main_menu.settings"))
 	for bus_name in ["Master", "SFX", "Ambience", "Music"]:
 		var bus := AudioServer.get_bus_index(bus_name)
 		if bus < 0:
@@ -355,7 +355,8 @@ func _show_settings() -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
 		modal_body.add_child(row)
-		var volume_label := _label(row, bus_name, 9)
+		var bus_label := GameText.get_text("settings.bus." + bus_name.to_lower())
+		var volume_label := _label(row, bus_label, 9)
 		volume_label.custom_minimum_size.x = 100
 		var slider := HSlider.new()
 		slider.min_value = 0
@@ -363,25 +364,25 @@ func _show_settings() -> void:
 		slider.step = 1
 		slider.custom_minimum_size.y = 18
 		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		slider.accessibility_name = bus_name + " volume"
+		slider.accessibility_name = bus_label + GameText.get_text("settings.volume")
 		slider.value = 0.0 if AudioServer.is_bus_mute(bus) else db_to_linear(AudioServer.get_bus_volume_db(bus)) * 100.0
 		row.add_child(slider)
-		volume_label.text = "%s: %d%%" % [bus_name, slider.value]
+		volume_label.text = GameText.format_text("settings.s_d", [bus_label, slider.value])
 		slider.value_changed.connect(func(value: float):
 			AudioServer.set_bus_mute(bus, value <= 0)
 			AudioServer.set_bus_volume_db(bus, linear_to_db(maxf(value / 100.0, 0.0001)))
-			volume_label.text = "%s: %d%%" % [bus_name, value]
+			volume_label.text = GameText.format_text("settings.s_d", [bus_label, value])
 			SaveStore.audio_preference(bus_name, value))
 	var fullscreen := CheckButton.new()
-	fullscreen.text = "Fullscreen"
+	fullscreen.text = GameText.get_text("settings.fullscreen")
 	fullscreen.button_pressed = DisplayServer.window_get_mode() in [DisplayServer.WINDOW_MODE_FULLSCREEN, DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
 	fullscreen.disabled = DisplayServer.get_name() == "headless"
 	fullscreen.toggled.connect(func(enabled: bool):
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if enabled else DisplayServer.WINDOW_MODE_WINDOWED))
 	modal_body.add_child(fullscreen)
-	_paragraph("Audio preferences are saved automatically. Music has its own volume; display scaling stays unchanged.", 9)
-	_paragraph("Apartment theme: Chill lofi inspired — omfgdude; loop edit by qubodup (CC0).", 7)
-	var back := _button(modal_body, "Back", _close_panel)
+	_paragraph(GameText.get_text("settings.audio_preferences_are_saved_automatically_music_has_its_own_vo"), 9)
+	_paragraph(GameText.get_text("settings.apartment_theme_chill_lofi_inspired_omfgdude_loop_edit_by_qubo"), 7)
+	var back := _button(modal_body, GameText.get_text("main_menu.back"), _close_panel)
 	back.grab_focus.call_deferred()
 
 
@@ -420,14 +421,14 @@ func _continue_game() -> void:
 	if starting:
 		return
 	if not SaveStore.prepare_continue():
-		_open_panel("Cannot Continue")
+		_open_panel(GameText.get_text("main_menu.cannot_continue"))
 		_paragraph(SaveStore.last_error)
-		_button(modal_body, "Back", _close_panel)
+		_button(modal_body, GameText.get_text("main_menu.back"), _close_panel)
 		return
 	starting = true
 	if get_tree().change_scene_to_file("res://scenes/room.tscn") != OK:
 		starting = false
 		SaveStore.loading = false
-		_open_panel("Cannot Continue")
-		_paragraph("The apartment scene could not be opened. Your save is intact.")
-		_button(modal_body, "Back", _close_panel)
+		_open_panel(GameText.get_text("main_menu.cannot_continue"))
+		_paragraph(GameText.get_text("main_menu.the_apartment_scene_could_not_be_opened_your_save_is_intact"))
+		_button(modal_body, GameText.get_text("main_menu.back"), _close_panel)

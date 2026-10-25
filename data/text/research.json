@@ -1,0 +1,208 @@
+{
+  "research.cancel_without_a_completion_reward": {
+    "text": "Cancel without a completion reward.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1335 _build_research_controls",
+      "scripts/hud.gd:1362 _update_activity_controls"
+    ],
+    "audio_cue": "cancel"
+  },
+  "research.difficulty_easy": {
+    "text": "Easy",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:20 initial values"
+    ]
+  },
+  "research.difficulty_hard": {
+    "text": "Hard",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:22 initial values"
+    ]
+  },
+  "research.difficulty_less_research_and_faster_needs_depletion": {
+    "text": "Less research and faster needs depletion.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:22 initial values"
+    ]
+  },
+  "research.difficulty_medium": {
+    "text": "Medium",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:21 initial values"
+    ]
+  },
+  "research.difficulty_more_research_shorter_repairs_gentler_needs": {
+    "text": "More research, shorter repairs, gentler needs.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:20 initial values"
+    ]
+  },
+  "research.difficulty_the_established_balance_with_repair_rewards": {
+    "text": "The established balance, with repair rewards.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:21 initial values"
+    ]
+  },
+  "research.eject": {
+    "text": "Eject...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1335 _build_research_controls"
+    ]
+  },
+  "research.fast_6x": {
+    "text": "Fast 6x",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1335 _build_research_controls"
+    ]
+  },
+  "research.finish_now_full_time_cost_applies": {
+    "text": "Finish now. Full time cost applies.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1335 _build_research_controls"
+    ]
+  },
+  "research.phone_games": {
+    "text": "Phone games",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1387 _update_activity_controls"
+    ]
+  },
+  "research.play_at_6x_speed": {
+    "text": "Play at 6x speed.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1335 _build_research_controls"
+    ]
+  },
+  "research.play_at_normal_speed": {
+    "text": "Play at normal speed.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1335 _build_research_controls"
+    ]
+  },
+  "research.reels": {
+    "text": "Reels",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1387 _update_activity_controls"
+    ]
+  },
+  "research.research_d_d_min_dx": {
+    "text": "Research: {elapsed} / {duration} min · {speed}x",
+    "variables": {
+      "elapsed": "%d",
+      "duration": "%d",
+      "speed": "%d"
+    },
+    "order": [
+      "elapsed",
+      "duration",
+      "speed"
+    ],
+    "where": [
+      "scripts/hud.gd:1380 _update_activity_controls"
+    ]
+  },
+  "research.rubik_s_cube": {
+    "text": "Rubik's cube",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1387 _update_activity_controls"
+    ]
+  },
+  "research.s_d_d_min_dx": {
+    "text": "{activity}: {elapsed} / {duration} min · {speed}x",
+    "variables": {
+      "activity": "%s",
+      "elapsed": "%d",
+      "duration": "%d",
+      "speed": "%d"
+    },
+    "order": [
+      "activity",
+      "elapsed",
+      "duration",
+      "speed"
+    ],
+    "where": [
+      "scripts/hud.gd:1388 _update_activity_controls"
+    ]
+  },
+  "research.skip": {
+    "text": "Skip",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1335 _build_research_controls"
+    ]
+  },
+  "research.start": {
+    "text": "Watch Research",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:250 household_choices"
+    ],
+    "audio_cue": "confirm"
+  },
+  "research.swat": {
+    "text": " · Swat!",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1382 _update_activity_controls"
+    ]
+  },
+  "research.too_exhausted_to_work_rest_until_tomorrow": {
+    "text": "Too exhausted to work. Rest until tomorrow.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:576 research_block_reason",
+      "scripts/hud.gd:139 research_choices"
+    ]
+  },
+  "research.unavailable_while_paused_or_finishing": {
+    "text": "Unavailable while paused or finishing.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1362 _update_activity_controls"
+    ]
+  },
+  "research.watch_1x": {
+    "text": "Watch 1x",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1335 _build_research_controls"
+    ]
+  }
+}

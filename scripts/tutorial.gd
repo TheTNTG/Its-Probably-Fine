@@ -54,18 +54,18 @@ func _ready() -> void:
 	buttons.add_theme_constant_override("separation", 6)
 	box.add_child(buttons)
 	var next := Button.new()
-	next.text = "E / Enter · Got it"
+	next.text = GameText.get_text("tutorial.e_enter_got_it")
 	next.add_theme_font_size_override("font_size", 8)
 	next.pressed.connect(_complete)
 	buttons.add_child(next)
 	skip = Button.new()
-	skip.text = "Skip Tutorial"
+	skip.text = GameText.get_text("tutorial.skip_tutorial")
 	skip.add_theme_font_size_override("font_size", 8)
 	skip.pressed.connect(_skip)
 	buttons.add_child(skip)
 	if hud.get("tutorial_entry"):
 		var exit := Button.new()
-		exit.text = "Exit Tutorial"
+		exit.text = GameText.get_text("hud.exit_tutorial")
 		exit.add_theme_font_size_override("font_size", 7)
 		exit.pressed.connect(func(): hud.call("_restart_from_pause", false))
 		box.add_child(exit)
@@ -95,45 +95,44 @@ func _near(node_name: String) -> bool:
 func _detect() -> void:
 	# Essential explanations survive Skip Tutorial and wait through active tasks.
 	if GameState.tap_running:
-		_offer("water", "The running tap halves research gains and makes sessions longer. Turn it off at the sink; repair the sink routine to prevent repeats.", "Sink")
+		_offer("water", GameText.get_text("tutorial.the_running_tap_halves_research_gains_and_makes_sessions_longe"), "Sink")
 	if int(GameState.chore_mess["bookshelf"]) >= 2:
-		_offer("books", "Scattered books block research. Press E near the shelf or fallen books to organize them for 20 minutes. Cleanup leaves the routine faulty.", "Bookshelf")
+		_offer("books", GameText.get_text("tutorial.scattered_books_block_research_press_e_near_the_shelf_or_falle"), "Bookshelf")
 	if int(GameState.chore_mess["plant"]) > 0:
-		_offer("plant", "Repeated watering leaves wet soil and puddles. Standing water attracts mosquitoes, which interrupt work. Dry the area and repair the plant routine to prevent repeats.", "PlantPot")
+		_offer("plant", GameText.get_text("tutorial.repeated_watering_leaves_wet_soil_and_puddles_standing_water_a"), "PlantPot")
 	if int(GameState.chore_mess["bed"]) >= 2:
-		_offer("bed_mess", "TipTop has made the bed messier. Make it before resting, or let its repaired routine tidy it.", "Bed")
+		_offer("bed_mess", GameText.get_text("tutorial.tiptop_has_made_the_bed_messier_make_it_before_resting_or_let"), "Bed")
 	if GameState.mood < 45 and _near("Desk"):
-		_offer("mood", "Research normally needs 45 Mood. Meals and leisure restore it and reset the work streak. Day 3's Mood exception never bypasses the more-than-20 Fullness requirement.", "CoffeeTable")
+		_offer("mood", GameText.get_text("tutorial.research_normally_needs_45_mood_meals_and_leisure_restore_it_a"), "CoffeeTable")
 	if GameState.hunger < 60:
-		_offer("hunger", "Below 60 Fullness, research gains fall. At 20 or less, you can't start work. A 30-minute meal restores 40 Fullness and 10 Mood, and counts as a break.", "Fridge")
+		_offer("hunger", GameText.get_text("tutorial.below_60_fullness_research_gains_fall_at_20_or_less_you_can_t"), "Fridge")
 	if GameState.repairs.values().has(true):
-		_offer("repair", "A repaired routine stays corrected and earns research progress. Existing mess may still need cleanup. Each routine is repaired independently.", "TipTop")
+		_offer("repair", GameText.get_text("tutorial.a_repaired_routine_stays_corrected_and_earns_research_progress"), "TipTop")
 	if GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD:
-		_offer("target", "You've reached the 75% showcase research requirement! Other choices and TipTop's repair state still matter. The showcase is Day 3 at 8 PM.", "research")
+		_offer("target", GameText.get_text("tutorial.you_ve_reached_the_75_showcase_research_requirement_other_choi"), "research")
 	# Guided spotlights are exclusive to optional main-menu tutorial practice.
 	if not hud.get("tutorial_entry") or (GameState.tutorial_skipped and not reviewing):
 		return
 	var anywhere := reviewing
-	_offer("guide_move", "Move with WASD or arrows; approach objects for E prompts. TipTop waits until you read all eight tips or choose Skip Tutorial. Essential warnings stay enabled.", "Player", true)
-	_offer("guide_clock", "The clock runs while you explore. Showcase: Day 3, 8 PM. This bar counts 27 playable hours, excluding nights. Hover/focus icons for details; click to pin.", "deadline", true)
+	_offer("guide_move", GameText.get_text("tutorial.move_with_wasd_or_arrows_approach_objects_for_e_prompts_tiptop"), "Player", true)
+	_offer("guide_clock", GameText.get_text("tutorial.the_clock_runs_while_you_explore_showcase_day_3_8_pm_this_bar"), "deadline", true)
 	if anywhere or _near("Desk"):
-		_offer("guide_desk", "Use E at the desk for up to four sessions daily. Starting work needs more than 20 Fullness. Watch, 6x and Skip process the same world time and consequences.", "Desk", true)
+		_offer("guide_desk", GameText.get_text("tutorial.use_e_at_the_desk_for_up_to_four_sessions_daily_starting_work"), "Desk", true)
 	if anywhere or _near("TipTop"):
-		_offer("guide_robot", "TipTop means well. Faulty chores make real messes. His robot icon shows the repair checklist; E near him opens repairs. Cleaning alone doesn't correct a routine.", "repairs", true)
+		_offer("guide_robot", GameText.get_text("tutorial.tiptop_means_well_faulty_chores_make_real_messes_his_robot_ico"), "repairs", true)
 	if anywhere or _near("Fridge") or _near("CoffeeTable") or GameState.hunger < 75:
-		_offer("guide_needs", "Fullness shifts from sage to brick as it falls. Meals restore Fullness and Mood; meals and leisure reset your work streak. Click the heart, or Tab then arrows, for details.", "needs", true)
+		_offer("guide_needs", GameText.get_text("tutorial.fullness_shifts_from_sage_to_brick_as_it_falls_meals_restore_f"), "needs", true)
 	if anywhere or _near("Desk"):
-		_offer("guide_target", "Aim for 75%% research. On %s, a standard session costs %d game minutes. A running tap adds time and cuts gains; repairs can also earn progress." % [GameState.profile()["name"], GameState.profile()["research_minutes"]], "research", true)
+		_offer("guide_target", GameText.format_text("tutorial.aim_for_75_research_on_s_a_standard_session_costs_d_game_minut", [GameState.profile()["name"], GameState.profile()["research_minutes"]]), "research", true)
 	if anywhere or _near("Bed"):
-		_offer("guide_sleep", "Make the bed, then E to rest and end the day. Sleeping starts the next day; bedtime fullness affects tomorrow's Mood. Meals and breaks need planning too.", "Bed", true)
+		_offer("guide_sleep", GameText.get_text("tutorial.make_the_bed_then_e_to_rest_and_end_the_day_sleeping_starts_th"), "Bed", true)
 	if anywhere or GameState.tutorial_seen.has("guide_target"):
-		_offer("guide_pause", "Esc opens Pause. Exit Tutorial returns to the menu; your campaign save stays untouched. In a campaign, save when free or review the rules. Tasks offer Watch, 6x, Skip and Eject; ejecting keeps spent time without a reward.", "controls", true)
+		_offer("guide_pause", GameText.get_text("tutorial.esc_opens_pause_exit_tutorial_returns_to_the_menu_your_campaig"), "controls", true)
 
 
 func _feedback(message: String) -> void:
-	var lower := message.to_lower()
-	if "not enough time" in lower or ("full repair needs" in lower):
-		_offer("time", "A full activity must fit before 8 PM, including tap penalties for research. Check remaining time or choose a shorter activity. A rejected start spends no session or reward.", "clock")
+	if GameText.has_tag(message, "insufficient_time"):
+		_offer("time", GameText.get_text("tutorial.a_full_activity_must_fit_before_8_pm_including_tap_penalties_f"), "clock")
 
 
 func warn_before_sleep() -> bool:
@@ -141,7 +140,7 @@ func warn_before_sleep() -> bool:
 	if GameState.hunger >= 70 or GameState.tutorial_seen.has(id):
 		return false
 	# The player can dismiss this tip, eat, or press E at the bed again.
-	_offer(id, "Sleeping below 70 fullness lowers tomorrow's starting Mood; very low fullness is worse. Consider eating first. Dismiss this tip, then E at the bed again if you're ready.", "Fridge")
+	_offer(id, GameText.get_text("tutorial.sleeping_below_70_fullness_lowers_tomorrow_s_starting_mood_ver"), "Fridge")
 	return true
 
 
@@ -243,13 +242,13 @@ func _process(delta: float) -> void:
 		return
 	if current.is_empty() and not pending.is_empty():
 		current = pending.pop_front()
-		heading.text = "Quick tip" if not current["guided"] else "Getting settled"
+		heading.text = GameText.get_text("tutorial.quick_tip") if not current["guided"] else GameText.get_text("tutorial.getting_settled")
 		if current["guided"]:
 			var read_count := 0
 			for id in GUIDED_STEPS:
 				if GameState.tutorial_seen.has(id):
 					read_count += 1
-			heading.text += " · %d / 8" % (read_count + 1)
+			heading.text += GameText.format_text("tutorial.d_8", (read_count + 1))
 		explanation.text = current["text"]
 		skip.visible = not GameState.tutorial_skipped or reviewing
 		panel.reset_size()

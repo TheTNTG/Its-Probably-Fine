@@ -14,7 +14,7 @@ var reference_height := 288.0
 var caption: Label
 var gutter: Control
 var keyboard_navigation := false
-const NAMES := {"research": "Research", "repairs": "TipTop", "time": "Time Usage", "needs": "Needs"}
+var NAMES := {"research": GameText.get_text("hud.research_heading"), "repairs": GameText.get_text("hud.checklist_heading"), "time": GameText.get_text("hud.time_usage"), "needs": GameText.get_text("hud.needs")}
 
 
 func setup(owner_hud: CanvasLayer, targets: Dictionary, pages: Dictionary, popup: PanelContainer, column: Control, height: float, label_gutter: Control) -> void:

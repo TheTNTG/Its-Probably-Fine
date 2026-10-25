@@ -1,0 +1,649 @@
+{
+  "dialogue.10_research_proactive_fix": {
+    "text": "+10% Research — Proactive Fix!",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1944 _on_story_event"
+    ]
+  },
+  "dialogue.a_brief_pause_between_helpful_activities_very_strategic": {
+    "text": "A brief pause between helpful activities. Very strategic.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:173 talk_to_tiptop"
+    ]
+  },
+  "dialogue.according_to_my_latest_calculations_no": {
+    "text": "According to my latest calculations... no.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1974 _on_story_event"
+    ]
+  },
+  "dialogue.after_a_very_long_nap": {
+    "text": "After a very long nap.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1978 _on_story_event"
+    ]
+  },
+  "dialogue.an_encouraging_level_of_cooperation": {
+    "text": "An encouraging level of cooperation.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:176 talk_to_tiptop"
+    ]
+  },
+  "dialogue.are_we_ready_for_the_showcase": {
+    "text": "Are we ready for the showcase?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:178 talk_to_tiptop"
+    ]
+  },
+  "dialogue.bow_routine_confirmed_no_water_required": {
+    "text": "Bow routine confirmed. No water required.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1976 _on_story_event"
+    ]
+  },
+  "dialogue.carry_on_chief": {
+    "text": "Carry on, chief.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:175 talk_to_tiptop"
+    ]
+  },
+  "dialogue.for_what": {
+    "text": "For what?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1962 _on_story_event"
+    ]
+  },
+  "dialogue.getting_there_my_notes_are_starting_to_look_suspiciously_usefu": {
+    "text": "Getting there. My notes are starting to look suspiciously useful.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:178 talk_to_tiptop"
+    ]
+  },
+  "dialogue.great_we_ll_need_another_draft": {
+    "text": "Great. We'll need another draft.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1974 _on_story_event"
+    ]
+  },
+  "dialogue.how_s_the_extremely_important_robot_business": {
+    "text": "How's the extremely important robot business?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:292 judy_response",
+      "scripts/hud.gd:175 talk_to_tiptop"
+    ]
+  },
+  "dialogue.i_apologize": {
+    "text": "I apologize.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1962 _on_story_event"
+    ]
+  },
+  "dialogue.i_can_help_with_the_next_draft": {
+    "text": "I can help with the next draft.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1974 _on_story_event"
+    ]
+  },
+  "dialogue.i_have_not_determined_that_yet": {
+    "text": "I have not determined that yet.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1962 _on_story_event"
+    ]
+  },
+  "dialogue.i_just_moved_my_chair": {
+    "text": "I just moved my chair.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1964 _on_story_event"
+    ]
+  },
+  "dialogue.i_ll_take_any_good_news_you_ve_got": {
+    "text": "I'll take any good news you've got.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1974 _on_story_event"
+    ]
+  },
+  "dialogue.i_m_tiptop_i_handle_routines_usually_the_right_ones": {
+    "text": "I'm TipTop! I handle routines. Usually the right ones.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1956 _on_story_event"
+    ]
+  },
+  "dialogue.i_shall_provide_supportive_hovering": {
+    "text": "I shall provide supportive hovering.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:178 talk_to_tiptop"
+    ]
+  },
+  "dialogue.i_shall_supervise_the_apartment_while_you_rest": {
+    "text": "I shall supervise the apartment while you rest.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1981 _on_story_event"
+    ]
+  },
+  "dialogue.i_ve_resumed_the_flowing_ideas_procedure": {
+    "text": "I've resumed the flowing-ideas procedure.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1968 _on_story_event"
+    ],
+    "audio_cue": "resume"
+  },
+  "dialogue.i_was_checking_the_s_it_appreciates_the_attention": {
+    "text": "I was checking the {routine}. It appreciates the attention.",
+    "variables": {
+      "routine": "%s"
+    },
+    "order": [
+      "routine"
+    ],
+    "where": [
+      "scripts/hud.gd:171 talk_to_tiptop"
+    ]
+  },
+  "dialogue.ideas_flowing_protocol_step_4_leave_tap_open_complete_proceedi": {
+    "text": "Ideas Flowing Protocol, step 4: Leave tap open. Complete. Proceeding to next objective.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1958 _on_story_event"
+    ]
+  },
+  "dialogue.it_wasn_t_exactly_what_i_planned_still_we_got_up_here": {
+    "text": "It wasn't exactly what I planned. Still, we got up here.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1978 _on_story_event"
+    ]
+  },
+  "dialogue.judy_actual_water_bold_interpretation_buddy": {
+    "text": "Actual water. Bold interpretation, buddy.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:293 judy_response"
+    ]
+  },
+  "dialogue.judy_four_hours_science_really_needs_a_snooze_button": {
+    "text": "Four hours? Science really needs a snooze button.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:294 judy_response"
+    ]
+  },
+  "dialogue.judy_give_me_the_short_version_buddy": {
+    "text": "Give me the short version, buddy.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:292 judy_response"
+    ]
+  },
+  "dialogue.judy_how_are_the_chores_going_tiptop": {
+    "text": "How are the chores going, TipTop?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:292 judy_response"
+    ]
+  },
+  "dialogue.judy_how_s_my_favorite_household_genius": {
+    "text": "How's my favorite household genius?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:292 judy_response"
+    ]
+  },
+  "dialogue.judy_i_know_buddy_i_really_need_a_minute": {
+    "text": "I know, buddy. I really need a minute.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:294 judy_response"
+    ]
+  },
+  "dialogue.judy_i_m_listening_just_a_little_slowly_today": {
+    "text": "I'm listening. Just a little slowly today.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:292 judy_response"
+    ]
+  },
+  "dialogue.judy_let_me_step_away_from_the_notes_for_a_bit": {
+    "text": "Let me step away from the notes for a bit.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:294 judy_response"
+    ]
+  },
+  "dialogue.judy_okay_you_ve_caught_me_i_ll_take_a_breather": {
+    "text": "Okay, you've caught me. I'll take a breather.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:294 judy_response"
+    ]
+  },
+  "dialogue.judy_right_the_tap_again_give_me_a_minute": {
+    "text": "Right. The tap again. Give me a minute.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:293 judy_response"
+    ]
+  },
+  "dialogue.judy_that_s_actual_water_tiptop_i_ll_handle_it": {
+    "text": "That's actual water, TipTop. I'll handle it.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:293 judy_response"
+    ]
+  },
+  "dialogue.judy_that_s_water_tiptop_please_stop_the_tap": {
+    "text": "That's water, TipTop. Please stop the tap.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:293 judy_response"
+    ]
+  },
+  "dialogue.judy_the_routine_needs_a_correction_i_ll_sort_it": {
+    "text": "The routine needs a correction. I'll sort it.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:293 judy_response"
+    ]
+  },
+  "dialogue.judy_tiptop_please_i_need_a_quiet_minute": {
+    "text": "TipTop, please. I need a quiet minute.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:292 judy_response"
+    ]
+  },
+  "dialogue.judy_well_the_floor_certainly_looks_hydrated": {
+    "text": "Well, the floor certainly looks hydrated.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:293 judy_response"
+    ]
+  },
+  "dialogue.judy_yeah_i_m_running_on_fumes_here": {
+    "text": "Yeah. I'm running on fumes here.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:294 judy_response"
+    ]
+  },
+  "dialogue.judy_you_re_right_i_should_take_a_break": {
+    "text": "You're right. I should take a break.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:294 judy_response"
+    ]
+  },
+  "dialogue.judy_you_ve_completed_two_long_research_sessions_my_wellness_p": {
+    "text": "Judy, you've completed two long research sessions. My wellness protocol recommends a break.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1981 _on_story_event"
+    ]
+  },
+  "dialogue.just_bow_buddy_we_ve_earned_a_dry_floor": {
+    "text": "Just bow, buddy. We've earned a dry floor.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1976 _on_story_event"
+    ]
+  },
+  "dialogue.let_s_skip_that_bit_yeah": {
+    "text": "Let's skip that bit, yeah?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1970 _on_story_event"
+    ]
+  },
+  "dialogue.morning_no_dripping_i_could_get_used_to_this": {
+    "text": "Morning. No dripping. I could get used to this.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1968 _on_story_event"
+    ]
+  },
+  "dialogue.morning_right_your_routine_i_still_haven_t_fixed_that": {
+    "text": "Morning. Right, your routine. I still haven't fixed that.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1968 _on_story_event"
+    ]
+  },
+  "dialogue.mostly_notes_some_of_them_even_agree_with_each_other": {
+    "text": "Mostly notes. Some of them even agree with each other.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:176 talk_to_tiptop"
+    ]
+  },
+  "dialogue.my_calculations_were_only_occasionally_incorrect": {
+    "text": "My calculations were only occasionally incorrect.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1976 _on_story_event"
+    ]
+  },
+  "dialogue.my_new_routine_agrees": {
+    "text": "My new routine agrees.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1968 _on_story_event"
+    ]
+  },
+  "dialogue.nice_now_where_d_i_put_my_notes": {
+    "text": "Nice. Now where'd I put my notes?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1970 _on_story_event"
+    ]
+  },
+  "dialogue.no_correction_received_current_routine_must_be_acceptable": {
+    "text": "No correction received. Current routine must be acceptable!",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1983 _on_story_event"
+    ]
+  },
+  "dialogue.occasionally": {
+    "text": "Occasionally?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1976 _on_story_event"
+    ]
+  },
+  "dialogue.okay_judy_three_days_let_s_make_this_look_like_science": {
+    "text": "Okay, Judy. Three days. Let's make this look like science.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1956 _on_story_event"
+    ]
+  },
+  "dialogue.one_more_bit_of_research_then_i_ll_fix_it_that_s_the_plan_anyw": {
+    "text": "One more bit of research, then I'll fix it. That's the plan, anyway.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1983 _on_story_event"
+    ]
+  },
+  "dialogue.research_update_requested": {
+    "text": "Research update requested!",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:176 talk_to_tiptop"
+    ]
+  },
+  "dialogue.right_notes_coffee_probably_some_science_in_here_somewhere": {
+    "text": "Right. Notes, coffee... probably some science in here somewhere.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1954 _on_story_event"
+    ]
+  },
+  "dialogue.routine_updated_ideas_may_flow_without_water_thank_you_for_tea": {
+    "text": "Routine updated: ideas may flow without water. Thank you for teaching me, Judy.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1960 _on_story_event"
+    ]
+  },
+  "dialogue.showcase_day_my_tap_routine_is_ready_to_do_nothing": {
+    "text": "Showcase day! My tap routine is ready to do nothing.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1970 _on_story_event"
+    ]
+  },
+  "dialogue.showcase_day_shall_i_demonstrate_the_water_feature": {
+    "text": "Showcase day! Shall I demonstrate the water feature?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1970 _on_story_event"
+    ]
+  },
+  "dialogue.showcase_on_day_three_tiptop_try_to_look_busy": {
+    "text": "Showcase on day three, TipTop. Try to look busy.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1956 _on_story_event"
+    ]
+  },
+  "dialogue.so_the_water_feature_was_a_success": {
+    "text": "So the water feature was a success?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1978 _on_story_event"
+    ]
+  },
+  "dialogue.speaker_judy": {
+    "text": "Judy",
+    "variables": {},
+    "order": [],
+    "where": [
+      "hud.gd:_advance_dialogue and speaker display"
+    ]
+  },
+  "dialogue.speaker_system": {
+    "text": "System",
+    "variables": {},
+    "order": [],
+    "where": [
+      "hud.gd:_advance_dialogue and speaker display"
+    ]
+  },
+  "dialogue.speaker_tiptop": {
+    "text": "TipTop",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:265 _show_help",
+      "hud.gd:_advance_dialogue and speaker display"
+    ]
+  },
+  "dialogue.thank_you_judy": {
+    "text": "Thank you, Judy.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1964 _on_story_event"
+    ]
+  },
+  "dialogue.that_bit_wasn_t_in_the_demo_glad_you_came_though": {
+    "text": "That bit wasn't in the demo. Glad you came, though.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1978 _on_story_event"
+    ]
+  },
+  "dialogue.that_went_well_i_apologize": {
+    "text": "That went well. I apologize.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1966 _on_story_event"
+    ]
+  },
+  "dialogue.then_the_apology_may_belong_to_something_else": {
+    "text": "Then the apology may belong to something else.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1966 _on_story_event"
+    ]
+  },
+  "dialogue.there_we_go_knew_you_had_it_in_you": {
+    "text": "There we go. Knew you had it in you.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1960 _on_story_event"
+    ]
+  },
+  "dialogue.they_re_applauding_celebration_routine_ready": {
+    "text": "They're applauding! Celebration routine ready.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1976 _on_story_event"
+    ]
+  },
+  "dialogue.thought_we_d_run_out_of_time_couldn_t_have_done_this_without_y": {
+    "text": "Thought we'd run out of time. Couldn't have done this without you, buddy.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1976 _on_story_event"
+    ]
+  },
+  "dialogue.tiptop_please_tell_me_that_s_supposed_to_happen": {
+    "text": "TipTop. Please tell me that's supposed to happen.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1974 _on_story_event"
+    ]
+  },
+  "dialogue.we_are_no_longer_behind_schedule": {
+    "text": "We are no longer behind schedule.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1974 _on_story_event"
+    ]
+  },
+  "dialogue.we_ve_got_results_now_i_just_have_to_explain_them": {
+    "text": "We've got results. Now I just have to explain them.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:178 talk_to_tiptop"
+    ]
+  },
+  "dialogue.would_you_like_to_schedule_a_second_attempt": {
+    "text": "Would you like to schedule a second attempt?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1978 _on_story_event"
+    ]
+  },
+  "dialogue.yeah_furniture_gets_everyone_eventually": {
+    "text": "Yeah, furniture gets everyone eventually.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:177 talk_to_tiptop"
+    ]
+  },
+  "dialogue.yes_i_am_checking_the_connection": {
+    "text": "Yes. I am checking the connection.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1964 _on_story_event"
+    ]
+  },
+  "dialogue.yes_i_am_practically_unstoppable_except_by_furniture": {
+    "text": "Yes! I am practically unstoppable. Except by furniture.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:177 talk_to_tiptop"
+    ]
+  },
+  "dialogue.you_can_just_take_the_win_buddy": {
+    "text": "You can just take the win, buddy.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1966 _on_story_event"
+    ]
+  },
+  "dialogue.you_doing_okay_buddy": {
+    "text": "You doing okay, buddy?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:177 talk_to_tiptop"
+    ]
+  }
+}

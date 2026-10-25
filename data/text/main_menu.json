@@ -1,0 +1,299 @@
+{
+  "main_menu.1x_6x": {
+    "text": "1x   6x",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:345 _help_visual"
+    ]
+  },
+  "main_menu.a_fresh_start": {
+    "text": "A fresh start",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:221 _show_difficulty"
+    ]
+  },
+  "main_menu.activity_controls": {
+    "text": "Activity controls",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:268 _show_help"
+    ]
+  },
+  "main_menu.back": {
+    "text": "Back",
+    "variables": {},
+    "order": [],
+    "where": [
+      "data/rules_text.gd:6 initial values",
+      "scripts/title.gd:238 _show_difficulty",
+      "scripts/title.gd:275 _show_help",
+      "scripts/title.gd:385 _show_settings",
+      "scripts/title.gd:426 _continue_game",
+      "scripts/title.gd:434 _continue_game"
+    ],
+    "audio_cue": "cancel"
+  },
+  "main_menu.begin_day_1": {
+    "text": "Begin Day 1",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:237 _show_difficulty"
+    ],
+    "audio_cue": "confirm"
+  },
+  "main_menu.beginning_replaces_the_active_slot_previous_checkpoints_remain": {
+    "text": "Beginning replaces the active slot. Previous checkpoints remain recoverable; your profile stays.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:224 _show_difficulty"
+    ],
+    "audio_cue": "confirm"
+  },
+  "main_menu.cannot_continue": {
+    "text": "Cannot Continue",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:424 _continue_game",
+      "scripts/title.gd:432 _continue_game"
+    ],
+    "audio_cue": "confirm"
+  },
+  "main_menu.choose_your_pace_medium_is_the_default": {
+    "text": "Choose your pace. Medium is the default.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:222 _show_difficulty"
+    ]
+  },
+  "main_menu.continue": {
+    "text": "Continue",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:73 _ready"
+    ],
+    "audio_cue": "confirm"
+  },
+  "main_menu.faulty_chores_make_messes_repair_each_routine_cleaning_alone_d": {
+    "text": "Faulty chores make messes. Repair each routine; cleaning alone doesn't fix it.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:265 _show_help"
+    ]
+  },
+  "main_menu.four_sessions_a_day_starting_needs_more_than_20_fullness_even": {
+    "text": "Four sessions a day. Starting needs more than 20 Fullness, even with the final-day Mood exception.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:264 _show_help"
+    ]
+  },
+  "main_menu.fullness_mood": {
+    "text": "Fullness & Mood",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:266 _show_help"
+    ]
+  },
+  "main_menu.how_to_play": {
+    "text": "How to Play",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1583 _build_pause_menu",
+      "scripts/title.gd:251 _show_help"
+    ]
+  },
+  "main_menu.it_s_probably_fine": {
+    "text": "IT'S PROBABLY FINE",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:58 _ready"
+    ]
+  },
+  "main_menu.judy_move_interact": {
+    "text": "Judy · Move & interact",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:263 _show_help"
+    ]
+  },
+  "main_menu.meals_give_40_fullness_and_10_mood_meals_and_leisure_reset_wor": {
+    "text": "Meals give +40 Fullness and +10 Mood. Meals and leisure reset work streaks, not the daily session limit.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:266 _show_help"
+    ]
+  },
+  "main_menu.new_game": {
+    "text": "New Game",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1148 _reveal_new_game",
+      "scripts/title.gd:74 _ready"
+    ],
+    "audio_cue": "confirm"
+  },
+  "main_menu.optional_practice_campaign_saves_stay_untouched_esc_exit_tutor": {
+    "text": "Optional practice; campaign saves stay untouched. Esc → Exit Tutorial returns here.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:276 _show_help"
+    ],
+    "audio_cue": "cancel"
+  },
+  "main_menu.play_tutorial": {
+    "text": "Play Tutorial",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:221 _show_difficulty",
+      "scripts/title.gd:237 _show_difficulty",
+      "scripts/title.gd:274 _show_help"
+    ]
+  },
+  "main_menu.practice_in_a_separate_apartment_your_campaign_save_and_campai": {
+    "text": "Practice in a separate apartment. Your campaign save and campaign time stay untouched. Esc → Exit Tutorial returns here.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:222 _show_difficulty"
+    ],
+    "audio_cue": "cancel"
+  },
+  "main_menu.profile_unreadable_history_settings_cannot_be_saved_original_f": {
+    "text": "Profile unreadable: history/settings cannot be saved. Original files preserved.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:172 _process"
+    ]
+  },
+  "main_menu.quit_game": {
+    "text": "Quit Game",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1583 _build_pause_menu",
+      "scripts/title.gd:77 _ready"
+    ]
+  },
+  "main_menu.reach_75_research_by_day_3_8_pm_sleep_at_the_bed_to_advance_da": {
+    "text": "Reach 75% research by Day 3, 8 PM. Sleep at the bed to advance days.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:267 _show_help"
+    ]
+  },
+  "main_menu.replace_save_begin": {
+    "text": "Replace Save & Begin",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:237 _show_difficulty"
+    ],
+    "audio_cue": "confirm"
+  },
+  "main_menu.s_research_d_base_d_min_routine_repair_d_min": {
+    "text": "{description}\nResearch: +{reward}% base / {duration} min. Routine repair: {repair_duration} min.",
+    "variables": {
+      "description": "%s",
+      "reward": "%d",
+      "duration": "%d",
+      "repair_duration": "%d"
+    },
+    "order": [
+      "description",
+      "reward",
+      "duration",
+      "repair_duration"
+    ],
+    "where": [
+      "scripts/title.gd:247 _select_difficulty"
+    ]
+  },
+  "main_menu.settings": {
+    "text": "Settings",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:76 _ready",
+      "scripts/title.gd:350 _show_settings"
+    ]
+  },
+  "main_menu.the_apartment_scene_could_not_be_opened_your_save_is_intact": {
+    "text": "The apartment scene could not be opened. Your save is intact.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:433 _continue_game"
+    ]
+  },
+  "main_menu.three_days_one_robot_what_could_go_wrong": {
+    "text": "Three days. One robot. What could go wrong?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:62 _ready"
+    ]
+  },
+  "main_menu.time_deadline": {
+    "text": "Time & deadline",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:267 _show_help"
+    ]
+  },
+  "main_menu.tutorial_how_to_play": {
+    "text": "Tutorial / How to Play",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:75 _ready"
+    ]
+  },
+  "main_menu.wasd_arrows_move_e_interacts_e_enter_advances_dialogue_tab_ins": {
+    "text": "WASD / arrows move. E interacts; E / Enter advances dialogue. Tab inspects the HUD; Tab returns to movement.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:263 _show_help"
+    ],
+    "audio_cue": "cancel"
+  },
+  "main_menu.watch_1x_fast_6x_or_skip_to_finish_eject_cancels_without_a_com": {
+    "text": "Watch 1x, Fast 6x or Skip to finish. Eject cancels without a completion reward.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:268 _show_help"
+    ],
+    "audio_cue": "cancel"
+  },
+  "main_menu.window_title": {
+    "text": "its-probably-fine",
+    "variables": {},
+    "order": [],
+    "where": [
+      "game_text.gd:_ready / native window caption"
+    ]
+  }
+}

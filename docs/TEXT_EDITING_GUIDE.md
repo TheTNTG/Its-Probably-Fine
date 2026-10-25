@@ -1,5 +1,7 @@
 # Editing the game's text
 
+> Historical Step 48 guide. Step 48.1 moved game copy into JSON. Use [HOW_TO_EDIT_GAME_TEXT.md](HOW_TO_EDIT_GAME_TEXT.md) and [COMPLETE_TEXT_REFERENCE.md](COMPLETE_TEXT_REFERENCE.md); do not follow the GDScript-editing directions below for ordinary wording changes.
+
 All paths below are relative to the project root, `C:\Users\abid\Documents\its-probably-fine`. In Godot, prefix these paths with `res://`. The game currently uses hardcoded GDScript strings and a few scene properties, not a localization database. No dialogue framework migration is required to edit copy.
 
 Use [TEXT_INVENTORY.md](TEXT_INVENTORY.md) to find exact text, templates, source files and functions. Its [technical appendix](TEXT_INVENTORY_INTERNALS.md) retains the remaining literals so short keys and generated names can also be traced. Some inventory candidates are speaker names or code keys rather than prose: read their use before editing.

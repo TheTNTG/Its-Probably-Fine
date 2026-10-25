@@ -54,30 +54,30 @@ func _update_interaction_prompt(target: Node2D) -> void:
 	interaction_prompt.modulate = Color.WHITE
 	if target == desk:
 		var exhausted := GameState.work_sessions_remaining <= 0
-		interaction_prompt.text = "Too exhausted to work" if exhausted else "E - Research"
+		interaction_prompt.text = GameText.get_text("interactions.too_exhausted_to_work") if exhausted else GameText.get_text("interactions.e_research")
 		interaction_prompt.modulate = Color.RED if exhausted else Color.GREEN
 		if not GameState.research_available() and not exhausted:
-			interaction_prompt.text = "E - Eat something first" if not GameState.fullness_allows_research() else ("E - Take a break first" if not GameState.mood_allows_research() else ("E - Research blocked (bookshelf)" if GameState.has_research_time() else "E - Not enough research time"))
+			interaction_prompt.text = GameText.get_text("interactions.e_eat_something_first") if not GameState.fullness_allows_research() else (GameText.get_text("interactions.e_take_a_break_first") if not GameState.mood_allows_research() else (GameText.get_text("interactions.e_research_blocked_bookshelf") if GameState.has_research_time() else GameText.get_text("interactions.e_not_enough_research_time")))
 			interaction_prompt.modulate = Color.RED
-		interaction_prompt.text += " · %d/%d left" % [GameState.work_sessions_remaining, GameState.DAILY_WORK_SESSIONS]
+		interaction_prompt.text += GameText.format_text("interactions.d_d_left", [GameState.work_sessions_remaining, GameState.DAILY_WORK_SESSIONS])
 	elif target == tiptop:
-		interaction_prompt.text = "E - Talk to TipTop" if GameState.tiptop_fixed else "E - Talk / Repair TipTop"
+		interaction_prompt.text = GameText.get_text("interactions.e_talk_to_tiptop") if GameState.tiptop_fixed else GameText.get_text("interactions.e_talk_repair_tiptop")
 	elif target == fridge:
-		interaction_prompt.text = "E - Eat (30 min)"
+		interaction_prompt.text = GameText.get_text("interactions.e_eat_30_min")
 	elif target == coffee_table:
-		interaction_prompt.text = "E - Take a break"
+		interaction_prompt.text = GameText.get_text("interactions.e_take_a_break")
 	elif target == sink:
-		interaction_prompt.text = "E - Tap off" if GameState.tap_running else "E - Mop / clean (15 min)"
+		interaction_prompt.text = GameText.get_text("interactions.e_tap_off") if GameState.tap_running else GameText.get_text("interactions.e_mop_clean_15_min")
 		if not GameState.tap_running and GameState.mosquito_level > 0:
-			interaction_prompt.text = "E - Cleanup / mosquitoes"
+			interaction_prompt.text = GameText.get_text("interactions.e_cleanup_mosquitoes")
 	elif target == plant:
-		interaction_prompt.text = "E - Dry plant area (10 min)"
+		interaction_prompt.text = GameText.get_text("interactions.e_dry_plant_area_10_min")
 		if GameState.mosquito_level > 0:
-			interaction_prompt.text = "E - Cleanup / mosquitoes"
+			interaction_prompt.text = GameText.get_text("interactions.e_cleanup_mosquitoes")
 	elif target == bookshelf:
-		interaction_prompt.text = "E - Organize books (20 min)"
+		interaction_prompt.text = GameText.get_text("interactions.e_organize_books_20_min")
 	else:
-		interaction_prompt.text = "E - Make bed (5 min)" if GameState.needs_cleanup("bed") else "E - Rest"
+		interaction_prompt.text = GameText.get_text("interactions.e_make_bed_5_min") if GameState.needs_cleanup("bed") else GameText.get_text("interactions.e_rest")
 	interaction_prompt.size = interaction_prompt.get_combined_minimum_size()
 	var point: Vector2 = interaction_prompt.get_canvas_transform().affine_inverse() * target.get_global_transform_with_canvas().origin
 	# Stay above the fixture instead of jumping to a distant side to avoid Judy.
@@ -229,7 +229,7 @@ func personal_activity(activity: String) -> void:
 		return
 	var duration: int = GameState.PERSONAL_ACTIVITIES[activity][0]
 	if GameState.DAY_END - GameState.time_minutes - GameState.clock_fraction - GameState.world_accumulator < duration:
-		GameState.action_feedback.emit("Not enough time before 8:00 PM for that activity.")
+		GameState.action_feedback.emit(GameText.get_text("notifications.not_enough_time_before_8_00_pm_for_that_activity"))
 		return
 	if activity == "eat":
 		ApartmentAudio.fridge_access()
@@ -243,7 +243,7 @@ func personal_activity(activity: String) -> void:
 	var arrived: bool = await _walk_to_activity_seat(seat)
 	if not arrived or not GameState.start_personal_activity(activity):
 		animation_busy = false
-		GameState.action_feedback.emit("Couldn't start the activity. No activity time or reward applied.")
+		GameState.action_feedback.emit(GameText.get_text("interactions.couldn_t_start_the_activity_no_activity_time_or_reward_applied"))
 		return
 	# Reuse the research pose's cropped torso and bent knees, facing the table.
 	var seated := Node2D.new()
@@ -483,7 +483,7 @@ func _clean_animation(chore: String) -> void:
 	GameState.household_busy = true
 	velocity = Vector2.ZERO
 	interaction_prompt.hide()
-	GameState.action_feedback.emit("Judy: Right. Let's sort this out.")
+	GameState.action_feedback.emit(GameText.get_text("interactions.judy_right_let_s_sort_this_out"))
 	ApartmentAudio.play_world("books" if chore == "bookshelf" else ("bedding" if chore == "bed" else "clean"), global_position, true)
 	var tidy := _pose_tween()
 	tidy.tween_property(visual, "rotation", -0.08, 0.15)
@@ -511,7 +511,7 @@ func organize_for_research() -> void:
 	if global_position.distance_to(bookshelf.global_position) <= INTERACTION_DISTANCE + 4:
 		_clean_animation("bookshelf")
 	else:
-		GameState.action_feedback.emit("Approach the bookshelf and press E to organize it (20 min).")
+		GameState.action_feedback.emit(GameText.get_text("interactions.approach_the_bookshelf_and_press_e_to_organize_it_20_min"))
 
 
 func swat_animation() -> void:

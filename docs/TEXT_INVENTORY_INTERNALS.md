@@ -1,5 +1,7 @@
 # Text inventory — technical appendix
 
+> Historical Step 48 source snapshot. For current editable game copy, use [COMPLETE_TEXT_REFERENCE.md](COMPLETE_TEXT_REFERENCE.md) and [HOW_TO_EDIT_GAME_TEXT.md](HOW_TO_EDIT_GAME_TEXT.md).
+
 All remaining source literals are retained for completeness. Most are NOT player copy. They include empty strings, property/event identifiers, resource paths, node names, shader strings, colors and drawing glyphs. Some are data keys later formatted into visible labels; inspect the referenced use before editing. Never bulk-replace these as prose. Return to [display-copy inventory](TEXT_INVENTORY.md).
 
 ## data/rules_text.gd

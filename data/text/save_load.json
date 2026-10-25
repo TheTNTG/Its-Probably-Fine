@@ -1,0 +1,182 @@
+{
+  "save_load.cannot_create_the_save_directory": {
+    "text": "Cannot create the save directory.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:210 _write"
+    ]
+  },
+  "save_load.cannot_install_checkpoint_previous_save_retained_or_available": {
+    "text": "Cannot install checkpoint; previous save retained or available in recovery files.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:233 _write"
+    ]
+  },
+  "save_load.cannot_preserve_previous_save_replacement_cancelled": {
+    "text": "Cannot preserve previous save; replacement cancelled.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:228 _write"
+    ],
+    "audio_cue": "cancel"
+  },
+  "save_load.cannot_write_save_error_d": {
+    "text": "Cannot write save: error {error}.",
+    "variables": {
+      "error": "%d"
+    },
+    "order": [
+      "error"
+    ],
+    "where": [
+      "scripts/save_store.gd:216 _write"
+    ]
+  },
+  "save_load.close_the_conversation_or_activity_menu_before_saving": {
+    "text": "Close the conversation or activity menu before saving.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:300 safe_reason"
+    ]
+  },
+  "save_load.continue_was_interrupted_the_saved_checkpoint_is_intact": {
+    "text": "Continue was interrupted; the saved checkpoint is intact.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:382 restore_room"
+    ],
+    "audio_cue": "confirm"
+  },
+  "save_load.could_not_restore_a_walkable_position_save_files_are_intact": {
+    "text": "Could not restore a walkable position. Save files are intact.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:391 restore_room"
+    ]
+  },
+  "save_load.finish_or_eject_the_current_activity_before_saving": {
+    "text": "Finish or eject the current activity before saving.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:295 safe_reason"
+    ]
+  },
+  "save_load.kind.campaign": {
+    "text": "campaign",
+    "variables": {},
+    "order": [],
+    "where": [
+      "save_store.gd:_read_recover; display alias for technical kind"
+    ]
+  },
+  "save_load.kind.profile": {
+    "text": "profile",
+    "variables": {},
+    "order": [],
+    "where": [
+      "save_store.gd:_read_recover; display alias for technical kind"
+    ]
+  },
+  "save_load.no_compatible_active_save_could_be_read_existing_files_were_pr": {
+    "text": "No compatible active save could be read. Existing files were preserved.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:347 prepare_continue"
+    ]
+  },
+  "save_load.no_compatible_campaign_checkpoint_could_be_read_existing_files": {
+    "text": "No compatible campaign checkpoint could be read. Existing files are preserved.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:335 campaign_data"
+    ]
+  },
+  "save_load.profile_could_not_be_read_existing_files_are_preserved_profile": {
+    "text": "Profile could not be read. Existing files are preserved; profile writes are disabled.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:47 _ready"
+    ]
+  },
+  "save_load.recovered_a_previous_valid_s_checkpoint_original_files_are_pre": {
+    "text": "Recovered a previous valid {kind} checkpoint. Original files are preserved.",
+    "variables": {
+      "kind": "%s"
+    },
+    "order": [
+      "kind"
+    ],
+    "where": [
+      "scripts/save_store.gd:200 _read_recover"
+    ]
+  },
+  "save_load.resume_and_finish_the_pending_conversation_before_saving": {
+    "text": "Resume and finish the pending conversation before saving.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:302 safe_reason"
+    ],
+    "audio_cue": "resume"
+  },
+  "save_load.resume_gameplay_before_saving": {
+    "text": "Resume gameplay before saving.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:304 safe_reason"
+    ],
+    "audio_cue": "resume"
+  },
+  "save_load.save_data_failed_validation_existing_files_were_preserved": {
+    "text": "Save data failed validation; existing files were preserved.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:207 _write"
+    ]
+  },
+  "save_load.save_write_could_not_be_verified_previous_checkpoint_is_intact": {
+    "text": "Save write could not be verified; previous checkpoint is intact.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:223 _write"
+    ]
+  },
+  "save_load.saving_is_available_during_a_campaign": {
+    "text": "Saving is available during a campaign.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:293 safe_reason"
+    ]
+  },
+  "save_load.tutorial_practice_is_not_saved_your_campaign_checkpoint_is_unt": {
+    "text": "Tutorial practice is not saved. Your campaign checkpoint is untouched.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:290 safe_reason"
+    ]
+  },
+  "save_load.wait_for_the_next_playable_day_before_saving": {
+    "text": "Wait for the next playable day before saving.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/save_store.gd:298 safe_reason"
+    ]
+  }
+}

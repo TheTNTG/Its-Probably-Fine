@@ -1,0 +1,234 @@
+{
+  "notifications.a_full_repair_needs_d_minutes_before_8_00_pm_no_time_or_reward": {
+    "text": "A full repair needs {duration} minutes before 8:00 PM. No time or reward charged.",
+    "variables": {
+      "duration": "%d"
+    },
+    "order": [
+      "duration"
+    ],
+    "where": [
+      "scripts/game_state.gd:742 repair_routine"
+    ],
+    "tags": [
+      "insufficient_time"
+    ]
+  },
+  "notifications.break_finished_feeling_more_like_myself": {
+    "text": "Break finished. Feeling more like myself.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:346 advance_personal_activity"
+    ]
+  },
+  "notifications.hungry": {
+    "text": "Hungry",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:174 hunger_status"
+    ]
+  },
+  "notifications.judy_is_pushing_through_exhaustion_an_extra_20_research_penalt": {
+    "text": "Judy is pushing through exhaustion: an extra 20% research penalty.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:383 begin_research"
+    ]
+  },
+  "notifications.judy_is_too_hungry_to_work_eat_something_first": {
+    "text": "Judy is too hungry to work. Eat something first.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:578 research_block_reason"
+    ]
+  },
+  "notifications.judy_needs_a_break_restore_mood_to_at_least_45_before_research": {
+    "text": "Judy needs a break. Restore Mood to at least 45% before researching.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:580 research_block_reason"
+    ]
+  },
+  "notifications.make_the_bed_first_e_5_min_or_let_the_repaired_bed_routine_han": {
+    "text": "Make the bed first (E, 5 min), or let the repaired bed routine handle it.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:696 end_day"
+    ]
+  },
+  "notifications.meal_finished_40_fullness_10_mood_work_streak_reset": {
+    "text": "Meal finished: +40 Fullness, +10 Mood. Work streak reset.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:346 advance_personal_activity"
+    ]
+  },
+  "notifications.mosquitoes_reduced_remove_standing_water_to_keep_them_away": {
+    "text": "Mosquitoes reduced. Remove standing water to keep them away.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:549 swat_mosquitoes"
+    ],
+    "tags": [
+      "mosquito"
+    ]
+  },
+  "notifications.normal": {
+    "text": "Normal",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:174 hunger_status"
+    ]
+  },
+  "notifications.not_enough_time_before_8_00_pm_a_full_research_session_needs_d": {
+    "text": "Not enough time before 8:00 PM. A full research session needs {duration} minutes; no session used.",
+    "variables": {
+      "duration": "%d"
+    },
+    "order": [
+      "duration"
+    ],
+    "where": [
+      "scripts/game_state.gd:582 research_block_reason"
+    ],
+    "tags": [
+      "insufficient_time"
+    ]
+  },
+  "notifications.not_enough_time_before_8_00_pm_for_that_activity": {
+    "text": "Not enough time before 8:00 PM for that activity.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:277 start_personal_activity",
+      "scripts/player.gd:232 personal_activity"
+    ],
+    "tags": [
+      "insufficient_time"
+    ]
+  },
+  "notifications.research_complete_1f_d_min_d_session_s_left": {
+    "text": "Research complete: +{gain}%, {duration} min, {sessions} session(s) left.",
+    "variables": {
+      "gain": "%.1f",
+      "duration": "%d",
+      "sessions": "%d"
+    },
+    "order": [
+      "gain",
+      "duration",
+      "sessions"
+    ],
+    "where": [
+      "scripts/game_state.gd:529 complete_research"
+    ]
+  },
+  "notifications.research_materials_are_misplaced_organize_the_bookshelf_20_min": {
+    "text": "Research materials are misplaced. Organize the bookshelf (20 min).",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:583 research_block_reason"
+    ]
+  },
+  "notifications.s_routine_repaired_0f_research_d_min": {
+    "text": "{routine} routine repaired: +{reward}% research. (-{duration} min)",
+    "variables": {
+      "routine": "%s",
+      "reward": "%.0f",
+      "duration": "%d"
+    },
+    "order": [
+      "routine",
+      "reward",
+      "duration"
+    ],
+    "where": [
+      "scripts/game_state.gd:760 repair_routine"
+    ]
+  },
+  "notifications.s_tidied_routine_unchanged_d_min": {
+    "text": "{routine} tidied. Routine unchanged. (-{duration} min)",
+    "variables": {
+      "routine": "%s",
+      "duration": "%d"
+    },
+    "order": [
+      "routine",
+      "duration"
+    ],
+    "where": [
+      "scripts/game_state.gd:607 manual_clean"
+    ]
+  },
+  "notifications.task_ejected_elapsed_time_kept_no_completion_reward": {
+    "text": "Task ejected. Elapsed time kept; no completion reward.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:155 eject_current_task"
+    ]
+  },
+  "notifications.tiptop_left_the_tap_running": {
+    "text": "TipTop left the tap running!",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:725 _check_malfunction"
+    ]
+  },
+  "notifications.tiptop_left_the_tap_running_again": {
+    "text": "TipTop left the tap running... again!",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:725 _check_malfunction"
+    ]
+  },
+  "notifications.tiptop_s_routine_updated_thank_you_judy": {
+    "text": "{routine} routine updated. Thank you, Judy!",
+    "variables": {
+      "routine": "%s"
+    },
+    "order": [
+      "routine"
+    ],
+    "where": [
+      "scripts/game_state.gd:766 repair_routine"
+    ],
+    "speaker": "TipTop"
+  },
+  "notifications.tiptop_still_has_faulty_routines_repair_before_resting": {
+    "text": "TipTop still has faulty routines. Repair before resting?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:702 end_day"
+    ]
+  },
+  "notifications.turn_off_the_tap_before_mopping": {
+    "text": "Turn off the tap before mopping.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:600 manual_clean"
+    ]
+  },
+  "notifications.well_fed": {
+    "text": "Well-fed",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:174 hunger_status"
+    ]
+  }
+}

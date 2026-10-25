@@ -136,7 +136,7 @@ func research_choices() -> void:
 	if GameState.research_active or get_node("../Player").animation_busy:
 		return
 	if GameState.work_sessions_remaining <= 0:
-		_show_feedback("Too exhausted to work. Rest until tomorrow.")
+		_show_feedback(GameText.get_text("research.too_exhausted_to_work_rest_until_tomorrow"))
 		return
 	if not GameState.research_available():
 		if GameState.fullness_allows_research() and GameState.has_research_time() and GameState.mood_allows_research() and int(GameState.chore_mess["bookshelf"]) >= 2:
@@ -166,14 +166,16 @@ func talk_to_tiptop() -> void:
 	if not _comic_safe() or dialogue_overlay.visible or loop_panel.visible or GameState.notification_active or not _tiptop_nearby():
 		return
 	var chore: String = GameState.research_task
-	var work_comment := "I was checking the %s. It appreciates the attention." % ("bookshelf" if chore == "bookshelf" else chore)
+	var work_comment := ""
+	if not chore.is_empty():
+		work_comment = GameText.format_text("dialogue.i_was_checking_the_s_it_appreciates_the_attention", GameText.get_text("tiptop.routine_lower." + chore))
 	if chore.is_empty() or GameState.robot_chore_resolved:
-		work_comment = "A brief pause between helpful activities. Very strategic."
+		work_comment = GameText.get_text("dialogue.a_brief_pause_between_helpful_activities_very_strategic")
 	var pools := [
-		[["Judy", "How's the extremely important robot business?", "happy"], ["TipTop", work_comment, "proud"], ["Judy", "Carry on, chief.", "happy"]],
-		[["TipTop", "Research update requested!", "neutral"], ["Judy", "Mostly notes. Some of them even agree with each other.", "neutral"], ["TipTop", "An encouraging level of cooperation.", "proud"]],
-		[["Judy", "You doing okay, buddy?", "neutral"], ["TipTop", "Yes! I am practically unstoppable. Except by furniture.", "proud"], ["Judy", "Yeah, furniture gets everyone eventually.", "happy"]],
-		[["TipTop", "Are we ready for the showcase?", "worried"], ["Judy", "We've got results. Now I just have to explain them." if GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD else "Getting there. My notes are starting to look suspiciously useful.", "happy"], ["TipTop", "I shall provide supportive hovering.", "proud"]]
+		[["Judy", GameText.get_text("dialogue.how_s_the_extremely_important_robot_business"), "happy"], ["TipTop", work_comment, "proud"], ["Judy", GameText.get_text("dialogue.carry_on_chief"), "happy"]],
+		[["TipTop", GameText.get_text("dialogue.research_update_requested"), "neutral"], ["Judy", GameText.get_text("dialogue.mostly_notes_some_of_them_even_agree_with_each_other"), "neutral"], ["TipTop", GameText.get_text("dialogue.an_encouraging_level_of_cooperation"), "proud"]],
+		[["Judy", GameText.get_text("dialogue.you_doing_okay_buddy"), "neutral"], ["TipTop", GameText.get_text("dialogue.yes_i_am_practically_unstoppable_except_by_furniture"), "proud"], ["Judy", GameText.get_text("dialogue.yeah_furniture_gets_everyone_eventually"), "happy"]],
+		[["TipTop", GameText.get_text("dialogue.are_we_ready_for_the_showcase"), "worried"], ["Judy", GameText.get_text("dialogue.we_ve_got_results_now_i_just_have_to_explain_them") if GameState.research_progress >= GameState.GOOD_ENDING_RESEARCH_THRESHOLD else GameText.get_text("dialogue.getting_there_my_notes_are_starting_to_look_suspiciously_usefu"), "happy"], ["TipTop", GameText.get_text("dialogue.i_shall_provide_supportive_hovering"), "proud"]]
 	]
 	# A direct conversation takes priority without dropping queued story lines.
 	var selected_talk: Array = pools[tiptop_talk_count % pools.size()].duplicate(true)
@@ -237,35 +239,35 @@ func household_choices(location: String) -> void:
 	var options: Array = []
 	var judy = get_node("../Player")
 	if location == "research":
-		_hud_text(choices, "Research", Vector2.ZERO, 10)
-		_hud_text(choices, "Sessions: %d used · %d/%d left" % [GameState.DAILY_WORK_SESSIONS - GameState.work_sessions_remaining, GameState.work_sessions_remaining, GameState.DAILY_WORK_SESSIONS], Vector2.ZERO, 8)
+		_hud_text(choices, GameText.get_text("hud.research_heading"), Vector2.ZERO, 10)
+		_hud_text(choices, GameText.format_text("activities.sessions_d_used_d_d_left", [GameState.DAILY_WORK_SESSIONS - GameState.work_sessions_remaining, GameState.work_sessions_remaining, GameState.DAILY_WORK_SESSIONS]), Vector2.ZERO, 8)
 		var efficiency := int(round(GameState.research_efficiency() * 100))
-		_hud_text(choices, "Efficiency: %d%% | Reward: +%.1f%% research%s" % [efficiency, GameState.preview_research_gain(), " (pushing through)" if GameState.pushing_through() else ""], Vector2.ZERO, 7)
+		_hud_text(choices, GameText.format_text("activities.efficiency_d_reward_1f_research_s", [efficiency, GameState.preview_research_gain(), GameText.get_text("activities.pushing_through") if GameState.pushing_through() else ""]), Vector2.ZERO, 7)
 		var duration := GameState.research_session_minutes()
 		var watch_minutes := duration / GameState.RESEARCH_MINUTES * GameState.WATCH_REAL_SECONDS / 60.0
-		_hud_text(choices, "%s · %d game min · Watch ~%.1f real min" % [GameState.profile()["name"], duration, watch_minutes], Vector2.ZERO, 7)
-		_hud_text(choices, "Ready to research" if GameState.research_available() else "Research unavailable", Vector2.ZERO, 7)
-		options.append(["Watch Research", judy._research_animation.bind(false)])
-		options.append(["Fast-forward · 6x", judy._research_animation.bind(true)])
+		_hud_text(choices, GameText.format_text("activities.s_d_game_min_watch_1f_real_min", [GameState.profile()["name"], duration, watch_minutes]), Vector2.ZERO, 7)
+		_hud_text(choices, GameText.get_text("activities.ready_to_research") if GameState.research_available() else GameText.get_text("activities.research_unavailable"), Vector2.ZERO, 7)
+		options.append([GameText.get_text("research.start"), judy._research_animation.bind(false)])
+		options.append([GameText.get_text("activities.fast_forward_6x"), judy._research_animation.bind(true)])
 	elif location == "break":
-		_hud_text(choices, "Take a break", Vector2.ZERO, 9)
-		options.append(["Watch reels — 15 min, +18 Mood", judy.personal_activity.bind("reels")])
-		options.append(["Play phone games — 30 min, +30 Mood", judy.personal_activity.bind("games")])
-		options.append(["Solve Rubik's cube — 20 min, +25 Mood", judy.personal_activity.bind("cube")])
+		_hud_text(choices, GameText.get_text("activities.take_a_break"), Vector2.ZERO, 9)
+		options.append([GameText.get_text("activities.watch_reels_15_min_18_mood"), judy.personal_activity.bind("reels")])
+		options.append([GameText.get_text("activities.play_phone_games_30_min_30_mood"), judy.personal_activity.bind("games")])
+		options.append([GameText.get_text("activities.solve_rubik_s_cube_20_min_25_mood"), judy.personal_activity.bind("cube")])
 	elif location == "fridge":
-		options.append(["Eat at the coffee table — 30 min, +40 Fullness, +10 Mood", judy.personal_activity.bind("eat")])
+		options.append([GameText.get_text("activities.eat_at_the_coffee_table_30_min_40_fullness_10_mood"), judy.personal_activity.bind("eat")])
 	elif location == "bookshelf":
-		options.append(["Organize books myself — 20 min", judy.organize_for_research])
+		options.append([GameText.get_text("activities.organize_books_myself_20_min"), judy.organize_for_research])
 	elif location == "tiptop":
-		options.append(["Talk to TipTop", talk_to_tiptop])
+		options.append([GameText.get_text("activities.talk_to_tiptop"), talk_to_tiptop])
 		if not GameState.tiptop_fixed:
-			options.append(["Repair TipTop...", GameState.fix_tap])
+			options.append([GameText.get_text("activities.repair_tiptop"), GameState.fix_tap])
 	elif GameState.needs_cleanup(location):
-		options.append(["Clean %s myself — %d min" % [location, GameState.CLEAN_COSTS[location]], judy._clean_animation.bind(location)])
+		options.append([GameText.format_text("activities.clean_s_myself_d_min", [GameText.get_text("tiptop.routine_lower." + location), GameState.CLEAN_COSTS[location]]), judy._clean_animation.bind(location)])
 	if GameState.mosquito_level > 0 and location not in ["research", "break", "fridge"]:
-		options.append(["Swat mosquitoes myself — 5 min", judy.swat_animation])
-		options.append(["Ask TipTop to swat mosquitoes — free", _request_swatter])
-	options.append(["Cancel", func(): pass])
+		options.append([GameText.get_text("activities.swat_mosquitoes_myself_5_min"), judy.swat_animation])
+		options.append([GameText.get_text("activities.ask_tiptop_to_swat_mosquitoes_free"), _request_swatter])
+	options.append([GameText.get_text("activities.cancel"), func(): pass])
 	for index in range(options.size()):
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(250, 22)
@@ -287,10 +289,10 @@ func _household_selected(action: Callable, prior_pause: bool) -> void:
 
 func _request_swatter() -> void:
 	if GameState.mosquitoes.is_empty():
-		_show_feedback("TipTop: No airborne intruders detected.")
+		_show_feedback(GameText.get_text("hud.tiptop_no_airborne_intruders_detected"))
 		return
 	GameState.request_mosquito_batch()
-	_show_feedback("TipTop: Mosquito removal requested. On my way!")
+	_show_feedback(GameText.get_text("hud.tiptop_mosquito_removal_requested_on_my_way"))
 
 
 func _ready() -> void:
@@ -330,7 +332,7 @@ func _ready() -> void:
 		loop_panel.hide()
 		transition_cover.position = Vector2.ZERO
 		transition_cover.show()
-		transition_title.text = "Continuing..."
+		transition_title.text = GameText.get_text("hud.continuing")
 		transition_title.show()
 		SaveStore.restore_room.call_deferred()
 		return
@@ -405,9 +407,9 @@ func _update_clock_hud() -> void:
 	var current := clampf(GameState.time_minutes + GameState.clock_fraction + GameState.world_accumulator, GameState.DAY_START, GameState.DAY_END)
 	var whole_minutes := int(floor(current))
 	var hour := int(whole_minutes / 60)
-	time_label.text = "%d:%02d %s" % [posmod(hour - 1, 12) + 1, whole_minutes % 60, "AM" if hour < 12 else "PM"]
+	time_label.text = GameText.format_text("hud.d_02d_s", [posmod(hour - 1, 12) + 1, whole_minutes % 60, GameText.get_text("hud.am") if hour < 12 else GameText.get_text("hud.pm")])
 	var left := maxi(0, int(ceil(GameState.DAY_END - current)))
-	time_remaining.text = "%dh %02dm left" % [int(left / 60), left % 60]
+	time_remaining.text = GameText.format_text("hud.dh_02dm_left", [int(left / 60), left % 60])
 	var fraction := (GameState.DAY_END - current) / float(GameState.DAY_END - GameState.DAY_START)
 	time_bar.value = fraction * 100.0
 	time_bar_fill.bg_color = Color("d87369") if fraction < 0.15 else (Color("df9e48") if fraction < 0.40 else Color("e1bd70"))
@@ -416,7 +418,7 @@ func _update_clock_hud() -> void:
 	var total := float(GameState.LAST_DAY * GameState.DAY_LENGTH)
 	var remaining := clampf((GameState.LAST_DAY - GameState.day) * GameState.DAY_LENGTH + GameState.DAY_END - current, 0, total)
 	var minutes := int(ceil(remaining - 0.000001))
-	deadline_label.text = "Showcase in\n%dh %02dm playable" % [minutes / 60, minutes % 60]
+	deadline_label.text = GameText.format_text("hud.showcase_in_dh_02dm_playable", [minutes / 60, minutes % 60])
 	deadline_bar.value = remaining / total * 100.0
 	deadline_fill.bg_color = _muted_gradient(remaining / total, [0.0, 0.10, 0.25, 0.5, 1.0], [Color("aa625c"), Color("aa625c"), Color("c28764"), Color("c6a367"), Color("86a795")])
 	deadline_label.modulate = Color("dca69a") if remaining <= 60 else Color.WHITE
@@ -425,11 +427,11 @@ func _update_clock_hud() -> void:
 func _update_hud() -> void:
 	if not GameState.notification_active and fix_button.visible:
 		notification_panel.hide()
-	day_label.text = "Day %d" % GameState.day
+	day_label.text = GameText.format_text("hud.day_d", GameState.day)
 	_update_clock_hud()
-	research_label.text = "Research: %.1f%%" % GameState.research_progress
-	sessions_label.text = "Work sessions: %d / 4" % GameState.work_sessions_remaining
-	weekday_label.text = ["Monday", "Tuesday", "Wednesday"][clampi(GameState.day - 1, 0, 2)]
+	research_label.text = GameText.format_text("hud.research_1f", GameState.research_progress)
+	sessions_label.text = GameText.format_text("hud.work_sessions_d_4", GameState.work_sessions_remaining)
+	weekday_label.text = [GameText.get_text("hud.monday"), GameText.get_text("hud.tuesday"), GameText.get_text("hud.wednesday")][clampi(GameState.day - 1, 0, 2)]
 	overview_bar.value = GameState.research_progress
 	_update_sidebar()
 	if (GameState.day_ended or GameState.game_finished) and not GameState.research_active:
@@ -440,8 +442,8 @@ func _update_hud() -> void:
 		if GameState.game_finished:
 			loop_panel.hide()
 		else:
-			loop_message.text = "Day %d complete — 8:00 PM\nResearch: %.1f%%\nShowcase deadline: Day 3, 8:00 PM" % [GameState.day, GameState.research_progress]
-			loop_button.text = "Showcase" if GameState.day == 3 else "Next day"
+			loop_message.text = GameText.format_text("hud.day_d_complete_8_00_pm_research_1f_showcase_deadline_day_3_8_0", [GameState.day, GameState.research_progress])
+			loop_button.text = GameText.get_text("hud.showcase") if GameState.day == 3 else GameText.get_text("hud.next_day")
 
 
 func _prepare_showcase() -> void:
@@ -482,7 +484,7 @@ func _prepare_showcase() -> void:
 
 func _show_malfunction(message: String) -> void:
 	# Keep actionable choices, but put narrative in the shared presentation.
-	notification_label.text = "Faulty routines: repair or ignore?" if GameState.ending_day_pending else "Tap running: repair or ignore?"
+	notification_label.text = GameText.get_text("tiptop.faulty_routines_repair_or_ignore") if GameState.ending_day_pending else GameText.get_text("tiptop.tap_running_repair_or_ignore")
 	fix_button.visible = true
 	ignore_button.visible = true
 	notification_panel.visible = not GameState.research_active and not get_node("../Player").animation_busy and not dialogue_overlay.visible
@@ -538,7 +540,7 @@ func _build_needs_ui() -> void:
 	mood_bar.add_theme_stylebox_override("fill", mood_fill)
 	hunger_status_label = _hud_text(card, "", Vector2(4, 20), 5)
 	mood_hint = _hud_text(card, "", Vector2(77, 20), 5)
-	for spec in [["food", 4, "Fullness"], ["needs", 77, "Mood"]]:
+	for spec in [["food", 4, GameText.get_text("hud.fullness")], ["needs", 77, GameText.get_text("hud.mood")]]:
 		var icon := TextureRect.new()
 		icon.texture = _hud_icon(spec[0])
 		icon.position = Vector2(spec[1], 1)
@@ -703,7 +705,7 @@ func _build_right_sidebar() -> void:
 	marker.anchor_right = marker.anchor_left
 	marker.anchor_bottom = 1.0
 	marker.offset_right = 1
-	_hud_text(progress, "Target: %.0f%%" % GameState.GOOD_ENDING_RESEARCH_THRESHOLD, Vector2.ZERO, 6)
+	_hud_text(progress, GameText.format_text("hud.target_0f", GameState.GOOD_ENDING_RESEARCH_THRESHOLD), Vector2.ZERO, 6)
 	deadline_label = _hud_text(progress, "", Vector2.ZERO, 6)
 	deadline_bar = ProgressBar.new()
 	deadline_bar.show_percentage = false
@@ -723,7 +725,7 @@ func _build_right_sidebar() -> void:
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.custom_minimum_size = Vector2(24, 22)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.accessibility_name = {"research": "Research", "repairs": "TipTop", "time": "Time Usage", "needs": "Needs"}[category]
+		button.accessibility_name = {"research": GameText.get_text("hud.research_heading"), "repairs": GameText.get_text("hud.checklist_heading"), "time": GameText.get_text("hud.time_usage"), "needs": GameText.get_text("hud.needs")}[category]
 		button.set_meta("details_category", category)
 		button.set_meta("pixel_icon", true)
 		for state in ["normal", "hover", "pressed", "focus"]:
@@ -761,17 +763,16 @@ func _build_right_sidebar() -> void:
 		group.add_theme_constant_override("separation", 3)
 		pages.add_child(group)
 		detail_groups[category] = group
-		_detail_header(group, category, {"research": "Research", "repairs": "TipTop", "time": "Time Usage", "needs": "Needs"}[category])
+		_detail_header(group, category, {"research": GameText.get_text("hud.research_heading"), "repairs": GameText.get_text("hud.checklist_heading"), "time": GameText.get_text("hud.time_usage"), "needs": GameText.get_text("hud.needs")}[category])
 	var research: VBoxContainer = detail_groups["research"]
 	detail_research = _detail_text(research, "", 7)
 	detail_research.add_theme_color_override("font_color", Color("e6b369"))
-	efficiency_label = _detail_row(research, "research", "Efficiency", "")
+	efficiency_label = _detail_row(research, "research", GameText.get_text("hud.efficiency"), "")
 	_detail_divider(research)
 	for key in ["food", "tap", "books", "mood", "push"]:
 		research_modifiers[key] = _detail_notice(research, "warning", "")
 	research_next = _detail_text(research, "", 7)
 	var problems: VBoxContainer = detail_groups["repairs"]
-	var names := ["Sink", "Plant", "Bookshelf", "Bed"]
 	for index in range(GameState.REPAIR_ROUTINES.size()):
 		var row := RichTextLabel.new()
 		row.bbcode_enabled = true
@@ -779,7 +780,7 @@ func _build_right_sidebar() -> void:
 		row.scroll_active = false
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_theme_font_size_override("normal_font_size", 7)
-		row.set_meta("routine_name", names[index])
+		row.set_meta("routine_name", GameText.get_text("tiptop.routine." + GameState.REPAIR_ROUTINES[index]))
 		problems.add_child(row)
 		problem_rows[GameState.REPAIR_ROUTINES[index]] = row
 	_detail_divider(problems)
@@ -791,7 +792,7 @@ func _build_right_sidebar() -> void:
 	distribution.add_theme_constant_override("separation", 0)
 	usage.add_child(distribution)
 	_detail_divider(usage)
-	var captions := ["Research", "Eating", "Leisure", "Repairs", "Cleanup", "Misc"]
+	var captions := [GameText.get_text("hud.research_heading"), GameText.get_text("hud.eating"), GameText.get_text("hud.leisure"), GameText.get_text("hud.repairs"), GameText.get_text("hud.cleanup"), GameText.get_text("hud.misc")]
 	var icons := ["research", "food", "leisure", "repairs", "cleanup", "time"]
 	for index in range(GameState.TIME_CATEGORIES.size()):
 		var category: String = GameState.TIME_CATEGORIES[index]
@@ -805,10 +806,10 @@ func _build_right_sidebar() -> void:
 		row.modulate = TIME_COLORS[index]
 		usage_rows[category] = row
 	var needs: VBoxContainer = detail_groups["needs"]
-	needs_values["food"] = _detail_row(needs, "food", "Fullness", "")
-	needs_values["mood"] = _detail_row(needs, "needs", "Mood", "")
+	needs_values["food"] = _detail_row(needs, "food", GameText.get_text("hud.fullness"), "")
+	needs_values["mood"] = _detail_row(needs, "needs", GameText.get_text("hud.mood"), "")
 	detail_needs = _detail_text(needs, "", 6)
-	_detail_text(needs, "Meal: 30 min, +40 food, +10 Mood. Counts as a break.", 6)
+	_detail_text(needs, GameText.get_text("hud.meal_30_min_40_food_10_mood_counts_as_a_break"), 6)
 	_detail_divider(needs)
 	for key in ["food", "mood"]:
 		needs_modifiers[key] = _detail_notice(needs, "warning", "")
@@ -823,47 +824,47 @@ func _update_sidebar() -> void:
 		var row: RichTextLabel = problem_rows[chore]
 		var fixed: bool = GameState.repairs[chore]
 		var text: String = row.get_meta("routine_name")
-		var content := "[color=#9dceac]✓ [s]%s[/s][/color]" % text if fixed else "□ " + text
+		var content := GameText.format_text("hud.color_9dceac_s_s_s_color", text) if fixed else GameText.format_text("hud.checklist_pending", text)
 		if row.text != content:
 			row.text = content
 		fixed_count += int(fixed)
-	problem_count.text = "TipTop: %d/4 fixed" % fixed_count
-	detail_repair_count.text = "%d / 4 repaired" % fixed_count
+	problem_count.text = GameText.format_text("hud.tiptop_d_4_fixed", fixed_count)
+	detail_repair_count.text = GameText.format_text("hud.d_4_repaired", fixed_count)
 	var blocked := not GameState.research_available() or GameState.work_sessions_remaining <= 0
-	detail_research.text = "Research underway" if GameState.research_active else ("Research blocked" if blocked else "Ready to research")
+	detail_research.text = GameText.get_text("hud.research_underway") if GameState.research_active else (GameText.get_text("hud.research_blocked") if blocked else GameText.get_text("activities.ready_to_research"))
 	var food_loss := int(round((1.0 - GameState.hunger_efficiency()) * 100))
-	_set_notice(research_modifiers["food"], "Fullness must exceed 20" if not GameState.fullness_allows_research() else ("Food: -%d%% yield" % food_loss if food_loss > 0 else ""))
-	_set_notice(research_modifiers["tap"], "Tap: half reward" if GameState.tap_running else "")
-	_set_notice(research_modifiers["books"], "Books scattered" if int(GameState.chore_mess["bookshelf"]) >= 2 else "")
-	_set_notice(research_modifiers["mood"], "Mood below 45" if not GameState.mood_allows_research() else "")
-	_set_notice(research_modifiers["push"], "Push-through: -20%" if GameState.pushing_through() else "")
-	var recommendation := "Your desk is ready."
+	_set_notice(research_modifiers["food"], GameText.get_text("hud.fullness_must_exceed_20") if not GameState.fullness_allows_research() else (GameText.format_text("hud.food_d_yield", food_loss) if food_loss > 0 else ""))
+	_set_notice(research_modifiers["tap"], GameText.get_text("hud.tap_half_reward") if GameState.tap_running else "")
+	_set_notice(research_modifiers["books"], GameText.get_text("hud.books_scattered") if int(GameState.chore_mess["bookshelf"]) >= 2 else "")
+	_set_notice(research_modifiers["mood"], GameText.get_text("hud.mood_below_45") if not GameState.mood_allows_research() else "")
+	_set_notice(research_modifiers["push"], GameText.get_text("hud.push_through_20") if GameState.pushing_through() else "")
+	var recommendation := GameText.get_text("hud.your_desk_is_ready")
 	if GameState.work_sessions_remaining <= 0:
-		recommendation = "Rest for more sessions."
+		recommendation = GameText.get_text("hud.rest_for_more_sessions")
 	elif not GameState.fullness_allows_research():
-		recommendation = "Eat before researching."
+		recommendation = GameText.get_text("hud.eat_before_researching")
 	elif int(GameState.chore_mess["bookshelf"]) >= 2:
-		recommendation = "Clear the bookshelf."
+		recommendation = GameText.get_text("hud.clear_the_bookshelf")
 	elif not GameState.mood_allows_research():
-		recommendation = "Take a coffee-table break."
+		recommendation = GameText.get_text("hud.take_a_coffee_table_break")
 	elif not GameState.has_research_time():
-		recommendation = "A full session won't fit today."
+		recommendation = GameText.get_text("hud.a_full_session_won_t_fit_today")
 	elif food_loss > 0:
-		recommendation = "Eat before your next session."
+		recommendation = GameText.get_text("hud.eat_before_your_next_session")
 	elif GameState.tap_running:
-		recommendation = "Turn off the tap."
+		recommendation = GameText.get_text("hud.turn_off_the_tap")
 	research_next.text = recommendation
 	var warning := ""
 	if not GameState.fullness_allows_research():
-		warning = "! Too hungry to work"
+		warning = GameText.get_text("hud.too_hungry_to_work")
 	elif int(GameState.chore_mess["bookshelf"]) >= 2:
-		warning = "! Books block research"
+		warning = GameText.get_text("hud.books_block_research")
 	elif not GameState.mood_allows_research():
-		warning = "! Mood blocks research"
+		warning = GameText.get_text("hud.mood_blocks_research")
 	elif GameState.hunger < 25:
-		warning = "! Eat soon"
+		warning = GameText.get_text("hud.eat_soon")
 	elif not GameState.has_research_time() and GameState.work_sessions_remaining > 0:
-		warning = "! Not enough work time"
+		warning = GameText.get_text("hud.not_enough_work_time")
 	compact_warning.text = warning
 	compact_warning.visible = not warning.is_empty()
 	var totals := GameState.displayed_daily_time()
@@ -876,35 +877,35 @@ func _update_sidebar() -> void:
 		var segment: ColorRect = usage_segments[category]
 		segment.visible = minutes > 0
 		segment.size_flags_stretch_ratio = maxf(0.0001, minutes)
-	usage_title.text = "Total: " + _minutes_text(elapsed)
+	usage_title.text = GameText.get_text("hud.total") + _minutes_text(elapsed)
 
 
 func _minutes_text(minutes: float) -> String:
 	var whole := int(floor(minutes + 0.000001))
-	return "%dh %02dm" % [whole / 60, whole % 60]
+	return GameText.format_text("hud.dh_02dm", [whole / 60, whole % 60])
 
 
 func _update_needs_ui() -> void:
-	hunger_label.text = "Full: %d%%" % int(GameState.hunger)
-	mood_label.text = "Mood: %d%%" % int(GameState.mood)
+	hunger_label.text = GameText.format_text("hud.full_d", int(GameState.hunger))
+	mood_label.text = GameText.format_text("hud.mood_d", int(GameState.mood))
 	hunger_bar.value = GameState.hunger
 	mood_bar.value = GameState.mood
 	hunger_fill.bg_color = _muted_gradient(GameState.hunger, [0.0, 24.0, 45.0, 60.0, 75.0, 100.0], [Color("aa625c"), Color("aa625c"), Color("c28764"), Color("c6a367"), Color("92aa85"), Color("92aa85")])
 	mood_fill.bg_color = Color("c28764") if GameState.mood < 45 else Color("83aaa2")
 	mood_label.modulate = Color("dca69a") if GameState.mood < 45 else Color.WHITE
-	mood_hint.text = "Push through (-20%)" if GameState.pushing_through() else ("Rest needed (<45)" if GameState.mood < 45 else "Ready for research")
-	efficiency_label.text = "%d%%" % int(round(GameState.research_efficiency() * 100))
-	hunger_status_label.text = "! Critical fullness" if GameState.hunger < 25 else GameState.hunger_status()
+	mood_hint.text = GameText.get_text("hud.push_through_20_2") if GameState.pushing_through() else (GameText.get_text("hud.rest_needed_45") if GameState.mood < 45 else GameText.get_text("hud.ready_for_research"))
+	efficiency_label.text = GameText.format_text("hud.percentage", int(round(GameState.research_efficiency() * 100)))
+	hunger_status_label.text = GameText.get_text("hud.critical_fullness") if GameState.hunger < 25 else GameState.hunger_status()
 	if GameState.hunger < 60:
 		var food_penalty := int(round((1.0 - GameState.hunger_efficiency()) * 100))
-		hunger_status_label.text = ("! Critical" if GameState.hunger < 25 else GameState.hunger_status()) + " (-%d%%)" % food_penalty
+		hunger_status_label.text = (GameText.get_text("hud.critical") if GameState.hunger < 25 else GameState.hunger_status()) + GameText.format_text("hud.d", food_penalty)
 	hunger_status_label.modulate = Color("92aa85") if GameState.hunger >= 75 else (Color("dca69a") if GameState.hunger <= 45 else Color.WHITE)
-	needs_values["food"].text = "%d%%" % int(GameState.hunger)
-	needs_values["mood"].text = "%d%%" % int(GameState.mood)
-	detail_needs.text = GameState.hunger_status() + (" / Low Mood" if GameState.mood < 45 else " / Mood steady")
+	needs_values["food"].text = GameText.format_text("hud.percentage", int(GameState.hunger))
+	needs_values["mood"].text = GameText.format_text("hud.percentage", int(GameState.mood))
+	detail_needs.text = GameState.hunger_status() + (GameText.get_text("hud.low_mood") if GameState.mood < 45 else GameText.get_text("hud.mood_steady"))
 	var loss := int(round((1.0 - GameState.hunger_efficiency()) * 100))
-	_set_notice(needs_modifiers["food"], "Too hungry to start research. Eat: +40 food, +10 Mood." if not GameState.fullness_allows_research() else ("Food: -%d%% yield. Meals: +40 food, +10 Mood." % loss if loss > 0 else ""))
-	_set_notice(needs_modifiers["mood"], "Push-through: -20% yield." if GameState.pushing_through() else ("Mood below 45. Take a leisure break." if GameState.mood < 45 else ""))
+	_set_notice(needs_modifiers["food"], GameText.get_text("hud.too_hungry_to_start_research_eat_40_food_10_mood") if not GameState.fullness_allows_research() else (GameText.format_text("hud.food_d_yield_meals_40_food_10_mood", loss) if loss > 0 else ""))
+	_set_notice(needs_modifiers["mood"], GameText.get_text("hud.push_through_20_yield") if GameState.pushing_through() else (GameText.get_text("hud.mood_below_45_take_a_leisure_break") if GameState.mood < 45 else ""))
 
 
 func _muted_gradient(value: float, stops: Array, colors: Array) -> Color:
@@ -945,7 +946,7 @@ func _build_loop_ui() -> void:
 	day_label.position = Vector2(23, 5)
 	day_label.size = Vector2(32, 9)
 	day_label.add_theme_font_size_override("font_size", 7)
-	weekday_label = _hud_text(self, "Monday", Vector2(23, 15), 6)
+	weekday_label = _hud_text(self, GameText.get_text("hud.monday"), Vector2(23, 15), 6)
 	var divider := ColorRect.new()
 	divider.position = Vector2(57, 7)
 	divider.size = Vector2(1, 19)
@@ -966,7 +967,7 @@ func _build_loop_ui() -> void:
 	day_card.add_child(time_bar)
 	_build_right_sidebar()
 	var controls := _hud_card(Rect2(5, 242, 54, 28))
-	var controls_text := _hud_text(controls, "E   Interact\nESC Pause", Vector2(4, 3), 7)
+	var controls_text := _hud_text(controls, GameText.get_text("hud.e_interact_esc_pause"), Vector2(4, 3), 7)
 	controls_text.add_theme_constant_override("line_spacing", 0)
 	sessions_label = _hud_text(self, "", Vector2(304, 274), 6)
 	loop_panel = ColorRect.new()
@@ -980,13 +981,13 @@ func _build_loop_ui() -> void:
 	loop_message.add_theme_font_size_override("font_size", 8)
 	loop_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	loop_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	loop_message.text = "Day 3 showcase: reach %.0f%% and repair all routines.\nE to interact. Make the bed before resting.\nFour sessions/day; full sessions must fit before 8:00 PM." % GameState.GOOD_ENDING_RESEARCH_THRESHOLD
+	loop_message.text = GameText.format_text("hud.day_3_showcase_reach_0f_and_repair_all_routines_e_to_interact", GameState.GOOD_ENDING_RESEARCH_THRESHOLD)
 	loop_panel.add_child(loop_message)
 	loop_button = Button.new()
 	loop_button.position = Vector2(100, 130)
 	loop_button.size = Vector2(100, 24)
 	loop_button.add_theme_font_size_override("font_size", 8)
-	loop_button.text = "Start"
+	loop_button.text = GameText.get_text("hud.start")
 	loop_button.pressed.connect(_on_loop_pressed)
 	loop_panel.add_child(loop_button)
 	difficulty_controls = HBoxContainer.new()
@@ -1017,7 +1018,7 @@ func _choose_difficulty(index: int) -> void:
 	for item in range(difficulty_controls.get_child_count()):
 		var button: Button = difficulty_controls.get_child(item)
 		button.set_pressed_no_signal(item == GameState.difficulty)
-	difficulty_description.text = "%s\nResearch %.0f min / +%.0f%%; repair %d min / +%.0f%%." % [GameState.profile()["description"], GameState.profile()["research_minutes"], GameState.profile()["research"], GameState.repair_minutes(), GameState.profile()["repair_reward"]]
+	difficulty_description.text = GameText.format_text("hud.s_research_0f_min_0f_repair_d_min_0f", [GameState.profile()["description"], GameState.profile()["research_minutes"], GameState.profile()["research"], GameState.repair_minutes(), GameState.profile()["repair_reward"]])
 
 
 func _on_loop_pressed() -> void:
@@ -1116,7 +1117,7 @@ func _play_day_transition(restarting := false) -> void:
 	get_node("../Player").wake_from_bed()
 	if GameState.game_finished:
 		_prepare_showcase()
-	transition_title.text = "Showcase" if GameState.game_finished else "Day %d" % GameState.day
+	transition_title.text = GameText.get_text("hud.showcase") if GameState.game_finished else GameText.format_text("hud.day_d", GameState.day)
 	transition_title.show()
 	await get_tree().create_timer(0.45).timeout
 	transition_title.hide()
@@ -1144,7 +1145,7 @@ func _reveal_new_game() -> void:
 	loop_button.disabled = true
 	transition_cover.position = Vector2.ZERO
 	transition_cover.show()
-	transition_title.text = "New Game"
+	transition_title.text = GameText.get_text("main_menu.new_game")
 	transition_title.show()
 	await get_tree().create_timer(0.45).timeout
 	transition_title.hide()
@@ -1172,7 +1173,7 @@ func _build_repair_menu() -> void:
 	options.add_theme_constant_override("separation", 5)
 	center.add_child(options)
 	var title := Label.new()
-	title.text = "TipTop's routines - repair independently"
+	title.text = GameText.get_text("tiptop.tiptop_s_routines_repair_independently")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 8)
 	options.add_child(title)
@@ -1186,12 +1187,12 @@ func _build_repair_menu() -> void:
 		options.add_child(button)
 		repair_buttons[chore] = button
 	var cancel := Button.new()
-	cancel.text = "Cancel"
+	cancel.text = GameText.get_text("activities.cancel")
 	cancel.custom_minimum_size = Vector2(260, 22)
 	cancel.add_theme_font_size_override("font_size", 8)
 	cancel.pressed.connect(_close_repair_menu)
 	options.add_child(cancel)
-	fix_button.text = "Repairs..."
+	fix_button.text = GameText.get_text("tiptop.repairs")
 
 
 func _open_repair_menu() -> void:
@@ -1205,7 +1206,7 @@ func _open_repair_menu() -> void:
 		var duration := GameState.repair_minutes()
 		var enough_time: bool = GameState.DAY_END - GameState.time_minutes - GameState.clock_fraction - GameState.world_accumulator >= duration
 		button.disabled = fixed or not enough_time
-		button.text = "%s — %s (%d min, +%.0f%%)" % ["Water / sink" if chore == "sink" else chore.capitalize(), "Repaired" if fixed else ("Faulty" if enough_time else "Not enough time"), duration, float(GameState.profile()["repair_reward"])]
+		button.text = GameText.format_text("tiptop.s_s_d_min_0f", [GameText.get_text("tiptop.water_sink") if chore == "sink" else GameText.get_text("tiptop.routine." + chore), GameText.get_text("tiptop.repaired") if fixed else (GameText.get_text("tiptop.faulty") if enough_time else GameText.get_text("tiptop.not_enough_time")), duration, float(GameState.profile()["repair_reward"])])
 	repair_panel.show()
 	get_tree().paused = true
 
@@ -1223,6 +1224,7 @@ func _select_repair(chore: String) -> void:
 
 
 func _show_feedback(message: String) -> void:
+	var mosquito_message := GameText.has_tag(message, "mosquito")
 	var speaker := "System"
 	for character in ["Judy", "TipTop"]:
 		if message.begins_with(character + ":"):
@@ -1248,7 +1250,7 @@ func _show_feedback(message: String) -> void:
 	if GameState.research_active:
 		# Optional feedback is stale by the time a long session completes.
 		return
-	elif speaker == "Judy" and "Mosquito" in message:
+	elif speaker == "Judy" and mosquito_message:
 		expression = "annoyed"
 	var line := [speaker, message, expression]
 	if not pending_feedback.has(line):
@@ -1330,26 +1332,26 @@ func _build_research_controls() -> void:
 	row.size = Vector2(240, 17)
 	row.add_theme_constant_override("separation", 3)
 	research_strip.add_child(row)
-	for spec in [["Watch 1x", _set_activity_speed.bind(1.0)], ["Fast 6x", _set_activity_speed.bind(6.0)], ["Skip", _skip_research], ["Eject...", _open_eject]]:
+	for spec in [["watch", GameText.get_text("research.watch_1x"), _set_activity_speed.bind(1.0), GameText.get_text("research.play_at_normal_speed")], ["fast", GameText.get_text("research.fast_6x"), _set_activity_speed.bind(6.0), GameText.get_text("research.play_at_6x_speed")], ["skip", GameText.get_text("research.skip"), _skip_research, GameText.get_text("research.finish_now_full_time_cost_applies")], ["eject", GameText.get_text("research.eject"), _open_eject, GameText.get_text("research.cancel_without_a_completion_reward")]]:
 		var button := Button.new()
-		button.text = spec[0]
+		button.text = spec[1]
 		button.custom_minimum_size = Vector2(0, 17)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.add_theme_font_size_override("font_size", 7)
-		button.pressed.connect(spec[1])
+		button.pressed.connect(spec[2])
 		row.add_child(button)
 		activity_buttons.append(button)
-		button.accessibility_name = spec[0]
-		var help_text: String = {"Watch 1x": "Play at normal speed.", "Fast 6x": "Play at 6x speed.", "Skip": "Finish now. Full time cost applies.", "Eject...": "Cancel without a completion reward."}[spec[0]]
+		button.accessibility_name = spec[1]
+		var help_text: String = spec[3]
 		button.accessibility_description = help_text
 		button.set_meta("help_text", help_text)
-		if spec[0] == "Watch 1x":
+		if spec[0] == "watch":
 			activity_watch_button = button
 			button.toggle_mode = true
-		elif spec[0] == "Fast 6x":
+		elif spec[0] == "fast":
 			research_speed_button = button
 			button.toggle_mode = true
-		elif spec[0] == "Eject...":
+		elif spec[0] == "eject":
 			eject_button = button
 			button.add_theme_color_override("font_color", Color("dca69a"))
 
@@ -1357,7 +1359,7 @@ func _build_research_controls() -> void:
 func _update_activity_controls() -> void:
 	var active := GameState.research_active or not GameState.personal_activity.is_empty()
 	eject_button.disabled = not GameState.can_eject_task() or get_tree().paused
-	eject_button.set_meta("help_text", "Cancel without a completion reward." if not eject_button.disabled else "Unavailable while paused or finishing.")
+	eject_button.set_meta("help_text", GameText.get_text("research.cancel_without_a_completion_reward") if not eject_button.disabled else GameText.get_text("research.unavailable_while_paused_or_finishing"))
 	var help_text := ""
 	if research_strip.visible and not get_tree().paused:
 		var focused: Control = get_viewport().gui_get_focus_owner()
@@ -1375,15 +1377,15 @@ func _update_activity_controls() -> void:
 	if GameState.research_active:
 		research_bar.max_value = GameState.research_duration
 		research_bar.value = minf(GameState.research_duration, GameState.research_elapsed + GameState.research_accumulator)
-		research_status.text = "Research: %d / %d min · %dx" % [int(GameState.research_elapsed), GameState.research_duration, int(speed)]
+		research_status.text = GameText.format_text("research.research_d_d_min_dx", [int(GameState.research_elapsed), GameState.research_duration, int(speed)])
 		if GameState.research_interruptions > 0 and fmod(GameState.research_elapsed, 5.0) < 0.25:
-			research_status.text += " · Swat!"
+			research_status.text += GameText.get_text("research.swat")
 	else:
 		var duration: int = GameState.PERSONAL_ACTIVITIES[GameState.personal_activity][0]
 		research_bar.max_value = duration
 		research_bar.value = duration - GameState.personal_remaining
-		var title: String = {"eat": "Eating", "reels": "Reels", "games": "Phone games", "cube": "Rubik's cube"}[GameState.personal_activity]
-		research_status.text = "%s: %d / %d min · %dx" % [title, int(duration - GameState.personal_remaining), duration, int(speed)]
+		var title: String = {"eat": GameText.get_text("hud.eating"), "reels": GameText.get_text("research.reels"), "games": GameText.get_text("research.phone_games"), "cube": GameText.get_text("research.rubik_s_cube")}[GameState.personal_activity]
+		research_status.text = GameText.format_text("research.s_d_d_min_dx", [title, int(duration - GameState.personal_remaining), duration, int(speed)])
 
 
 func _eject_open() -> bool:
@@ -1406,18 +1408,18 @@ func _build_eject_confirmation() -> void:
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override("separation", 7)
 	panel.add_child(body)
-	_hud_text(body, "Eject unfinished task?", Vector2.ZERO, 11)
-	var text := _hud_text(body, "Elapsed time stays spent. No completion reward.\nA started research session stays used.", Vector2.ZERO, 8)
+	_hud_text(body, GameText.get_text("activities.eject_unfinished_task"), Vector2.ZERO, 11)
+	var text := _hud_text(body, GameText.get_text("activities.elapsed_time_stays_spent_no_completion_reward_a_started_resear"), Vector2.ZERO, 8)
 	text.custom_minimum_size.x = 230
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	for spec in [["Keep working", _close_eject], ["Eject task", _confirm_eject_task]]:
+	for spec in [["keep", GameText.get_text("activities.keep_working"), _close_eject], ["eject", GameText.get_text("activities.eject_task"), _confirm_eject_task]]:
 		var button := Button.new()
-		button.text = spec[0]
+		button.text = spec[1]
 		button.custom_minimum_size.y = 22
 		button.add_theme_font_size_override("font_size", 9)
-		button.pressed.connect(spec[1])
+		button.pressed.connect(spec[2])
 		body.add_child(button)
-		if spec[0] == "Keep working":
+		if spec[0] == "keep":
 			eject_confirm.set_meta("safe_focus", button)
 
 
@@ -1497,7 +1499,7 @@ func _build_dialogue_ui() -> void:
 	panel.add_child(dialogue_art)
 	# Supplied panels include a baked portrait. Replace only that area at render time.
 	var crop := Shader.new()
-	crop.code = "shader_type canvas_item; void fragment() { vec4 pixel = texture(TEXTURE, UV); if (UV.x < 0.31) { pixel.a = 0.0; } COLOR = pixel; }"
+	crop.code = GameText.get_text("hud.shader_type_canvas_item_void_fragment_vec4_pixel_texture_textu")
 	var material := ShaderMaterial.new()
 	material.shader = crop
 	dialogue_art.material = material
@@ -1540,7 +1542,7 @@ func _build_dialogue_ui() -> void:
 	var hint := Label.new()
 	dialogue_hint = hint
 	hint.position = Vector2(153, 53)
-	hint.text = "E / Enter - Next"
+	hint.text = GameText.get_text("hud.e_enter_next")
 	hint.add_theme_font_size_override("font_size", 6)
 	panel.add_child(hint)
 	for speaker in ["judy", "tiptop"]:
@@ -1577,8 +1579,8 @@ func _build_pause_menu() -> void:
 	var choices := VBoxContainer.new()
 	choices.add_theme_constant_override("separation", 5)
 	panel.add_child(choices)
-	_hud_text(choices, "Paused", Vector2.ZERO, 12)
-	var items := [["Resume", _resume_pause], ["Save Game", _manual_save], ["How to Play", _review_tutorial], ["Restart Tutorial" if tutorial_entry else "Restart (replaces save)", _restart_from_pause.bind(true)], ["Exit Tutorial" if tutorial_entry else "Return to Main Menu", _restart_from_pause.bind(false)], ["Quit Game", func(): get_tree().quit()]]
+	_hud_text(choices, GameText.get_text("hud.paused"), Vector2.ZERO, 12)
+	var items := [[GameText.get_text("hud.resume"), _resume_pause], [GameText.get_text("hud.save_game"), _manual_save], [GameText.get_text("main_menu.how_to_play"), _review_tutorial], [GameText.get_text("hud.restart_tutorial") if tutorial_entry else GameText.get_text("hud.restart_replaces_save"), _restart_from_pause.bind(true)], [GameText.get_text("hud.exit_tutorial") if tutorial_entry else GameText.get_text("hud.return_to_main_menu"), _restart_from_pause.bind(false)], [GameText.get_text("main_menu.quit_game"), func(): get_tree().quit()]]
 	for index in range(items.size()):
 		var button := Button.new()
 		button.text = items[index][0]
@@ -1772,7 +1774,7 @@ func _advance_dialogue() -> void:
 	if line[0] == "Judy" and line.size() > 3 and not str(line[3]).is_empty():
 		line[1] = GameState.judy_response(line[3])
 		line[2] = "happy" if GameState.mood >= 70 else ("neutral" if GameState.mood >= 45 else "annoyed")
-	dialogue_speaker.text = line[0]
+	dialogue_speaker.text = GameText.get_text("dialogue.speaker_" + str(line[0]).to_lower())
 	_present_speaker(line[0], line[2] if line.size() > 2 else "neutral")
 	var pages := _dialogue_pages(line[1])
 	for index in range(pages.size() - 1, 0, -1):
@@ -1939,7 +1941,7 @@ func _on_story_event(event: String) -> void:
 		transition_events.append(event)
 		return
 	if event == "proactive_fix":
-		_show_feedback("+10% Research — Proactive Fix!")
+		_show_feedback(GameText.get_text("dialogue.10_research_proactive_fix"))
 		return
 	if (event.begins_with("ambient_") or event == "desk_approach") and (dialogue_overlay.visible or not dialogue_lines.is_empty() or loop_panel.visible or GameState.notification_active or GameState.day_ended or GameState.game_finished or get_tree().paused):
 		return
@@ -1949,36 +1951,36 @@ func _on_story_event(event: String) -> void:
 	var lines: Array = []
 	match event:
 		"desk_approach":
-			lines = [["Judy", "Right. Notes, coffee... probably some science in here somewhere."]]
+			lines = [["Judy", GameText.get_text("dialogue.right_notes_coffee_probably_some_science_in_here_somewhere")]]
 		"opening":
-			lines = [["Judy", "Okay, Judy. Three days. Let's make this look like science."], ["TipTop", "I'm TipTop! I handle routines. Usually the right ones."], ["Judy", "Showcase on day three, TipTop. Try to look busy."]]
+			lines = [["Judy", GameText.get_text("dialogue.okay_judy_three_days_let_s_make_this_look_like_science")], ["TipTop", GameText.get_text("dialogue.i_m_tiptop_i_handle_routines_usually_the_right_ones")], ["Judy", GameText.get_text("dialogue.showcase_on_day_three_tiptop_try_to_look_busy")]]
 		"first_tap":
-			lines = [["TipTop", "Ideas Flowing Protocol, step 4: Leave tap open. Complete. Proceeding to next objective."], ["Judy", "", "neutral", "chore"]]
+			lines = [["TipTop", GameText.get_text("dialogue.ideas_flowing_protocol_step_4_leave_tap_open_complete_proceedi")], ["Judy", "", "neutral", "chore"]]
 		"fixed":
-			lines = [["TipTop", "Routine updated: ideas may flow without water. Thank you for teaching me, Judy."], ["Judy", "There we go. Knew you had it in you."]]
+			lines = [["TipTop", GameText.get_text("dialogue.routine_updated_ideas_may_flow_without_water_thank_you_for_tea")], ["Judy", GameText.get_text("dialogue.there_we_go_knew_you_had_it_in_you")]]
 		"ambient_1":
-			lines = [["TipTop", "I apologize."], ["Judy", "For what?"], ["TipTop", "I have not determined that yet."]]
+			lines = [["TipTop", GameText.get_text("dialogue.i_apologize")], ["Judy", GameText.get_text("dialogue.for_what")], ["TipTop", GameText.get_text("dialogue.i_have_not_determined_that_yet")]]
 		"ambient_2":
-			lines = [["TipTop", "Thank you, Judy."], ["Judy", "I just moved my chair."], ["TipTop", "Yes. I am checking the connection."]]
+			lines = [["TipTop", GameText.get_text("dialogue.thank_you_judy")], ["Judy", GameText.get_text("dialogue.i_just_moved_my_chair")], ["TipTop", GameText.get_text("dialogue.yes_i_am_checking_the_connection")]]
 		"ambient_3":
-			lines = [["TipTop", "That went well. I apologize."], ["Judy", "You can just take the win, buddy."], ["TipTop", "Then the apology may belong to something else."]]
+			lines = [["TipTop", GameText.get_text("dialogue.that_went_well_i_apologize")], ["Judy", GameText.get_text("dialogue.you_can_just_take_the_win_buddy")], ["TipTop", GameText.get_text("dialogue.then_the_apology_may_belong_to_something_else")]]
 		"day_2":
-			lines = [["Judy", "Morning. No dripping. I could get used to this."], ["TipTop", "My new routine agrees."]] if GameState.repairs["sink"] else [["Judy", "Morning. Right, your routine. I still haven't fixed that."], ["TipTop", "I've resumed the flowing-ideas procedure."]]
+			lines = [["Judy", GameText.get_text("dialogue.morning_no_dripping_i_could_get_used_to_this")], ["TipTop", GameText.get_text("dialogue.my_new_routine_agrees")]] if GameState.repairs["sink"] else [["Judy", GameText.get_text("dialogue.morning_right_your_routine_i_still_haven_t_fixed_that")], ["TipTop", GameText.get_text("dialogue.i_ve_resumed_the_flowing_ideas_procedure")]]
 		"day_3":
-			lines = [["TipTop", "Showcase day! My tap routine is ready to do nothing."], ["Judy", "Nice. Now where'd I put my notes?"]] if GameState.repairs["sink"] else [["TipTop", "Showcase day! Shall I demonstrate the water feature?"], ["Judy", "Let's skip that bit, yeah?"]]
+			lines = [["TipTop", GameText.get_text("dialogue.showcase_day_my_tap_routine_is_ready_to_do_nothing")], ["Judy", GameText.get_text("dialogue.nice_now_where_d_i_put_my_notes")]] if GameState.repairs["sink"] else [["TipTop", GameText.get_text("dialogue.showcase_day_shall_i_demonstrate_the_water_feature")], ["Judy", GameText.get_text("dialogue.let_s_skip_that_bit_yeah")]]
 		"ending":
 			_prepare_showcase()
 			if ending_kind == "bad":
-				lines = [["Judy", "TipTop. Please tell me that's supposed to happen.", "surprised"], ["TipTop", "According to my latest calculations... no.", "error"], ["Judy", "Great. We'll need another draft.", "annoyed"], ["TipTop", "I can help with the next draft.", "proud"], ["Judy", "I'll take any good news you've got.", "neutral"], ["TipTop", "We are no longer behind schedule.", "proud"]]
+				lines = [["Judy", GameText.get_text("dialogue.tiptop_please_tell_me_that_s_supposed_to_happen"), "surprised"], ["TipTop", GameText.get_text("dialogue.according_to_my_latest_calculations_no"), "error"], ["Judy", GameText.get_text("dialogue.great_we_ll_need_another_draft"), "annoyed"], ["TipTop", GameText.get_text("dialogue.i_can_help_with_the_next_draft"), "proud"], ["Judy", GameText.get_text("dialogue.i_ll_take_any_good_news_you_ve_got"), "neutral"], ["TipTop", GameText.get_text("dialogue.we_are_no_longer_behind_schedule"), "proud"]]
 			elif ending_kind == "good":
-				lines = [["Judy", "Thought we'd run out of time. Couldn't have done this without you, buddy.", "happy"], ["TipTop", "My calculations were only occasionally incorrect.", "proud"], ["Judy", "Occasionally?", "annoyed"], ["TipTop", "They're applauding! Celebration routine ready.", "proud"], ["Judy", "Just bow, buddy. We've earned a dry floor.", "happy"], ["TipTop", "Bow routine confirmed. No water required.", "proud"]]
+				lines = [["Judy", GameText.get_text("dialogue.thought_we_d_run_out_of_time_couldn_t_have_done_this_without_y"), "happy"], ["TipTop", GameText.get_text("dialogue.my_calculations_were_only_occasionally_incorrect"), "proud"], ["Judy", GameText.get_text("dialogue.occasionally"), "annoyed"], ["TipTop", GameText.get_text("dialogue.they_re_applauding_celebration_routine_ready"), "proud"], ["Judy", GameText.get_text("dialogue.just_bow_buddy_we_ve_earned_a_dry_floor"), "happy"], ["TipTop", GameText.get_text("dialogue.bow_routine_confirmed_no_water_required"), "proud"]]
 			else:
-				lines = [["Judy", "It wasn't exactly what I planned. Still, we got up here.", "neutral"], ["TipTop", "So the water feature was a success?", "confused"], ["Judy", "That bit wasn't in the demo. Glad you came, though.", "happy"], ["TipTop", "Would you like to schedule a second attempt?", "neutral"], ["Judy", "After a very long nap.", "happy"]]
+				lines = [["Judy", GameText.get_text("dialogue.it_wasn_t_exactly_what_i_planned_still_we_got_up_here"), "neutral"], ["TipTop", GameText.get_text("dialogue.so_the_water_feature_was_a_success"), "confused"], ["Judy", GameText.get_text("dialogue.that_bit_wasn_t_in_the_demo_glad_you_came_though"), "happy"], ["TipTop", GameText.get_text("dialogue.would_you_like_to_schedule_a_second_attempt"), "neutral"], ["Judy", GameText.get_text("dialogue.after_a_very_long_nap"), "happy"]]
 		_:
 			if event.begins_with("break_reminder_"):
-				lines = [["TipTop", "Judy, you've completed two long research sessions. My wellness protocol recommends a break.", "worried"], ["Judy", "", "neutral", "break"], ["TipTop", "I shall supervise the apartment while you rest.", "proud"]]
+				lines = [["TipTop", GameText.get_text("dialogue.judy_you_ve_completed_two_long_research_sessions_my_wellness_p"), "worried"], ["Judy", "", "neutral", "break"], ["TipTop", GameText.get_text("dialogue.i_shall_supervise_the_apartment_while_you_rest"), "proud"]]
 			elif event.begins_with("ignored_"):
-				lines = [["Judy", "One more bit of research, then I'll fix it. That's the plan, anyway."], ["TipTop", "No correction received. Current routine must be acceptable!"]]
+				lines = [["Judy", GameText.get_text("dialogue.one_more_bit_of_research_then_i_ll_fix_it_that_s_the_plan_anyw")], ["TipTop", GameText.get_text("dialogue.no_correction_received_current_routine_must_be_acceptable")]]
 	# Optional third field: expressions never change the spoken text or outcomes.
 	var expression_sets := {
 		"opening": ["neutral", "proud", "happy"],
@@ -2009,6 +2011,6 @@ func _on_story_event(event: String) -> void:
 
 func _manual_save() -> void:
 	if SaveStore.save_campaign(true):
-		save_status.text = "Game saved."
+		save_status.text = GameText.get_text("hud.game_saved")
 	else:
 		save_status.text = SaveStore.last_error

@@ -11,7 +11,7 @@ offset_top = 2.0
 offset_right = 70.0
 offset_bottom = 14.0
 theme_override_font_sizes/font_size = 8
-text = "Day 1"
+text = "@interactions.scene_hud_daylabel_text"
 
 [node name="TimeLabel" type="Label" parent="."]
 offset_left = 130.0
@@ -19,7 +19,7 @@ offset_top = 2.0
 offset_right = 190.0
 offset_bottom = 14.0
 theme_override_font_sizes/font_size = 8
-text = "11:00 AM"
+text = "@interactions.scene_hud_timelabel_text"
 horizontal_alignment = 1
 
 [node name="ResearchLabel" type="Label" parent="."]
@@ -28,7 +28,7 @@ offset_top = 2.0
 offset_right = 316.0
 offset_bottom = 14.0
 theme_override_font_sizes/font_size = 8
-text = "Research: 0%"
+text = "@interactions.scene_hud_researchlabel_text"
 horizontal_alignment = 2
 
 [node name="NotificationPanel" type="Control" parent="."]
@@ -58,7 +58,7 @@ offset_top = 26.0
 offset_right = 75.0
 offset_bottom = 46.0
 theme_override_font_sizes/font_size = 7
-text = "Fix (30 min)"
+text = "@interactions.scene_hud_fixbutton_text"
 
 [node name="IgnoreButton" type="Button" parent="NotificationPanel"]
 offset_left = 85.0
@@ -66,7 +66,7 @@ offset_top = 26.0
 offset_right = 152.0
 offset_bottom = 46.0
 theme_override_font_sizes/font_size = 7
-text = "Ignore"
+text = "@interactions.scene_hud_ignorebutton_text"
 
 [connection signal="pressed" from="NotificationPanel/FixButton" to="." method="_on_fix_pressed"]
 [connection signal="pressed" from="NotificationPanel/IgnoreButton" to="." method="_on_ignore_pressed"]

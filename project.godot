@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+GameText="*res://scripts/game_text.gd"
 GameState="*res://scripts/game_state.gd"
 SaveStore="*res://scripts/save_store.gd"
 ApartmentAudio="*res://scripts/apartment_audio.gd"

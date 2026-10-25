@@ -44,7 +44,7 @@ func _ready() -> void:
 		player_profile.merge(data, true)
 	elif FileAccess.file_exists(PROFILE) or not _revisions(PROFILE).is_empty():
 		profile_read_only = true
-		last_error = "Profile could not be read. Existing files are preserved; profile writes are disabled."
+		last_error = GameText.get_text("save_load.profile_could_not_be_read_existing_files_are_preserved_profile")
 	for bus_name in ["Master", "SFX", "Ambience", "Music"]:
 		if player_profile["audio"].has(bus_name):
 			var index := AudioServer.get_bus_index(bus_name)
@@ -197,40 +197,40 @@ func _read_recover(path: String, kind: String) -> Dictionary:
 	for backup in _revisions(path):
 		data = _read(backup, kind)
 		if not data.is_empty():
-			recovery_note = "Recovered a previous valid %s checkpoint. Original files are preserved." % kind
+			recovery_note = GameText.format_text("save_load.recovered_a_previous_valid_s_checkpoint_original_files_are_pre", GameText.get_text("save_load.kind." + kind))
 			return data
 	return {}
 
 
 func _write(path: String, data: Dictionary, kind: String) -> bool:
 	if not _validate(data, kind):
-		last_error = "Save data failed validation; existing files were preserved."
+		last_error = GameText.get_text("save_load.save_data_failed_validation_existing_files_were_preserved")
 		return false
 	if DirAccess.make_dir_recursive_absolute(DIRECTORY) != OK:
-		last_error = "Cannot create the save directory."
+		last_error = GameText.get_text("save_load.cannot_create_the_save_directory")
 		return false
 	var suffix := "%020d_%s" % [int(Time.get_unix_time_from_system() * 1000000), Crypto.new().generate_random_bytes(4).hex_encode()]
 	var temporary := path + ".pending." + suffix
 	var file := FileAccess.open(temporary, FileAccess.WRITE)
 	if file == null:
-		last_error = "Cannot write save: error %d." % FileAccess.get_open_error()
+		last_error = GameText.format_text("save_load.cannot_write_save_error_d", FileAccess.get_open_error())
 		return false
 	file.store_string(JSON.stringify(data, "\t"))
 	file.flush()
 	var error := file.get_error()
 	file.close()
 	if error != OK or _read(temporary, kind).is_empty():
-		last_error = "Save write could not be verified; previous checkpoint is intact."
+		last_error = GameText.get_text("save_load.save_write_could_not_be_verified_previous_checkpoint_is_intact")
 		return false
 	var backup := path + ".previous." + suffix + ".json"
 	var had_previous := FileAccess.file_exists(path)
 	if had_previous and DirAccess.rename_absolute(path, backup) != OK:
-		last_error = "Cannot preserve previous save; replacement cancelled."
+		last_error = GameText.get_text("save_load.cannot_preserve_previous_save_replacement_cancelled")
 		return false
 	if DirAccess.rename_absolute(temporary, path) != OK:
 		if had_previous:
 			DirAccess.rename_absolute(backup, path)
-		last_error = "Cannot install checkpoint; previous save retained or available in recovery files."
+		last_error = GameText.get_text("save_load.cannot_install_checkpoint_previous_save_retained_or_available")
 		return false
 	last_error = ""
 	return true
@@ -287,21 +287,21 @@ func request_autosave(_event: String) -> void:
 
 func safe_reason(manual: bool = false) -> String:
 	if tutorial_sandbox:
-		return "Tutorial practice is not saved. Your campaign checkpoint is untouched."
+		return GameText.get_text("save_load.tutorial_practice_is_not_saved_your_campaign_checkpoint_is_unt")
 	var scene: Node = get_tree().current_scene
 	if loading or not is_instance_valid(scene) or not scene.has_node("HUD") or campaign_id.is_empty():
-		return "Saving is available during a campaign."
+		return GameText.get_text("save_load.saving_is_available_during_a_campaign")
 	if GameState.research_active or not GameState.personal_activity.is_empty() or GameState.household_busy or GameState.repair_in_progress or scene.get_node("Player").animation_busy:
-		return "Finish or eject the current activity before saving."
+		return GameText.get_text("save_load.finish_or_eject_the_current_activity_before_saving")
 	var hud: Node = scene.get_node("HUD")
 	if GameState.day_ended or GameState.game_finished or GameState.ending_day_pending or hud.transitioning:
-		return "Wait for the next playable day before saving."
+		return GameText.get_text("save_load.wait_for_the_next_playable_day_before_saving")
 	if GameState.notification_active or hud.dialogue_overlay.visible or hud.repair_panel.visible or hud.loop_panel.visible or hud._rules_open() or hud._household_open() or hud._eject_open() or hud.sleep_dialogue_pending:
-		return "Close the conversation or activity menu before saving."
+		return GameText.get_text("save_load.close_the_conversation_or_activity_menu_before_saving")
 	if not hud.dialogue_lines.is_empty() or not hud.deferred_story_events.is_empty() or not hud.pending_feedback.is_empty() or hud.morning_pending_day != 0:
-		return "Resume and finish the pending conversation before saving."
+		return GameText.get_text("save_load.resume_and_finish_the_pending_conversation_before_saving")
 	if get_tree().paused and not (manual and hud._pause_open()):
-		return "Resume gameplay before saving."
+		return GameText.get_text("save_load.resume_gameplay_before_saving")
 	return ""
 
 
@@ -332,7 +332,7 @@ func save_campaign(manual: bool = false) -> bool:
 func campaign_data() -> Dictionary:
 	var data := _read_recover(CAMPAIGN, "campaign")
 	if data.is_empty() and (FileAccess.file_exists(CAMPAIGN) or not _revisions(CAMPAIGN).is_empty()):
-		last_error = "No compatible campaign checkpoint could be read. Existing files are preserved."
+		last_error = GameText.get_text("save_load.no_compatible_campaign_checkpoint_could_be_read_existing_files")
 	return data
 
 
@@ -344,7 +344,7 @@ func can_continue() -> bool:
 func prepare_continue() -> bool:
 	pending_load = campaign_data()
 	if pending_load.is_empty() or pending_load["finished"] or pending_load["id"] in player_profile["completed_campaigns"]:
-		last_error = "No compatible active save could be read. Existing files were preserved."
+		last_error = GameText.get_text("save_load.no_compatible_active_save_could_be_read_existing_files_were_pr")
 		return false
 	loading = true
 	tutorial_sandbox = false
@@ -379,7 +379,7 @@ func restore_room() -> void:
 	var scene: Node = get_tree().current_scene
 	if not is_instance_valid(scene) or not scene.has_node("Player") or pending_load.is_empty():
 		loading = false
-		last_error = "Continue was interrupted; the saved checkpoint is intact."
+		last_error = GameText.get_text("save_load.continue_was_interrupted_the_saved_checkpoint_is_intact")
 		return
 	var judy: CharacterBody2D = scene.get_node("Player")
 	var robot: CharacterBody2D = scene.get_node("TipTop")
@@ -388,7 +388,7 @@ func restore_room() -> void:
 	var player_point := _ground(judy, Vector2(actors["judy"][0], actors["judy"][1]))
 	var robot_point := _ground(robot, Vector2(actors["tiptop"][0], actors["tiptop"][1]))
 	if not player_point.is_finite() or not robot_point.is_finite():
-		last_error = "Could not restore a walkable position. Save files are intact."
+		last_error = GameText.get_text("save_load.could_not_restore_a_walkable_position_save_files_are_intact")
 		loading = false
 		get_tree().change_scene_to_file("res://scenes/title.tscn")
 		return

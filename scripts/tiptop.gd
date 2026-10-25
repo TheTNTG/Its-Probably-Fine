@@ -32,35 +32,35 @@ var blocked_elapsed := 0.0
 var morning_day := 0
 var goodnight_day := 0
 var thought_counts: Dictionary = {}
-const APPROACH_THOUGHTS := {
-	"sink": ["These dishes deserve a fresh start.", "Dish duty is one of my four specialties."],
-	"plant": ["I shall check on our leafy colleague.", "The plant has silently requested my attention."],
-	"bookshelf": ["The bookshelf requires my expertise.", "These books have rectangular potential."],
-	"bed": ["A tidy bed supports untidy scientific ideas.", "I shall assess the sheet situation."]
+var APPROACH_THOUGHTS := {
+	"sink": [GameText.get_text("tiptop.these_dishes_deserve_a_fresh_start"), GameText.get_text("tiptop.dish_duty_is_one_of_my_four_specialties")],
+	"plant": [GameText.get_text("tiptop.i_shall_check_on_our_leafy_colleague"), GameText.get_text("tiptop.the_plant_has_silently_requested_my_attention")],
+	"bookshelf": [GameText.get_text("tiptop.the_bookshelf_requires_my_expertise"), GameText.get_text("tiptop.these_books_have_rectangular_potential")],
+	"bed": [GameText.get_text("tiptop.a_tidy_bed_supports_untidy_scientific_ideas"), GameText.get_text("tiptop.i_shall_assess_the_sheet_situation")]
 }
-const FAULTY_WORK_THOUGHTS := {
-	"sink": ["Maximum cleanliness requires maximum water!", "A continuous rinse must be very thorough."],
-	"plant": ["Plants love water. More must be better!", "A generous drink for a generous plant."],
-	"bookshelf": ["The largest books belong on top.", "I am testing an aerodynamic arrangement."],
-	"bed": ["Every sheet deserves extra ventilation!", "A little creative folding should help."]
+var FAULTY_WORK_THOUGHTS := {
+	"sink": [GameText.get_text("tiptop.maximum_cleanliness_requires_maximum_water"), GameText.get_text("tiptop.a_continuous_rinse_must_be_very_thorough")],
+	"plant": [GameText.get_text("tiptop.plants_love_water_more_must_be_better"), GameText.get_text("tiptop.a_generous_drink_for_a_generous_plant")],
+	"bookshelf": [GameText.get_text("tiptop.the_largest_books_belong_on_top"), GameText.get_text("tiptop.i_am_testing_an_aerodynamic_arrangement")],
+	"bed": [GameText.get_text("tiptop.every_sheet_deserves_extra_ventilation"), GameText.get_text("tiptop.a_little_creative_folding_should_help")]
 }
-const REPAIRED_WORK_THOUGHTS := {
-	"sink": ["I shall rinse the dishes, then close the tap.", "I have revised my rinsing methods."],
-	"plant": ["I shall give it just enough water.", "I shall check the soil before I pour."],
-	"bookshelf": ["The titles belong in order, spines facing out.", "Upright books are an elegant solution."],
-	"bed": ["I shall tuck the corners and restore the pillow.", "I remember to smooth the sheets gently."]
+var REPAIRED_WORK_THOUGHTS := {
+	"sink": [GameText.get_text("tiptop.i_shall_rinse_the_dishes_then_close_the_tap"), GameText.get_text("tiptop.i_have_revised_my_rinsing_methods")],
+	"plant": [GameText.get_text("tiptop.i_shall_give_it_just_enough_water"), GameText.get_text("tiptop.i_shall_check_the_soil_before_i_pour")],
+	"bookshelf": [GameText.get_text("tiptop.the_titles_belong_in_order_spines_facing_out"), GameText.get_text("tiptop.upright_books_are_an_elegant_solution")],
+	"bed": [GameText.get_text("tiptop.i_shall_tuck_the_corners_and_restore_the_pillow"), GameText.get_text("tiptop.i_remember_to_smooth_the_sheets_gently")]
 }
-const FAULTY_REACTIONS := {
-	"sink": ["The dish cycle was successful.", "The water is certainly flowing efficiently."],
-	"plant": ["Hydration is complete.", "Our colleague will be delighted."],
-	"bookshelf": ["This bold new arrangement is excellent.", "I have optimized the book order."],
-	"bed": ["The sheets are thoroughly aerated.", "This bed is refreshingly unconventional."]
+var FAULTY_REACTIONS := {
+	"sink": [GameText.get_text("tiptop.the_dish_cycle_was_successful"), GameText.get_text("tiptop.the_water_is_certainly_flowing_efficiently")],
+	"plant": [GameText.get_text("tiptop.hydration_is_complete"), GameText.get_text("tiptop.our_colleague_will_be_delighted")],
+	"bookshelf": [GameText.get_text("tiptop.this_bold_new_arrangement_is_excellent"), GameText.get_text("tiptop.i_have_optimized_the_book_order")],
+	"bed": [GameText.get_text("tiptop.the_sheets_are_thoroughly_aerated"), GameText.get_text("tiptop.this_bed_is_refreshingly_unconventional")]
 }
-const REPAIRED_REACTIONS := {
-	"sink": ["The dishes are clean and the floor is dry.", "That was another successful chore!"],
-	"plant": ["I delivered the correct amount this time.", "The plant is healthy and the floor is dry."],
-	"bookshelf": ["The books are alphabetical and upright.", "Everything is in its place, even the books."],
-	"bed": ["The bed is made. I shall leave it made.", "The bed is ready for sleeping or admiring."]
+var REPAIRED_REACTIONS := {
+	"sink": [GameText.get_text("tiptop.the_dishes_are_clean_and_the_floor_is_dry"), GameText.get_text("tiptop.that_was_another_successful_chore")],
+	"plant": [GameText.get_text("tiptop.i_delivered_the_correct_amount_this_time"), GameText.get_text("tiptop.the_plant_is_healthy_and_the_floor_is_dry")],
+	"bookshelf": [GameText.get_text("tiptop.the_books_are_alphabetical_and_upright"), GameText.get_text("tiptop.everything_is_in_its_place_even_the_books")],
+	"bed": [GameText.get_text("tiptop.the_bed_is_made_i_shall_leave_it_made"), GameText.get_text("tiptop.the_bed_is_ready_for_sleeping_or_admiring")]
 }
 var cleanup_target := false
 var swatting := false
@@ -222,9 +222,9 @@ func greet_morning() -> bool:
 	if GameState.research_active or not get_node("../HUD").overhead_thoughts_allowed():
 		return false
 	morning_day = GameState.day
-	var lines := ["Good morning, Judy! I've prepared a perfectly organized day.", "Good morning, Judy! I have several helpful intentions.", "Good morning, Judy! It's showcase day. I believe in us."]
+	var lines := [GameText.get_text("tiptop.good_morning_judy_i_ve_prepared_a_perfectly_organized_day"), GameText.get_text("tiptop.good_morning_judy_i_have_several_helpful_intentions"), GameText.get_text("tiptop.good_morning_judy_it_s_showcase_day_i_believe_in_us")]
 	var hud = get_node("../HUD")
-	hud.dialogue_lines.append_array([["TipTop", lines[(GameState.day - 1) % lines.size()], "proud"], ["Judy", "That sounds suspiciously optimistic.", "neutral"]])
+	hud.dialogue_lines.append_array([["TipTop", lines[(GameState.day - 1) % lines.size()], "proud"], ["Judy", GameText.get_text("tiptop.that_sounds_suspiciously_optimistic"), "neutral"]])
 	hud._advance_dialogue()
 	return true
 
@@ -235,7 +235,7 @@ func say_goodnight() -> void:
 		return
 	goodnight_day = GameState.day
 	var hud = get_node("../HUD")
-	hud.dialogue_lines.append_array([["TipTop", "Good night, Judy. Everything is under control. Probably.", "neutral"], ["Judy", "That's exactly what worries me. Night, TipTop.", "happy"]])
+	hud.dialogue_lines.append_array([["TipTop", GameText.get_text("tiptop.good_night_judy_everything_is_under_control_probably"), "neutral"], ["Judy", GameText.get_text("tiptop.that_s_exactly_what_worries_me_night_tiptop"), "happy"]])
 	hud._advance_dialogue()
 
 
@@ -249,11 +249,11 @@ func prepare_for_sleep() -> void:
 func _say_chore(phase: String) -> void:
 	if swatting:
 		if phase == "approach":
-			show_monologue("Tiny airborne intruder detected.")
+			show_monologue(GameText.get_text("tiptop.tiny_airborne_intruder_detected"))
 		elif phase == "working":
-			show_monologue("I have the situation under control.")
+			show_monologue(GameText.get_text("tiptop.i_have_the_situation_under_control"))
 		elif phase == "reaction":
-			show_monologue("One less mosquito. You're welcome, Judy." if GameState.batch_removed == 1 else "I removed %d airborne intruders." % GameState.batch_removed)
+			show_monologue(GameText.get_text("tiptop.one_less_mosquito_you_re_welcome_judy") if GameState.batch_removed == 1 else GameText.format_text("tiptop.i_removed_d_airborne_intruders", GameState.batch_removed))
 		return
 	var chore: String = CHORES[visit]
 	var pool: Array = APPROACH_THOUGHTS[chore]
@@ -567,9 +567,9 @@ func _begin_action() -> void:
 	travel_elapsed = 0.0
 	task_outcome = "working"
 	action_left = 3.0 if visit in [2, 3] or cleanup_target else 2.4
-	action_label.text = ["Drying...", "Mopping...", "Organizing...", "Making bed..."][visit] if cleanup_target else ["Watering...", "Washing...", "Organizing...", "Straightening..."][visit]
+	action_label.text = [GameText.get_text("tiptop.drying"), GameText.get_text("tiptop.mopping"), GameText.get_text("tiptop.organizing"), GameText.get_text("tiptop.making_bed")][visit] if cleanup_target else [GameText.get_text("tiptop.watering"), GameText.get_text("tiptop.washing"), GameText.get_text("tiptop.organizing"), GameText.get_text("tiptop.straightening")][visit]
 	if swatting:
-		action_label.text = "Swatting..."
+		action_label.text = GameText.get_text("tiptop.swatting")
 		action_left = 0.4
 	_say_chore("working")
 	if not swatting and visit == 1 and GameState.repairs["sink"] and GameState.tap_running:

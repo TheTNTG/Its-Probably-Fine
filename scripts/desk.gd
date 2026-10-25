@@ -14,7 +14,7 @@ func _ready() -> void:
 
 func _update_prompt() -> void:
 	var exhausted := GameState.work_sessions_remaining <= 0
-	prompt_label.text = "Too exhausted to work" if exhausted else "E - Work"
+	prompt_label.text = GameText.get_text("interactions.too_exhausted_to_work") if exhausted else GameText.get_text("interactions.e_work")
 	prompt_label.modulate = Color.RED if exhausted else Color.GREEN
 
 

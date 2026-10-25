@@ -1,0 +1,238 @@
+{
+  "interactions.approach_the_bookshelf_and_press_e_to_organize_it_20_min": {
+    "text": "Approach the bookshelf and press E to organize it (20 min).",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:514 organize_for_research"
+    ]
+  },
+  "interactions.couldn_t_start_the_activity_no_activity_time_or_reward_applied": {
+    "text": "Couldn't start the activity. No activity time or reward applied.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:246 personal_activity"
+    ]
+  },
+  "interactions.d_d_left": {
+    "text": " · {sessions}/{limit} left",
+    "variables": {
+      "sessions": "%d",
+      "limit": "%d"
+    },
+    "order": [
+      "sessions",
+      "limit"
+    ],
+    "where": [
+      "scripts/player.gd:62 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_cleanup_mosquitoes": {
+    "text": "E - Cleanup / mosquitoes",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:72 _update_interaction_prompt",
+      "scripts/player.gd:76 _update_interaction_prompt"
+    ],
+    "tags": [
+      "mosquito"
+    ]
+  },
+  "interactions.e_dry_plant_area_10_min": {
+    "text": "E - Dry plant area (10 min)",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:74 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_eat_30_min": {
+    "text": "E - Eat (30 min)",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:66 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_eat_something_first": {
+    "text": "E - Eat something first",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:60 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_make_bed_5_min": {
+    "text": "E - Make bed (5 min)",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:80 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_mop_clean_15_min": {
+    "text": "E - Mop / clean (15 min)",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:70 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_not_enough_research_time": {
+    "text": "E - Not enough research time",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:60 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_organize_books_20_min": {
+    "text": "E - Organize books (20 min)",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:78 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_research": {
+    "text": "E - Research",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:57 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_research_blocked_bookshelf": {
+    "text": "E - Research blocked (bookshelf)",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:60 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_rest": {
+    "text": "E - Rest",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:80 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_take_a_break": {
+    "text": "E - Take a break",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:68 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_take_a_break_first": {
+    "text": "E - Take a break first",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:60 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_talk_repair_tiptop": {
+    "text": "E - Talk / Repair TipTop",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:64 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_talk_to_tiptop": {
+    "text": "E - Talk to TipTop",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:64 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_tap_off": {
+    "text": "E - Tap off",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:70 _update_interaction_prompt"
+    ]
+  },
+  "interactions.e_work": {
+    "text": "E - Work",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/desk.gd:17 _update_prompt"
+    ]
+  },
+  "interactions.judy_right_let_s_sort_this_out": {
+    "text": "Right. Let's sort this out.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/player.gd:486 _clean_animation"
+    ],
+    "speaker": "Judy"
+  },
+  "interactions.scene_desk_promptlabel_text": {
+    "text": "E - Work",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scenes/desk.tscn:36 [node name=\"PromptLabel\" type=\"Label\" parent=\".\"]"
+    ]
+  },
+  "interactions.scene_hud_daylabel_text": {
+    "text": "Day 1",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scenes/hud.tscn:14 [node name=\"DayLabel\" type=\"Label\" parent=\".\"]"
+    ]
+  },
+  "interactions.scene_hud_fixbutton_text": {
+    "text": "Fix (30 min)",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scenes/hud.tscn:61 [node name=\"FixButton\" type=\"Button\" parent=\"NotificationPanel\"]"
+    ]
+  },
+  "interactions.scene_hud_ignorebutton_text": {
+    "text": "Ignore",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scenes/hud.tscn:69 [node name=\"IgnoreButton\" type=\"Button\" parent=\"NotificationPanel\"]"
+    ]
+  },
+  "interactions.scene_hud_researchlabel_text": {
+    "text": "Research: 0%",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scenes/hud.tscn:31 [node name=\"ResearchLabel\" type=\"Label\" parent=\".\"]"
+    ]
+  },
+  "interactions.scene_hud_timelabel_text": {
+    "text": "11:00 AM",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scenes/hud.tscn:22 [node name=\"TimeLabel\" type=\"Label\" parent=\".\"]"
+    ]
+  },
+  "interactions.too_exhausted_to_work": {
+    "text": "Too exhausted to work",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/desk.gd:17 _update_prompt",
+      "scripts/player.gd:57 _update_interaction_prompt"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "endings.against_all_odds": {
+    "text": "AGAINST ALL ODDS",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/showcase.gd:16 initial values"
+    ]
+  },
+  "endings.good_enough": {
+    "text": "GOOD ENOUGH",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/showcase.gd:16 initial values"
+    ]
+  },
+  "endings.it_s_probably_not_fine": {
+    "text": "IT'S PROBABLY NOT FINE",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/showcase.gd:16 initial values"
+    ]
+  },
+  "endings.main_menu": {
+    "text": "Main Menu",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/showcase.gd:81 _build_results"
+    ],
+    "audio_cue": "cancel"
+  },
+  "endings.research_1f_routines_repaired_d_4": {
+    "text": "Research: {progress}%  ·  Routines repaired: {repaired} / 4",
+    "variables": {
+      "progress": "%.1f",
+      "repaired": "%d"
+    },
+    "order": [
+      "progress",
+      "repaired"
+    ],
+    "where": [
+      "scripts/showcase.gd:73 _build_results"
+    ]
+  },
+  "endings.restart": {
+    "text": "Restart",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/showcase.gd:81 _build_results"
+    ]
+  },
+  "endings.university_research_showcase_day_3": {
+    "text": "UNIVERSITY RESEARCH SHOWCASE  /  DAY 3",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/showcase.gd:25 _ready"
+    ]
+  }
+}

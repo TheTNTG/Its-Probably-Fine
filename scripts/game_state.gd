@@ -16,10 +16,10 @@ const RESEARCH_MINUTES := 120.0
 const PENALIZED_RESEARCH_MINUTES := 160.0
 const WATCH_REAL_SECONDS := 180.0
 const GOOD_ENDING_RESEARCH_THRESHOLD := 75.0
-const DIFFICULTIES := [
-	{"name": "Easy", "research": 15.0, "research_minutes": 90.0, "repair_reward": 5.0, "repair_minutes": 45, "work_mood": 15.0, "depletion": 0.70, "description": "More research, shorter repairs, gentler needs."},
-	{"name": "Medium", "research": 10.0, "research_minutes": 120.0, "repair_reward": 4.0, "repair_minutes": 60, "work_mood": 20.0, "depletion": 1.00, "description": "The established balance, with repair rewards."},
-	{"name": "Hard", "research": 8.0, "research_minutes": 180.0, "repair_reward": 3.0, "repair_minutes": 60, "work_mood": 25.0, "depletion": 1.20, "description": "Less research and faster needs depletion."}
+var DIFFICULTIES := [
+	{"name": GameText.get_text("research.difficulty_easy"), "research": 15.0, "research_minutes": 90.0, "repair_reward": 5.0, "repair_minutes": 45, "work_mood": 15.0, "depletion": 0.70, "description": GameText.get_text("research.difficulty_more_research_shorter_repairs_gentler_needs")},
+	{"name": GameText.get_text("research.difficulty_medium"), "research": 10.0, "research_minutes": 120.0, "repair_reward": 4.0, "repair_minutes": 60, "work_mood": 20.0, "depletion": 1.00, "description": GameText.get_text("research.difficulty_the_established_balance_with_repair_rewards")},
+	{"name": GameText.get_text("research.difficulty_hard"), "research": 8.0, "research_minutes": 180.0, "repair_reward": 3.0, "repair_minutes": 60, "work_mood": 25.0, "depletion": 1.20, "description": GameText.get_text("research.difficulty_less_research_and_faster_needs_depletion")}
 ]
 var difficulty := 1
 var difficulty_locked := false
@@ -152,14 +152,14 @@ func eject_current_task() -> void:
 	personal_playback_rate = 1.0
 	# Player coroutines restore the seated pose and release their own locks.
 	# A started research session remains charged; completion effects are not run.
-	action_feedback.emit("Task ejected. Elapsed time kept; no completion reward.")
+	action_feedback.emit(GameText.get_text("notifications.task_ejected_elapsed_time_kept_no_completion_reward"))
 	state_changed.emit()
 	SaveStore.request_autosave("activity_ejected")
 
 
 func request_mosquito_batch() -> void:
 	if mosquitoes.is_empty():
-		action_feedback.emit("TipTop: No airborne intruders detected.")
+		action_feedback.emit(GameText.get_text("hud.tiptop_no_airborne_intruders_detected"))
 		return
 	mosquito_task = true
 	if research_swat and not robot_chore_resolved:
@@ -171,7 +171,7 @@ func request_mosquito_batch() -> void:
 
 
 func hunger_status() -> String:
-	return "Well-fed" if hunger >= 75 else ("Normal" if hunger > 45 else "Hungry")
+	return GameText.get_text("notifications.well_fed") if hunger >= 75 else (GameText.get_text("notifications.normal") if hunger > 45 else GameText.get_text("notifications.hungry"))
 
 
 func _update_mosquito_population() -> void:
@@ -274,7 +274,7 @@ func start_personal_activity(activity: String) -> bool:
 		return false
 	var minutes: int = PERSONAL_ACTIVITIES[activity][0]
 	if DAY_END - time_minutes - clock_fraction - world_accumulator < minutes:
-		action_feedback.emit("Not enough time before 8:00 PM for that activity.")
+		action_feedback.emit(GameText.get_text("notifications.not_enough_time_before_8_00_pm_for_that_activity"))
 		return false
 	if world_accumulator > 0:
 		var pending := world_accumulator
@@ -289,9 +289,9 @@ func start_personal_activity(activity: String) -> bool:
 func judy_response(context: String) -> String:
 	var tier := 0 if mood >= 70 else (1 if mood >= 45 else 2)
 	var pools := {
-		"talk": [["How's my favorite household genius?", "How's the extremely important robot business?"], ["How are the chores going, TipTop?", "Give me the short version, buddy."], ["TipTop, please. I need a quiet minute.", "I'm listening. Just a little slowly today."]],
-		"chore": [["Actual water. Bold interpretation, buddy.", "Well, the floor certainly looks hydrated."], ["That's actual water, TipTop. I'll handle it.", "The routine needs a correction. I'll sort it."], ["That's water, TipTop. Please stop the tap.", "Right. The tap again. Give me a minute."]],
-		"break": [["Four hours? Science really needs a snooze button.", "Okay, you've caught me. I'll take a breather."], ["You're right. I should take a break.", "Let me step away from the notes for a bit."], ["Yeah. I'm running on fumes here.", "I know, buddy. I really need a minute."]]
+		"talk": [[GameText.get_text("dialogue.judy_how_s_my_favorite_household_genius"), GameText.get_text("dialogue.how_s_the_extremely_important_robot_business")], [GameText.get_text("dialogue.judy_how_are_the_chores_going_tiptop"), GameText.get_text("dialogue.judy_give_me_the_short_version_buddy")], [GameText.get_text("dialogue.judy_tiptop_please_i_need_a_quiet_minute"), GameText.get_text("dialogue.judy_i_m_listening_just_a_little_slowly_today")]],
+		"chore": [[GameText.get_text("dialogue.judy_actual_water_bold_interpretation_buddy"), GameText.get_text("dialogue.judy_well_the_floor_certainly_looks_hydrated")], [GameText.get_text("dialogue.judy_that_s_actual_water_tiptop_i_ll_handle_it"), GameText.get_text("dialogue.judy_the_routine_needs_a_correction_i_ll_sort_it")], [GameText.get_text("dialogue.judy_that_s_water_tiptop_please_stop_the_tap"), GameText.get_text("dialogue.judy_right_the_tap_again_give_me_a_minute")]],
+		"break": [[GameText.get_text("dialogue.judy_four_hours_science_really_needs_a_snooze_button"), GameText.get_text("dialogue.judy_okay_you_ve_caught_me_i_ll_take_a_breather")], [GameText.get_text("dialogue.judy_you_re_right_i_should_take_a_break"), GameText.get_text("dialogue.judy_let_me_step_away_from_the_notes_for_a_bit")], [GameText.get_text("dialogue.judy_yeah_i_m_running_on_fumes_here"), GameText.get_text("dialogue.judy_i_know_buddy_i_really_need_a_minute")]]
 	}
 	var key := "%s:%d" % [context, tier]
 	var index := int(response_counts.get(key, 0))
@@ -343,7 +343,7 @@ func advance_personal_activity(minutes: float) -> void:
 	meaningful_break_taken.emit()
 	SaveStore.request_autosave("personal_activity_completed")
 	ApartmentAudio.play_ui("complete", true)
-	action_feedback.emit("Meal finished: +40 Fullness, +10 Mood. Work streak reset." if activity == "eat" else "Break finished. Feeling more like myself.")
+	action_feedback.emit(GameText.get_text("notifications.meal_finished_40_fullness_10_mood_work_streak_reset") if activity == "eat" else GameText.get_text("notifications.break_finished_feeling_more_like_myself"))
 	state_changed.emit()
 
 
@@ -380,7 +380,7 @@ func begin_research() -> bool:
 	# Snapshot needs at the start for identical playback rewards; retain fractions.
 	research_gain = preview_research_gain()
 	if pushing_through():
-		action_feedback.emit("Judy is pushing through exhaustion: an extra 20% research penalty.")
+		action_feedback.emit(GameText.get_text("notifications.judy_is_pushing_through_exhaustion_an_extra_20_research_penalt"))
 	research_elapsed = 0.0
 	research_accumulator = world_accumulator
 	research_interruptions = 0
@@ -526,7 +526,7 @@ func complete_research() -> void:
 	ApartmentAudio.play_ui("complete", true)
 	if research_progress >= GOOD_ENDING_RESEARCH_THRESHOLD:
 		SaveStore.milestone("research_target")
-	action_feedback.emit("Research complete: +%.1f%%, %d min, %d session(s) left." % [research_gain, research_duration, work_sessions_remaining])
+	action_feedback.emit(GameText.format_text("notifications.research_complete_1f_d_min_d_session_s_left", [research_gain, research_duration, work_sessions_remaining]))
 	if not day_ended:
 		if work_sessions_remaining <= 2:
 			story_event.emit("ambient_%d" % day)
@@ -546,7 +546,7 @@ func swat_mosquitoes(manual: bool) -> void:
 	if manual:
 		_advance_time(5)
 	state_changed.emit()
-	action_feedback.emit("Mosquitoes reduced. Remove standing water to keep them away.")
+	action_feedback.emit(GameText.get_text("notifications.mosquitoes_reduced_remove_standing_water_to_keep_them_away"))
 var bed_protected_until := 0
 var bed_mischief_day := 0
 
@@ -573,14 +573,14 @@ func has_research_time() -> bool:
 
 func research_block_reason() -> String:
 	if work_sessions_remaining <= 0:
-		return "Too exhausted to work. Rest until tomorrow."
+		return GameText.get_text("research.too_exhausted_to_work_rest_until_tomorrow")
 	if not fullness_allows_research():
-		return "Judy is too hungry to work. Eat something first."
+		return GameText.get_text("notifications.judy_is_too_hungry_to_work_eat_something_first")
 	if not mood_allows_research():
-		return "Judy needs a break. Restore Mood to at least 45% before researching."
+		return GameText.get_text("notifications.judy_needs_a_break_restore_mood_to_at_least_45_before_research")
 	if not has_research_time():
-		return "Not enough time before 8:00 PM. A full research session needs %d minutes; no session used." % research_session_minutes()
-	return "Research materials are misplaced. Organize the bookshelf (20 min)."
+		return GameText.format_text("notifications.not_enough_time_before_8_00_pm_a_full_research_session_needs_d", research_session_minutes())
+	return GameText.get_text("notifications.research_materials_are_misplaced_organize_the_bookshelf_20_min")
 
 
 func clear_mess(chore: String) -> void:
@@ -597,14 +597,14 @@ func manual_clean(chore: String) -> bool:
 	if day_ended or game_finished or not needs_cleanup(chore):
 		return false
 	if chore == "sink" and tap_running:
-		action_feedback.emit("Turn off the tap before mopping.")
+		action_feedback.emit(GameText.get_text("notifications.turn_off_the_tap_before_mopping"))
 		return false
 	_advance_time(CLEAN_COSTS[chore], "cleanup")
 	clear_mess(chore)
 	var fixture: String = {"sink": "Sink", "plant": "PlantPot", "bookshelf": "Bookshelf", "bed": "Bed"}[chore]
 	ApartmentAudio.play_world("book_stack" if chore == "bookshelf" else ("bedding" if chore == "bed" else "clean"), get_tree().current_scene.get_node(fixture).global_position)
 	SaveStore.request_autosave("cleanup_completed")
-	action_feedback.emit("%s tidied. Routine unchanged. (-%d min)" % [chore.capitalize(), CLEAN_COSTS[chore]])
+	action_feedback.emit(GameText.format_text("notifications.s_tidied_routine_unchanged_d_min", [GameText.get_text("tiptop.routine." + chore), CLEAN_COSTS[chore]]))
 	return true
 
 
@@ -693,13 +693,13 @@ func end_day() -> void:
 	if day_ended or game_finished:
 		return
 	if int(chore_mess["bed"]) > 0:
-		action_feedback.emit("Make the bed first (E, 5 min), or let the repaired bed routine handle it.")
+		action_feedback.emit(GameText.get_text("notifications.make_the_bed_first_e_5_min_or_let_the_repaired_bed_routine_han"))
 		return
 	if not tiptop_fixed and not end_day_reminded:
 		end_day_reminded = true
 		ending_day_pending = true
 		notification_active = true
-		malfunction_triggered.emit("TipTop still has faulty routines. Repair before resting?")
+		malfunction_triggered.emit(GameText.get_text("notifications.tiptop_still_has_faulty_routines_repair_before_resting"))
 		state_changed.emit()
 		return
 	ending_day_pending = false
@@ -722,7 +722,7 @@ func _check_malfunction() -> void:
 	first_work_done = true
 	tap_running = true
 	notification_active = true
-	malfunction_triggered.emit("TipTop left the tap running!" if day == 1 else "TipTop left the tap running... again!")
+	malfunction_triggered.emit(GameText.get_text("notifications.tiptop_left_the_tap_running") if day == 1 else GameText.get_text("notifications.tiptop_left_the_tap_running_again"))
 	state_changed.emit()
 	if day == 1:
 		story_event.emit("first_tap")
@@ -739,7 +739,7 @@ func repair_routine(chore: String) -> void:
 		return
 	var duration := repair_minutes()
 	if DAY_END - time_minutes - clock_fraction - world_accumulator < duration:
-		action_feedback.emit("A full repair needs %d minutes before 8:00 PM. No time or reward charged." % duration)
+		action_feedback.emit(GameText.format_text("notifications.a_full_repair_needs_d_minutes_before_8_00_pm_no_time_or_reward", duration))
 		return
 	repair_in_progress = true
 	_advance_time(duration, "repairs")
@@ -757,13 +757,13 @@ func repair_routine(chore: String) -> void:
 	repair_in_progress = false
 	ApartmentAudio.play_ui("repair", true)
 	state_changed.emit()
-	action_feedback.emit("%s routine repaired: +%.0f%% research. (-%d min)" % [chore.capitalize(), reward, duration])
+	action_feedback.emit(GameText.format_text("notifications.s_routine_repaired_0f_research_d_min", [GameText.get_text("tiptop.routine." + chore), reward, duration]))
 	if ending_day_pending:
 		end_day()
 	if chore == "sink":
 		story_event.emit("fixed")
 	else:
-		action_feedback.emit("TipTop: %s routine updated. Thank you, Judy!" % chore.capitalize())
+		action_feedback.emit(GameText.format_text("notifications.tiptop_s_routine_updated_thank_you_judy", GameText.get_text("tiptop.routine." + chore)))
 	if earned_bonus:
 		story_event.emit("proactive_fix")
 	SaveStore.request_autosave("routine_repaired")

@@ -13,7 +13,7 @@ var results: PanelContainer
 var restart_button: Button
 const CREAM := Color("f5e6cd")
 const AMBER := Color("e6b369")
-const TITLES := {"good": "AGAINST ALL ODDS", "bittersweet": "GOOD ENOUGH", "bad": "IT'S PROBABLY NOT FINE"}
+var TITLES := {"good": GameText.get_text("endings.against_all_odds"), "bittersweet": GameText.get_text("endings.good_enough"), "bad": GameText.get_text("endings.it_s_probably_not_fine")}
 
 
 func _ready() -> void:
@@ -22,7 +22,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var heading := Label.new()
-	heading.text = "UNIVERSITY RESEARCH SHOWCASE  /  DAY 3"
+	heading.text = GameText.get_text("endings.university_research_showcase_day_3")
 	heading.position = Vector2(0, 10)
 	heading.size.x = 432
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -70,7 +70,7 @@ func _build_results() -> void:
 	title.add_theme_color_override("font_color", AMBER)
 	box.add_child(title)
 	var summary := Label.new()
-	summary.text = "Research: %.1f%%  ·  Routines repaired: %d / 4" % [research, repaired_count]
+	summary.text = GameText.format_text("endings.research_1f_routines_repaired_d_4", [research, repaired_count])
 	summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	summary.add_theme_font_size_override("font_size", 8)
 	summary.add_theme_color_override("font_color", CREAM)
@@ -78,7 +78,7 @@ func _build_results() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	box.add_child(row)
-	for item in [["Restart", restart_requested], ["Main Menu", main_menu_requested]]:
+	for item in [[GameText.get_text("endings.restart"), restart_requested], [GameText.get_text("endings.main_menu"), main_menu_requested]]:
 		var button := Button.new()
 		button.text = item[0]
 		button.custom_minimum_size.y = 21
@@ -99,7 +99,7 @@ func _build_results() -> void:
 				(child as Button).disabled = true
 			action.emit())
 		row.add_child(button)
-		if item[0] == "Restart":
+		if action == restart_requested:
 			restart_button = button
 	results.hide()
 

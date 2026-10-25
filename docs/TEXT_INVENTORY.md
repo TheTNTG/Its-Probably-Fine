@@ -1,5 +1,7 @@
 # Text inventory — Step 48
 
+> Historical pre-centralization snapshot. Current editable copy and IDs are listed in [COMPLETE_TEXT_REFERENCE.md](COMPLETE_TEXT_REFERENCE.md). Edit `data/text/*.json`, not the old source locations below.
+
 Source snapshot, not a runtime/UI verification. This inventory covers every string literal outside comments in first-party game scripts, rules data, scenes, the UI theme and project configuration. Repeated occurrences have separate IDs and locations. No dialogue, thought array or scene literal is intentionally omitted. Editor-only third-party addons, import metadata, audio manifests, documentation and art assets are excluded.
 
 The tables prioritize likely display copy, then retain all other literals in [the technical appendix](TEXT_INVENTORY_INTERNALS.md). Classification is conservative: short labels, speaker names and some code strings also appear below. This is a source inventory, not a claim that every candidate is currently displayed. Do not rename keys, node paths, enum identifiers, asset paths or event IDs to change copy. Use the [editing guide](TEXT_EDITING_GUIDE.md).

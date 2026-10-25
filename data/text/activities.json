@@ -1,0 +1,225 @@
+{
+  "activities.ask_tiptop_to_swat_mosquitoes_free": {
+    "text": "Ask TipTop to swat mosquitoes — free",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:269 household_choices"
+    ],
+    "tags": [
+      "mosquito"
+    ]
+  },
+  "activities.cancel": {
+    "text": "Cancel",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:270 household_choices",
+      "scripts/hud.gd:1190 _build_repair_menu"
+    ],
+    "audio_cue": "cancel"
+  },
+  "activities.clean_s_myself_d_min": {
+    "text": "Clean {routine} myself — {duration} min",
+    "variables": {
+      "routine": "%s",
+      "duration": "%d"
+    },
+    "order": [
+      "routine",
+      "duration"
+    ],
+    "where": [
+      "scripts/hud.gd:266 household_choices"
+    ]
+  },
+  "activities.eat_at_the_coffee_table_30_min_40_fullness_10_mood": {
+    "text": "Eat at the coffee table — 30 min, +40 Fullness, +10 Mood",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:258 household_choices"
+    ]
+  },
+  "activities.efficiency_d_reward_1f_research_s": {
+    "text": "Efficiency: {efficiency}% | Reward: +{reward}% research{modifier}",
+    "variables": {
+      "efficiency": "%d",
+      "reward": "%.1f",
+      "modifier": "%s"
+    },
+    "order": [
+      "efficiency",
+      "reward",
+      "modifier"
+    ],
+    "where": [
+      "scripts/hud.gd:245 household_choices"
+    ]
+  },
+  "activities.eject_task": {
+    "text": "Eject task",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1415 _build_eject_confirmation"
+    ]
+  },
+  "activities.eject_unfinished_task": {
+    "text": "Eject unfinished task?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1411 _build_eject_confirmation"
+    ]
+  },
+  "activities.elapsed_time_stays_spent_no_completion_reward_a_started_resear": {
+    "text": "Elapsed time stays spent. No completion reward.\nA started research session stays used.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1412 _build_eject_confirmation"
+    ]
+  },
+  "activities.fast_forward_6x": {
+    "text": "Fast-forward · 6x",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:251 household_choices"
+    ]
+  },
+  "activities.keep_working": {
+    "text": "Keep working",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1415 _build_eject_confirmation"
+    ]
+  },
+  "activities.organize_books_myself_20_min": {
+    "text": "Organize books myself — 20 min",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:260 household_choices"
+    ]
+  },
+  "activities.play_phone_games_30_min_30_mood": {
+    "text": "Play phone games — 30 min, +30 Mood",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:255 household_choices"
+    ]
+  },
+  "activities.pushing_through": {
+    "text": " (pushing through)",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:245 household_choices"
+    ]
+  },
+  "activities.ready_to_research": {
+    "text": "Ready to research",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:249 household_choices",
+      "scripts/hud.gd:834 _update_sidebar"
+    ]
+  },
+  "activities.repair_tiptop": {
+    "text": "Repair TipTop...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:264 household_choices"
+    ]
+  },
+  "activities.research_unavailable": {
+    "text": "Research unavailable",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:249 household_choices"
+    ]
+  },
+  "activities.s_d_game_min_watch_1f_real_min": {
+    "text": "{difficulty} · {duration} game min · Watch ~{watch_minutes} real min",
+    "variables": {
+      "difficulty": "%s",
+      "duration": "%d",
+      "watch_minutes": "%.1f"
+    },
+    "order": [
+      "difficulty",
+      "duration",
+      "watch_minutes"
+    ],
+    "where": [
+      "scripts/hud.gd:248 household_choices"
+    ]
+  },
+  "activities.sessions_d_used_d_d_left": {
+    "text": "Sessions: {used} used · {remaining}/{limit} left",
+    "variables": {
+      "used": "%d",
+      "remaining": "%d",
+      "limit": "%d"
+    },
+    "order": [
+      "used",
+      "remaining",
+      "limit"
+    ],
+    "where": [
+      "scripts/hud.gd:243 household_choices"
+    ]
+  },
+  "activities.solve_rubik_s_cube_20_min_25_mood": {
+    "text": "Solve Rubik's cube — 20 min, +25 Mood",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:256 household_choices"
+    ]
+  },
+  "activities.swat_mosquitoes_myself_5_min": {
+    "text": "Swat mosquitoes myself — 5 min",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:268 household_choices"
+    ],
+    "tags": [
+      "mosquito"
+    ]
+  },
+  "activities.take_a_break": {
+    "text": "Take a break",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:253 household_choices"
+    ]
+  },
+  "activities.talk_to_tiptop": {
+    "text": "Talk to TipTop",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:262 household_choices"
+    ]
+  },
+  "activities.watch_reels_15_min_18_mood": {
+    "text": "Watch reels — 15 min, +18 Mood",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:254 household_choices"
+    ]
+  }
+}

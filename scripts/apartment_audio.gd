@@ -222,17 +222,8 @@ func _hover_control(button: BaseButton) -> void:
 func _button_pressed(button: BaseButton) -> void:
 	if not is_instance_valid(button):
 		return
-	var caption := ""
-	if button is Button:
-		caption = (button as Button).text.to_lower()
-	if "cancel" in caption or "back" in caption or "main menu" in caption or "return" in caption:
-		play_ui("cancel")
-	elif "resume" in caption:
-		play_ui("resume")
-	elif "begin" in caption or "continue" in caption or "watch research" in caption or "new game" in caption:
-		play_ui("confirm")
-	else:
-		play_ui("click")
+	# Copy edits must not change the existing cue associated with a button.
+	play_ui(GameText.button_cue((button as Button).text) if button is Button else "click")
 
 
 func _load_sfx(path: String) -> AudioStream:

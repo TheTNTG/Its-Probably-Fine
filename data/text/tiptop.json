@@ -1,0 +1,623 @@
+{
+  "tiptop.a_continuous_rinse_must_be_very_thorough": {
+    "text": "A continuous rinse must be very thorough.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:42 initial values"
+    ]
+  },
+  "tiptop.a_generous_drink_for_a_generous_plant": {
+    "text": "A generous drink for a generous plant.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:43 initial values"
+    ]
+  },
+  "tiptop.a_little_creative_folding_should_help": {
+    "text": "A little creative folding should help.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:45 initial values"
+    ]
+  },
+  "tiptop.a_tidy_bed_supports_untidy_scientific_ideas": {
+    "text": "A tidy bed supports untidy scientific ideas.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:39 initial values"
+    ]
+  },
+  "tiptop.dish_duty_is_one_of_my_four_specialties": {
+    "text": "Dish duty is one of my four specialties.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:36 initial values"
+    ]
+  },
+  "tiptop.drying": {
+    "text": "Drying...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:570 _begin_action"
+    ]
+  },
+  "tiptop.every_sheet_deserves_extra_ventilation": {
+    "text": "Every sheet deserves extra ventilation!",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:45 initial values"
+    ]
+  },
+  "tiptop.everything_is_in_its_place_even_the_books": {
+    "text": "Everything is in its place, even the books.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:62 initial values"
+    ]
+  },
+  "tiptop.faulty": {
+    "text": "Faulty",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1209 _open_repair_menu"
+    ]
+  },
+  "tiptop.faulty_routines_repair_or_ignore": {
+    "text": "Faulty routines: repair or ignore?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:487 _show_malfunction"
+    ]
+  },
+  "tiptop.good_morning_judy_i_have_several_helpful_intentions": {
+    "text": "Good morning, Judy! I have several helpful intentions.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:225 greet_morning"
+    ]
+  },
+  "tiptop.good_morning_judy_i_ve_prepared_a_perfectly_organized_day": {
+    "text": "Good morning, Judy! I've prepared a perfectly organized day.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:225 greet_morning"
+    ]
+  },
+  "tiptop.good_morning_judy_it_s_showcase_day_i_believe_in_us": {
+    "text": "Good morning, Judy! It's showcase day. I believe in us.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:225 greet_morning"
+    ]
+  },
+  "tiptop.good_night_judy_everything_is_under_control_probably": {
+    "text": "Good night, Judy. Everything is under control. Probably.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:238 say_goodnight"
+    ]
+  },
+  "tiptop.hydration_is_complete": {
+    "text": "Hydration is complete.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:55 initial values"
+    ]
+  },
+  "tiptop.i_am_testing_an_aerodynamic_arrangement": {
+    "text": "I am testing an aerodynamic arrangement.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:44 initial values"
+    ]
+  },
+  "tiptop.i_delivered_the_correct_amount_this_time": {
+    "text": "I delivered the correct amount this time.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:61 initial values"
+    ]
+  },
+  "tiptop.i_have_optimized_the_book_order": {
+    "text": "I have optimized the book order.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:56 initial values"
+    ]
+  },
+  "tiptop.i_have_revised_my_rinsing_methods": {
+    "text": "I have revised my rinsing methods.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:48 initial values"
+    ]
+  },
+  "tiptop.i_have_the_situation_under_control": {
+    "text": "I have the situation under control.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:254 _say_chore"
+    ]
+  },
+  "tiptop.i_remember_to_smooth_the_sheets_gently": {
+    "text": "I remember to smooth the sheets gently.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:51 initial values"
+    ]
+  },
+  "tiptop.i_removed_d_airborne_intruders": {
+    "text": "I removed {count} airborne intruders.",
+    "variables": {
+      "count": "%d"
+    },
+    "order": [
+      "count"
+    ],
+    "where": [
+      "scripts/tiptop.gd:256 _say_chore"
+    ]
+  },
+  "tiptop.i_shall_assess_the_sheet_situation": {
+    "text": "I shall assess the sheet situation.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:39 initial values"
+    ]
+  },
+  "tiptop.i_shall_check_on_our_leafy_colleague": {
+    "text": "I shall check on our leafy colleague.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:37 initial values"
+    ]
+  },
+  "tiptop.i_shall_check_the_soil_before_i_pour": {
+    "text": "I shall check the soil before I pour.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:49 initial values"
+    ]
+  },
+  "tiptop.i_shall_give_it_just_enough_water": {
+    "text": "I shall give it just enough water.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:49 initial values"
+    ]
+  },
+  "tiptop.i_shall_rinse_the_dishes_then_close_the_tap": {
+    "text": "I shall rinse the dishes, then close the tap.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:48 initial values"
+    ]
+  },
+  "tiptop.i_shall_tuck_the_corners_and_restore_the_pillow": {
+    "text": "I shall tuck the corners and restore the pillow.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:51 initial values"
+    ]
+  },
+  "tiptop.making_bed": {
+    "text": "Making bed...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:570 _begin_action"
+    ]
+  },
+  "tiptop.maximum_cleanliness_requires_maximum_water": {
+    "text": "Maximum cleanliness requires maximum water!",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:42 initial values"
+    ]
+  },
+  "tiptop.mopping": {
+    "text": "Mopping...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:570 _begin_action"
+    ]
+  },
+  "tiptop.not_enough_time": {
+    "text": "Not enough time",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1209 _open_repair_menu"
+    ],
+    "tags": [
+      "insufficient_time"
+    ]
+  },
+  "tiptop.one_less_mosquito_you_re_welcome_judy": {
+    "text": "One less mosquito. You're welcome, Judy.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:256 _say_chore"
+    ],
+    "tags": [
+      "mosquito"
+    ]
+  },
+  "tiptop.organizing": {
+    "text": "Organizing...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:570 _begin_action",
+      "scripts/tiptop.gd:570 _begin_action"
+    ]
+  },
+  "tiptop.our_colleague_will_be_delighted": {
+    "text": "Our colleague will be delighted.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:55 initial values"
+    ]
+  },
+  "tiptop.plants_love_water_more_must_be_better": {
+    "text": "Plants love water. More must be better!",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:43 initial values"
+    ]
+  },
+  "tiptop.repaired": {
+    "text": "Repaired",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1209 _open_repair_menu"
+    ]
+  },
+  "tiptop.repairs": {
+    "text": "Repairs...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1195 _build_repair_menu"
+    ]
+  },
+  "tiptop.routine.bed": {
+    "text": "Bed",
+    "variables": {},
+    "order": [],
+    "where": [
+      "Runtime chore name; hud.gd and game_state.gd"
+    ]
+  },
+  "tiptop.routine.bookshelf": {
+    "text": "Bookshelf",
+    "variables": {},
+    "order": [],
+    "where": [
+      "Runtime chore name; hud.gd and game_state.gd"
+    ]
+  },
+  "tiptop.routine.plant": {
+    "text": "Plant",
+    "variables": {},
+    "order": [],
+    "where": [
+      "Runtime chore name; hud.gd and game_state.gd"
+    ]
+  },
+  "tiptop.routine.sink": {
+    "text": "Sink",
+    "variables": {},
+    "order": [],
+    "where": [
+      "Runtime chore name; hud.gd and game_state.gd"
+    ]
+  },
+  "tiptop.routine_lower.bed": {
+    "text": "bed",
+    "variables": {},
+    "order": [],
+    "where": [
+      "Runtime chore name in conversations and cleanup"
+    ]
+  },
+  "tiptop.routine_lower.bookshelf": {
+    "text": "bookshelf",
+    "variables": {},
+    "order": [],
+    "where": [
+      "Runtime chore name in conversations and cleanup"
+    ]
+  },
+  "tiptop.routine_lower.plant": {
+    "text": "plant",
+    "variables": {},
+    "order": [],
+    "where": [
+      "Runtime chore name in conversations and cleanup"
+    ]
+  },
+  "tiptop.routine_lower.sink": {
+    "text": "sink",
+    "variables": {},
+    "order": [],
+    "where": [
+      "Runtime chore name in conversations and cleanup"
+    ]
+  },
+  "tiptop.s_s_d_min_0f": {
+    "text": "{routine} — {status} ({duration} min, +{reward}%)",
+    "variables": {
+      "routine": "%s",
+      "status": "%s",
+      "duration": "%d",
+      "reward": "%.0f"
+    },
+    "order": [
+      "routine",
+      "status",
+      "duration",
+      "reward"
+    ],
+    "where": [
+      "scripts/hud.gd:1209 _open_repair_menu"
+    ]
+  },
+  "tiptop.straightening": {
+    "text": "Straightening...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:570 _begin_action"
+    ]
+  },
+  "tiptop.swatting": {
+    "text": "Swatting...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:572 _begin_action"
+    ]
+  },
+  "tiptop.tap_running_repair_or_ignore": {
+    "text": "Tap running: repair or ignore?",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:487 _show_malfunction"
+    ]
+  },
+  "tiptop.that_s_exactly_what_worries_me_night_tiptop": {
+    "text": "That's exactly what worries me. Night, TipTop.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:238 say_goodnight"
+    ]
+  },
+  "tiptop.that_sounds_suspiciously_optimistic": {
+    "text": "That sounds suspiciously optimistic.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:227 greet_morning"
+    ]
+  },
+  "tiptop.that_was_another_successful_chore": {
+    "text": "That was another successful chore!",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:60 initial values"
+    ]
+  },
+  "tiptop.the_bed_is_made_i_shall_leave_it_made": {
+    "text": "The bed is made. I shall leave it made.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:63 initial values"
+    ]
+  },
+  "tiptop.the_bed_is_ready_for_sleeping_or_admiring": {
+    "text": "The bed is ready for sleeping or admiring.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:63 initial values"
+    ]
+  },
+  "tiptop.the_books_are_alphabetical_and_upright": {
+    "text": "The books are alphabetical and upright.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:62 initial values"
+    ]
+  },
+  "tiptop.the_bookshelf_requires_my_expertise": {
+    "text": "The bookshelf requires my expertise.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:38 initial values"
+    ]
+  },
+  "tiptop.the_dish_cycle_was_successful": {
+    "text": "The dish cycle was successful.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:54 initial values"
+    ]
+  },
+  "tiptop.the_dishes_are_clean_and_the_floor_is_dry": {
+    "text": "The dishes are clean and the floor is dry.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:60 initial values"
+    ]
+  },
+  "tiptop.the_largest_books_belong_on_top": {
+    "text": "The largest books belong on top.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:44 initial values"
+    ]
+  },
+  "tiptop.the_plant_has_silently_requested_my_attention": {
+    "text": "The plant has silently requested my attention.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:37 initial values"
+    ]
+  },
+  "tiptop.the_plant_is_healthy_and_the_floor_is_dry": {
+    "text": "The plant is healthy and the floor is dry.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:61 initial values"
+    ]
+  },
+  "tiptop.the_sheets_are_thoroughly_aerated": {
+    "text": "The sheets are thoroughly aerated.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:57 initial values"
+    ]
+  },
+  "tiptop.the_titles_belong_in_order_spines_facing_out": {
+    "text": "The titles belong in order, spines facing out.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:50 initial values"
+    ]
+  },
+  "tiptop.the_water_is_certainly_flowing_efficiently": {
+    "text": "The water is certainly flowing efficiently.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:54 initial values"
+    ]
+  },
+  "tiptop.these_books_have_rectangular_potential": {
+    "text": "These books have rectangular potential.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:38 initial values"
+    ]
+  },
+  "tiptop.these_dishes_deserve_a_fresh_start": {
+    "text": "These dishes deserve a fresh start.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:36 initial values"
+    ]
+  },
+  "tiptop.this_bed_is_refreshingly_unconventional": {
+    "text": "This bed is refreshingly unconventional.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:57 initial values"
+    ]
+  },
+  "tiptop.this_bold_new_arrangement_is_excellent": {
+    "text": "This bold new arrangement is excellent.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:56 initial values"
+    ]
+  },
+  "tiptop.tiny_airborne_intruder_detected": {
+    "text": "Tiny airborne intruder detected.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:252 _say_chore"
+    ]
+  },
+  "tiptop.tiptop_s_routines_repair_independently": {
+    "text": "TipTop's routines - repair independently",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1176 _build_repair_menu"
+    ]
+  },
+  "tiptop.upright_books_are_an_elegant_solution": {
+    "text": "Upright books are an elegant solution.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:50 initial values"
+    ]
+  },
+  "tiptop.washing": {
+    "text": "Washing...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:570 _begin_action"
+    ]
+  },
+  "tiptop.water_sink": {
+    "text": "Water / sink",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1209 _open_repair_menu"
+    ]
+  },
+  "tiptop.watering": {
+    "text": "Watering...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/tiptop.gd:570 _begin_action"
+    ]
+  }
+}

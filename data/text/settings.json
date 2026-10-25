@@ -1,0 +1,81 @@
+{
+  "settings.apartment_theme_chill_lofi_inspired_omfgdude_loop_edit_by_qubo": {
+    "text": "Apartment theme: Chill lofi inspired — omfgdude; loop edit by qubodup (CC0).",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:384 _show_settings"
+    ]
+  },
+  "settings.audio_preferences_are_saved_automatically_music_has_its_own_vo": {
+    "text": "Audio preferences are saved automatically. Music has its own volume; display scaling stays unchanged.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:383 _show_settings"
+    ]
+  },
+  "settings.bus.ambience": {
+    "text": "Ambience",
+    "variables": {},
+    "order": [],
+    "where": [
+      "title.gd:_show_settings"
+    ]
+  },
+  "settings.bus.master": {
+    "text": "Master",
+    "variables": {},
+    "order": [],
+    "where": [
+      "title.gd:_show_settings"
+    ]
+  },
+  "settings.bus.music": {
+    "text": "Music",
+    "variables": {},
+    "order": [],
+    "where": [
+      "title.gd:_show_settings"
+    ]
+  },
+  "settings.bus.sfx": {
+    "text": "SFX",
+    "variables": {},
+    "order": [],
+    "where": [
+      "title.gd:_show_settings"
+    ]
+  },
+  "settings.fullscreen": {
+    "text": "Fullscreen",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:377 _show_settings"
+    ]
+  },
+  "settings.s_d": {
+    "text": "{bus}: {volume}%",
+    "variables": {
+      "bus": "%s",
+      "volume": "%d"
+    },
+    "order": [
+      "bus",
+      "volume"
+    ],
+    "where": [
+      "scripts/title.gd:370 _show_settings",
+      "scripts/title.gd:374 _show_settings"
+    ]
+  },
+  "settings.volume": {
+    "text": " volume",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/title.gd:367 _show_settings"
+    ]
+  }
+}

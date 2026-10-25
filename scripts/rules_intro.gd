@@ -34,7 +34,7 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 7)
 	panel.add_child(column)
-	_label(column, COPY.TITLE, 11).add_theme_color_override("font_color", Color("e6b369"))
+	_label(column, GameText.get_text(COPY.TITLE), 11).add_theme_color_override("font_color", Color("e6b369"))
 	heading = _label(column, "", 13)
 	scroll = ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(314, 128)
@@ -46,15 +46,15 @@ func _ready() -> void:
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_constant_override("line_spacing", 2)
-	_label(column, COPY.HINT, 8)
+	_label(column, GameText.get_text(COPY.HINT), 8)
 	var footer := HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 6)
 	column.add_child(footer)
-	back = _button(footer, COPY.BACK, _back)
+	back = _button(footer, GameText.get_text(COPY.BACK), _back)
 	page_count = _label(footer, "", 9)
 	page_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	page_count.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	next = _button(footer, COPY.NEXT, advance)
+	next = _button(footer, GameText.get_text(COPY.NEXT), advance)
 	hide()
 
 
@@ -88,9 +88,9 @@ func open(as_review: bool = false) -> void:
 func _show_page() -> void:
 	heading.text = pages[page_index]["heading"]
 	body.text = pages[page_index]["text"]
-	page_count.text = "%d / %d" % [page_index + 1, pages.size()]
+	page_count.text = GameText.format_text("rules.page_count", [page_index + 1, pages.size()])
 	back.disabled = page_index == 0
-	next.text = (COPY.CLOSE if review else COPY.START) if page_index == pages.size() - 1 else COPY.NEXT
+	next.text = (GameText.get_text(COPY.CLOSE) if review else GameText.get_text(COPY.START)) if page_index == pages.size() - 1 else GameText.get_text(COPY.NEXT)
 	scroll.set_deferred("scroll_vertical", 0)
 	next.grab_focus.call_deferred()
 

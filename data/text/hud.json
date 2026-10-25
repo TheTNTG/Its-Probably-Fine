@@ -1,0 +1,830 @@
+{
+  "hud.a_full_session_won_t_fit_today": {
+    "text": "A full session won't fit today.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:851 _update_sidebar"
+    ]
+  },
+  "hud.am": {
+    "text": "AM",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:410 _update_clock_hud"
+    ]
+  },
+  "hud.books_block_research": {
+    "text": "! Books block research",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:861 _update_sidebar"
+    ]
+  },
+  "hud.books_scattered": {
+    "text": "Books scattered",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:838 _update_sidebar"
+    ]
+  },
+  "hud.checklist_heading": {
+    "text": "TipTop",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:728 _build_right_sidebar",
+      "scripts/hud.gd:766 _build_right_sidebar",
+      "scripts/hud_details.gd:17 initial values"
+    ]
+  },
+  "hud.checklist_pending": {
+    "text": "□ {routine}",
+    "variables": {
+      "routine": "%s"
+    },
+    "order": [
+      "routine"
+    ],
+    "where": [
+      "scripts/hud.gd:827 _update_sidebar"
+    ]
+  },
+  "hud.cleanup": {
+    "text": "Cleanup",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:795 _build_right_sidebar"
+    ]
+  },
+  "hud.clear_the_bookshelf": {
+    "text": "Clear the bookshelf.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:847 _update_sidebar"
+    ]
+  },
+  "hud.color_9dceac_s_s_s_color": {
+    "text": "[color=#9dceac]✓ [s]{routine}[/s][/color]",
+    "variables": {
+      "routine": "%s"
+    },
+    "order": [
+      "routine"
+    ],
+    "where": [
+      "scripts/hud.gd:827 _update_sidebar"
+    ]
+  },
+  "hud.continuing": {
+    "text": "Continuing...",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:335 _ready"
+    ]
+  },
+  "hud.critical": {
+    "text": "! Critical",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:901 _update_needs_ui"
+    ]
+  },
+  "hud.critical_fullness": {
+    "text": "! Critical fullness",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:898 _update_needs_ui"
+    ]
+  },
+  "hud.d": {
+    "text": " (-{penalty}%)",
+    "variables": {
+      "penalty": "%d"
+    },
+    "order": [
+      "penalty"
+    ],
+    "where": [
+      "scripts/hud.gd:901 _update_needs_ui"
+    ]
+  },
+  "hud.d_02d_s": {
+    "text": "{hour}:{minute} {period}",
+    "variables": {
+      "hour": "%d",
+      "minute": "%02d",
+      "period": "%s"
+    },
+    "order": [
+      "hour",
+      "minute",
+      "period"
+    ],
+    "where": [
+      "scripts/hud.gd:410 _update_clock_hud"
+    ]
+  },
+  "hud.d_4_repaired": {
+    "text": "{repaired} / 4 repaired",
+    "variables": {
+      "repaired": "%d"
+    },
+    "order": [
+      "repaired"
+    ],
+    "where": [
+      "scripts/hud.gd:832 _update_sidebar"
+    ]
+  },
+  "hud.day_3_showcase_reach_0f_and_repair_all_routines_e_to_interact": {
+    "text": "Day 3 showcase: reach {target}% and repair all routines.\nE to interact. Make the bed before resting.\nFour sessions/day; full sessions must fit before 8:00 PM.",
+    "variables": {
+      "target": "%.0f"
+    },
+    "order": [
+      "target"
+    ],
+    "where": [
+      "scripts/hud.gd:984 _build_loop_ui"
+    ]
+  },
+  "hud.day_d": {
+    "text": "Day {day}",
+    "variables": {
+      "day": "%d"
+    },
+    "order": [
+      "day"
+    ],
+    "where": [
+      "scripts/hud.gd:430 _update_hud",
+      "scripts/hud.gd:1120 _play_day_transition"
+    ]
+  },
+  "hud.day_d_complete_8_00_pm_research_1f_showcase_deadline_day_3_8_0": {
+    "text": "Day {day} complete — 8:00 PM\nResearch: {progress}%\nShowcase deadline: Day 3, 8:00 PM",
+    "variables": {
+      "day": "%d",
+      "progress": "%.1f"
+    },
+    "order": [
+      "day",
+      "progress"
+    ],
+    "where": [
+      "scripts/hud.gd:445 _update_hud"
+    ]
+  },
+  "hud.dh_02dm": {
+    "text": "{hours}h {minutes}m",
+    "variables": {
+      "hours": "%d",
+      "minutes": "%02d"
+    },
+    "order": [
+      "hours",
+      "minutes"
+    ],
+    "where": [
+      "scripts/hud.gd:885 _minutes_text"
+    ]
+  },
+  "hud.dh_02dm_left": {
+    "text": "{hours}h {minutes}m left",
+    "variables": {
+      "hours": "%d",
+      "minutes": "%02d"
+    },
+    "order": [
+      "hours",
+      "minutes"
+    ],
+    "where": [
+      "scripts/hud.gd:412 _update_clock_hud"
+    ]
+  },
+  "hud.e_enter_next": {
+    "text": "E / Enter - Next",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1545 _build_dialogue_ui"
+    ]
+  },
+  "hud.e_interact_esc_pause": {
+    "text": "E   Interact\nESC Pause",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:970 _build_loop_ui"
+    ]
+  },
+  "hud.eat_before_researching": {
+    "text": "Eat before researching.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:845 _update_sidebar"
+    ]
+  },
+  "hud.eat_before_your_next_session": {
+    "text": "Eat before your next session.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:853 _update_sidebar"
+    ]
+  },
+  "hud.eat_soon": {
+    "text": "! Eat soon",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:865 _update_sidebar"
+    ]
+  },
+  "hud.eating": {
+    "text": "Eating",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:795 _build_right_sidebar",
+      "scripts/hud.gd:1387 _update_activity_controls"
+    ]
+  },
+  "hud.efficiency": {
+    "text": "Efficiency",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:770 _build_right_sidebar"
+    ]
+  },
+  "hud.exit_tutorial": {
+    "text": "Exit Tutorial",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1583 _build_pause_menu",
+      "scripts/tutorial.gd:68 _ready"
+    ]
+  },
+  "hud.food_d_yield": {
+    "text": "Food: -{penalty}% yield",
+    "variables": {
+      "penalty": "%d"
+    },
+    "order": [
+      "penalty"
+    ],
+    "where": [
+      "scripts/hud.gd:836 _update_sidebar"
+    ]
+  },
+  "hud.food_d_yield_meals_40_food_10_mood": {
+    "text": "Food: -{penalty}% yield. Meals: +40 food, +10 Mood.",
+    "variables": {
+      "penalty": "%d"
+    },
+    "order": [
+      "penalty"
+    ],
+    "where": [
+      "scripts/hud.gd:907 _update_needs_ui"
+    ]
+  },
+  "hud.full_d": {
+    "text": "Full: {fullness}%",
+    "variables": {
+      "fullness": "%d"
+    },
+    "order": [
+      "fullness"
+    ],
+    "where": [
+      "scripts/hud.gd:889 _update_needs_ui"
+    ]
+  },
+  "hud.fullness": {
+    "text": "Fullness",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:543 _build_needs_ui",
+      "scripts/hud.gd:809 _build_right_sidebar"
+    ]
+  },
+  "hud.fullness_must_exceed_20": {
+    "text": "Fullness must exceed 20",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:836 _update_sidebar"
+    ]
+  },
+  "hud.game_saved": {
+    "text": "Game saved.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:2014 _manual_save"
+    ]
+  },
+  "hud.leisure": {
+    "text": "Leisure",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:795 _build_right_sidebar"
+    ]
+  },
+  "hud.low_mood": {
+    "text": " / Low Mood",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:905 _update_needs_ui"
+    ]
+  },
+  "hud.meal_30_min_40_food_10_mood_counts_as_a_break": {
+    "text": "Meal: 30 min, +40 food, +10 Mood. Counts as a break.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:812 _build_right_sidebar"
+    ]
+  },
+  "hud.misc": {
+    "text": "Misc",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:795 _build_right_sidebar"
+    ]
+  },
+  "hud.monday": {
+    "text": "Monday",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:434 _update_hud",
+      "scripts/hud.gd:949 _build_loop_ui"
+    ]
+  },
+  "hud.mood": {
+    "text": "Mood",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:543 _build_needs_ui",
+      "scripts/hud.gd:810 _build_right_sidebar"
+    ]
+  },
+  "hud.mood_below_45": {
+    "text": "Mood below 45",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:839 _update_sidebar"
+    ]
+  },
+  "hud.mood_below_45_take_a_leisure_break": {
+    "text": "Mood below 45. Take a leisure break.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:908 _update_needs_ui"
+    ]
+  },
+  "hud.mood_blocks_research": {
+    "text": "! Mood blocks research",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:863 _update_sidebar"
+    ]
+  },
+  "hud.mood_d": {
+    "text": "Mood: {mood}%",
+    "variables": {
+      "mood": "%d"
+    },
+    "order": [
+      "mood"
+    ],
+    "where": [
+      "scripts/hud.gd:890 _update_needs_ui"
+    ]
+  },
+  "hud.mood_steady": {
+    "text": " / Mood steady",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:905 _update_needs_ui"
+    ]
+  },
+  "hud.needs": {
+    "text": "Needs",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:728 _build_right_sidebar",
+      "scripts/hud.gd:766 _build_right_sidebar",
+      "scripts/hud_details.gd:17 initial values"
+    ]
+  },
+  "hud.next_day": {
+    "text": "Next day",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:446 _update_hud"
+    ]
+  },
+  "hud.not_enough_work_time": {
+    "text": "! Not enough work time",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:867 _update_sidebar"
+    ]
+  },
+  "hud.paused": {
+    "text": "Paused",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1582 _build_pause_menu"
+    ]
+  },
+  "hud.percentage": {
+    "text": "{value}%",
+    "variables": {
+      "value": "%d"
+    },
+    "order": [
+      "value"
+    ],
+    "where": [
+      "scripts/hud.gd:897 _update_needs_ui",
+      "scripts/hud.gd:903 _update_needs_ui",
+      "scripts/hud.gd:904 _update_needs_ui"
+    ]
+  },
+  "hud.pm": {
+    "text": "PM",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:410 _update_clock_hud"
+    ]
+  },
+  "hud.push_through_20": {
+    "text": "Push-through: -20%",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:840 _update_sidebar"
+    ]
+  },
+  "hud.push_through_20_2": {
+    "text": "Push through (-20%)",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:896 _update_needs_ui"
+    ]
+  },
+  "hud.push_through_20_yield": {
+    "text": "Push-through: -20% yield.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:908 _update_needs_ui"
+    ]
+  },
+  "hud.ready_for_research": {
+    "text": "Ready for research",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:896 _update_needs_ui"
+    ]
+  },
+  "hud.repairs": {
+    "text": "Repairs",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:795 _build_right_sidebar"
+    ]
+  },
+  "hud.research_1f": {
+    "text": "Research: {progress}%",
+    "variables": {
+      "progress": "%.1f"
+    },
+    "order": [
+      "progress"
+    ],
+    "where": [
+      "scripts/hud.gd:432 _update_hud"
+    ]
+  },
+  "hud.research_blocked": {
+    "text": "Research blocked",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:834 _update_sidebar"
+    ]
+  },
+  "hud.research_heading": {
+    "text": "Research",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:242 household_choices",
+      "scripts/hud.gd:728 _build_right_sidebar",
+      "scripts/hud.gd:766 _build_right_sidebar",
+      "scripts/hud.gd:795 _build_right_sidebar",
+      "scripts/hud_details.gd:17 initial values",
+      "scripts/title.gd:264 _show_help"
+    ]
+  },
+  "hud.research_underway": {
+    "text": "Research underway",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:834 _update_sidebar"
+    ]
+  },
+  "hud.rest_for_more_sessions": {
+    "text": "Rest for more sessions.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:843 _update_sidebar"
+    ]
+  },
+  "hud.rest_needed_45": {
+    "text": "Rest needed (<45)",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:896 _update_needs_ui"
+    ]
+  },
+  "hud.restart_replaces_save": {
+    "text": "Restart (replaces save)",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1583 _build_pause_menu"
+    ]
+  },
+  "hud.restart_tutorial": {
+    "text": "Restart Tutorial",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1583 _build_pause_menu"
+    ]
+  },
+  "hud.resume": {
+    "text": "Resume",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1583 _build_pause_menu"
+    ],
+    "audio_cue": "resume"
+  },
+  "hud.return_to_main_menu": {
+    "text": "Return to Main Menu",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1583 _build_pause_menu"
+    ],
+    "audio_cue": "cancel"
+  },
+  "hud.s_research_0f_min_0f_repair_d_min_0f": {
+    "text": "{description}\nResearch {research_duration} min / +{research_reward}%; repair {repair_duration} min / +{repair_reward}%.",
+    "variables": {
+      "description": "%s",
+      "research_duration": "%.0f",
+      "research_reward": "%.0f",
+      "repair_duration": "%d",
+      "repair_reward": "%.0f"
+    },
+    "order": [
+      "description",
+      "research_duration",
+      "research_reward",
+      "repair_duration",
+      "repair_reward"
+    ],
+    "where": [
+      "scripts/hud.gd:1021 _choose_difficulty"
+    ]
+  },
+  "hud.save_game": {
+    "text": "Save Game",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1583 _build_pause_menu"
+    ]
+  },
+  "hud.shader_type_canvas_item_void_fragment_vec4_pixel_texture_textu": {
+    "text": "shader_type canvas_item; void fragment() { vec4 pixel = texture(TEXTURE, UV); if (UV.x < 0.31) { pixel.a = 0.0; } COLOR = pixel; }",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:1502 _build_dialogue_ui"
+    ]
+  },
+  "hud.showcase": {
+    "text": "Showcase",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:446 _update_hud",
+      "scripts/hud.gd:1120 _play_day_transition"
+    ]
+  },
+  "hud.showcase_in_dh_02dm_playable": {
+    "text": "Showcase in\n{hours}h {minutes}m playable",
+    "variables": {
+      "hours": "%d",
+      "minutes": "%02d"
+    },
+    "order": [
+      "hours",
+      "minutes"
+    ],
+    "where": [
+      "scripts/hud.gd:421 _update_clock_hud"
+    ]
+  },
+  "hud.start": {
+    "text": "Start",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:990 _build_loop_ui"
+    ]
+  },
+  "hud.take_a_coffee_table_break": {
+    "text": "Take a coffee-table break.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:849 _update_sidebar"
+    ]
+  },
+  "hud.tap_half_reward": {
+    "text": "Tap: half reward",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:837 _update_sidebar"
+    ]
+  },
+  "hud.target_0f": {
+    "text": "Target: {target}%",
+    "variables": {
+      "target": "%.0f"
+    },
+    "order": [
+      "target"
+    ],
+    "where": [
+      "scripts/hud.gd:708 _build_right_sidebar"
+    ]
+  },
+  "hud.time_usage": {
+    "text": "Time Usage",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:728 _build_right_sidebar",
+      "scripts/hud.gd:766 _build_right_sidebar",
+      "scripts/hud_details.gd:17 initial values"
+    ]
+  },
+  "hud.tiptop_d_4_fixed": {
+    "text": "TipTop: {repaired}/4 fixed",
+    "variables": {
+      "repaired": "%d"
+    },
+    "order": [
+      "repaired"
+    ],
+    "where": [
+      "scripts/hud.gd:831 _update_sidebar"
+    ]
+  },
+  "hud.tiptop_mosquito_removal_requested_on_my_way": {
+    "text": "Mosquito removal requested. On my way!",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:295 _request_swatter"
+    ],
+    "tags": [
+      "mosquito"
+    ],
+    "speaker": "TipTop"
+  },
+  "hud.tiptop_no_airborne_intruders_detected": {
+    "text": "No airborne intruders detected.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/game_state.gd:162 request_mosquito_batch",
+      "scripts/hud.gd:292 _request_swatter"
+    ],
+    "speaker": "TipTop"
+  },
+  "hud.too_hungry_to_start_research_eat_40_food_10_mood": {
+    "text": "Too hungry to start research. Eat: +40 food, +10 Mood.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:907 _update_needs_ui"
+    ]
+  },
+  "hud.too_hungry_to_work": {
+    "text": "! Too hungry to work",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:859 _update_sidebar"
+    ]
+  },
+  "hud.total": {
+    "text": "Total: ",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:880 _update_sidebar"
+    ]
+  },
+  "hud.tuesday": {
+    "text": "Tuesday",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:434 _update_hud"
+    ]
+  },
+  "hud.turn_off_the_tap": {
+    "text": "Turn off the tap.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:855 _update_sidebar"
+    ]
+  },
+  "hud.wednesday": {
+    "text": "Wednesday",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:434 _update_hud"
+    ]
+  },
+  "hud.work_sessions_d_4": {
+    "text": "Work sessions: {sessions} / 4",
+    "variables": {
+      "sessions": "%d"
+    },
+    "order": [
+      "sessions"
+    ],
+    "where": [
+      "scripts/hud.gd:433 _update_hud"
+    ]
+  },
+  "hud.your_desk_is_ready": {
+    "text": "Your desk is ready.",
+    "variables": {},
+    "order": [],
+    "where": [
+      "scripts/hud.gd:841 _update_sidebar"
+    ]
+  }
+}
